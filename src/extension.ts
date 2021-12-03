@@ -105,6 +105,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 			// Clear output before beginning
 			output.clear();
+			output.show();
 
 			// check if directory in $HOME exists
 			await vscode.workspace.fs.stat(toolsdir).then(
@@ -121,186 +122,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			// Promisified exec
 			let exec = util.promisify(cp.exec);
 
-			console.log("env" + JSON.stringify(config.env));
-
-			// TODO: download dependenices first!
-
-			// Check if Git exists in path
-			let res: boolean = await exec("git --version", { env: config.env }).then(value => {
-				output.append(value.stdout);
-				output.append(value.stderr);
-				output.appendLine("[SETUP] git installed");
-				output.show();
-				return true;
-			}, (reason) => {
-				output.appendLine("[SETUP] git is not found");
-				output.append(reason);
-
-				switch (platform) {
-					case "darwin":
-						output.appendLine("[SETUP] use `brew` to install `git`");
-						output.appendLine("[SETUP] Install `brew` first: https://brew.sh");
-						output.appendLine("[SETUP] Then run `brew install git`");
-						break;
-					case "linux":
-						output.appendLine("[SETUP] refer to your distros preferred `git` install method.");
-						break;
-					default:
-						break;
-				}
-
-				output.show();
-
-				// Error message
-				vscode.window.showErrorMessage('Unable to continue. Git not installed. Check output for more info.');
-				return false;
-			});
-
-			// Return if error
-			if (!res) {
-				return;
-			}
-
-
-			// Download python if platform is windows
-			if (platform == "win32") {
-				// TODO: download standalone version of python 
-				// TODO: add to path to env
-			} else {
-
-				// Otherwise, check Python install
-				res = await exec("python3 --version", { env: config.env }).then(value => {
-
-					if (value.stdout.includes("Python 3")) {
-						output.appendLine("[SETUP] python3 found");
-					} else {
-						output.appendLine("[SETUP] python3 not found");
-
-						switch (platform) {
-							case "darwin":
-								output.appendLine("[SETUP] use `brew` to install `python3`");
-								output.appendLine("[SETUP] Install `brew` first: https://brew.sh");
-								output.appendLine("[SETUP] Then run `brew install python3`");
-								break;
-							case "linux":
-								output.appendLine("[SETUP] refer to your distros preferred `python3` install method.");
-								break;
-							default:
-								break;
-						}
-
-						output.show();
-
-						vscode.window.showErrorMessage('Error finding python. Check output for more info.');
-						return false;
-					}
-
-					output.show();
-					return true;
-				}, (reason) => {
-					output.append(reason.stderr);
-					console.error(reason);
-					output.show();
-
-					// Error message
-					vscode.window.showErrorMessage('Error getting python. Check output for more info.');
-					return false;
-				});
-
-				// Return if error
-				if (!res) {
-					return;
-				}
-
-			}
-
-			progress.report({ increment: 2 });
-
-			// install pip (if not already)
-			res = await exec("python3 -m ensurepip", { env: config.env }).then(value => {
-				output.append(value.stdout);
-				output.append(value.stderr);
-				output.appendLine("[SETUP] pip installed");
-				output.show();
-
-				return true;
-			}, (reason) => {
-				output.appendLine("[SETUP] unable to install pip");
-				output.append(reason);
-				output.show();
-
-				// Error message
-				vscode.window.showErrorMessage('Error installing pip. Check output for more info.');
-
-				return false;
-			});
-
-			// Return if error
-			if (!res) {
-				return;
-			}
-
-			progress.report({ increment: 3 });
-
-			// install virtualenv
-			res = await exec("python3 -m pip install --user virtualenv", { env: config.env }).then(value => {
-				output.append(value.stdout);
-				output.append(value.stderr);
-				output.appendLine("[SETUP] virtualenv installed");
-				output.show();
-				return true;
-			}, (reason) => {
-				output.appendLine("[SETUP] unable to install virtualenv");
-				output.append(reason);
-				output.show();
-
-				// Error message
-				vscode.window.showErrorMessage('Error installing virtualenv. Check output for more info.');
-				return false;
-			});
-
-			// Return if error
-			if (!res) {
-				return;
-			}
-
-			progress.report({ increment: 4 });
-
-			// create virtualenv within `$HOME/.zephyrtools`
-			let uri = vscode.Uri.joinPath(toolsdir, "env");
-
-			console.log("path: " + uri.fsPath);
-
-			res = await exec(`python3 -m virtualenv ${uri.fsPath}`, { env: config.env }).then(value => {
-				output.append(value.stdout);
-				output.append(value.stderr);
-				output.appendLine("[SETUP] virtual python environment created");
-				output.show();
-				return true;
-			}, (reason) => {
-				output.appendLine("[SETUP] unable to setup virtualenv");
-				output.append(reason);
-				output.show();
-
-				// Error message
-				vscode.window.showErrorMessage('Error installing virtualenv. Check output for more info.');
-				return false;
-			});
-
-			// Return if error
-			if (!res) {
-				return;
-			}
-
-			// Add env/bin to path
-			const envpath = vscode.Uri.joinPath(uri, "bin:" + config.env["PATH"]);
-			config.env["PATH"] = envpath.fsPath;
-
-			console.log(config.env["PATH"]);
-
-			progress.report({ increment: 5 });
-
-			// Downloader
+			// Download dependenices first!
 			const fileDownloader: downloader.FileDownloader = await downloader.getApi();
 
 			for (const [key, value] of Object.entries(manifest)) {
@@ -324,14 +146,14 @@ export async function activate(context: vscode.ExtensionContext) {
 								// Download if doesn't exist
 								if (filepath == null) {
 									output.appendLine("[SETUP] downloading " + download.url);
-									output.show();
+
 
 									filepath = await fileDownloader.downloadFile(
 										vscode.Uri.parse(download.url),
 										download.filename,
 										context,
-									/* cancellationToken */ undefined,
-									/* progressCallback */ undefined,
+						/* cancellationToken */ undefined,
+						/* progressCallback */ undefined,
 										{ shouldUnzip: shouldUnzip }
 									);
 								}
@@ -363,16 +185,14 @@ export async function activate(context: vscode.ExtensionContext) {
 									const cmd = `tar -xvf "${filepath.fsPath}" -C "${copytopath.fsPath}"`;
 
 									output.appendLine("[SETUP] extracting " + filepath.fsPath);
-									output.show();
 
-									res = await exec(cmd, { env: config.env }).then(value => {
+
+									let res = await exec(cmd, { env: config.env }).then(value => {
 										output.append(value.stdout);
 										output.append(value.stderr);
-										output.show();
 										return true;
 									}, (reason) => {
 										output.append(reason);
-										output.show();
 
 										// Error message
 										vscode.window.showErrorMessage('Error un-tar of download. Check output for more info.');
@@ -414,39 +234,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
 					progress.report({ increment: 50 });
 
-					// Install `west`
-					res = await exec(`python3 -m pip install west`, { env: config.env }).then(value => {
-						output.append(value.stdout);
-						output.append(value.stderr);
-						output.appendLine("[SETUP] west installed");
-						output.show();
-						return true;
-					}, (reason) => {
-						output.appendLine("[SETUP] unable to install west");
-						output.append(reason);
-						output.show();
-
-						// Error message
-						vscode.window.showErrorMessage('Error installing west. Check output for more info.');
-						return false;
-					});
-
-					// Return if error
-					if (!res) {
-						return;
-					}
-
-					progress.report({ increment: 75 });
-
-
-					// TODO: Set the various environment variables 
-					// config.env["GIT_EXEC_PATH"] = `${paths[platform]}/toolchain/Cellar/git/${gitversion}/libexec/git-core`
-					config.env["ZEPHYR_TOOLCHAIN_VARIANT"] = `gnuarmemb`;
-					// TODO: double check this is platform agnostic
-					config.env["GNUARMEMB_TOOLCHAIN_PATH"] = vscode.Uri.joinPath(toolsdir, 'toolchain/gcc-arm-none-eabi-9-2019-q4-major').fsPath;
-
-					console.log("env: " + JSON.stringify(config));
-
 					// Break from loop since we found the correct platform
 					break;
 
@@ -458,12 +245,198 @@ export async function activate(context: vscode.ExtensionContext) {
 
 					if (last == key) {
 						vscode.window.showErrorMessage('Unsupported platform for Zephyr Tools!');
+						return;
 					}
 				}
 			}
 
+
+			// Check if Git exists in path
+			let res: boolean = await exec("git --version", { env: config.env }).then(value => {
+				output.append(value.stdout);
+				output.append(value.stderr);
+				output.appendLine("[SETUP] git installed");
+				return true;
+			}, (reason) => {
+				output.appendLine("[SETUP] git is not found");
+				output.append(reason);
+
+				switch (platform) {
+					case "darwin":
+						output.appendLine("[SETUP] use `brew` to install `git`");
+						output.appendLine("[SETUP] Install `brew` first: https://brew.sh");
+						output.appendLine("[SETUP] Then run `brew install git`");
+						break;
+					case "linux":
+						output.appendLine("[SETUP] refer to your distros preferred `git` install method.");
+						break;
+					default:
+						break;
+				}
+
+				// Error message
+				vscode.window.showErrorMessage('Unable to continue. Git not installed. Check output for more info.');
+				return false;
+			});
+
+			// Return if error
+			if (!res) {
+				return;
+			}
+
+			progress.report({ increment: 55 });
+
+			// Otherwise, check Python install
+			res = await exec("python3 --version", { env: config.env }).then(value => {
+
+				if (value.stdout.includes("Python 3")) {
+					output.appendLine("[SETUP] python3 found");
+				} else {
+					output.appendLine("[SETUP] python3 not found");
+
+					switch (platform) {
+						case "darwin":
+							output.appendLine("[SETUP] use `brew` to install `python3`");
+							output.appendLine("[SETUP] Install `brew` first: https://brew.sh");
+							output.appendLine("[SETUP] Then run `brew install python3`");
+							break;
+						case "linux":
+							output.appendLine("[SETUP] refer to your distros preferred `python3` install method.");
+							break;
+						default:
+							break;
+					}
+
+					vscode.window.showErrorMessage('Error finding python. Check output for more info.');
+					return false;
+				}
+
+				return true;
+			}, (reason) => {
+				output.append(reason.stderr);
+				console.error(reason);
+
+				// Error message
+				vscode.window.showErrorMessage('Error getting python. Check output for more info.');
+				return false;
+			});
+
+			// Return if error
+			if (!res) {
+				return;
+			}
+
+			progress.report({ increment: 60 });
+
+			// install pip (if not already)
+			res = await exec("python3 -m ensurepip", { env: config.env }).then(value => {
+				output.append(value.stdout);
+				output.append(value.stderr);
+				output.appendLine("[SETUP] pip installed");
+
+				return true;
+			}, (reason) => {
+				output.appendLine("[SETUP] unable to install pip");
+				output.append(reason);
+
+				// Error message
+				vscode.window.showErrorMessage('Error installing pip. Check output for more info.');
+
+				return false;
+			});
+
+			// Return if error
+			if (!res) {
+				return;
+			}
+
+			progress.report({ increment: 65 });
+
+			// install virtualenv
+			res = await exec("python3 -m pip install virtualenv", { env: config.env }).then(value => {
+				output.append(value.stdout);
+				output.append(value.stderr);
+				output.appendLine("[SETUP] virtualenv installed");
+				return true;
+			}, (reason) => {
+				output.appendLine("[SETUP] unable to install virtualenv");
+				output.append(reason);
+
+				// Error message
+				vscode.window.showErrorMessage('Error installing virtualenv. Check output for more info.');
+				return false;
+			});
+
+			// Return if error
+			if (!res) {
+				return;
+			}
+
+			progress.report({ increment: 70 });
+
+			// create virtualenv within `$HOME/.zephyrtools`
+			let uri = vscode.Uri.joinPath(toolsdir, "env");
+
+			console.log("path: " + uri.fsPath);
+
+			res = await exec(`python3 -m virtualenv ${uri.fsPath}`, { env: config.env }).then(value => {
+				output.append(value.stdout);
+				output.append(value.stderr);
+				output.appendLine("[SETUP] virtual python environment created");
+				return true;
+			}, (reason) => {
+				output.appendLine("[SETUP] unable to setup virtualenv");
+				output.append(reason);
+
+				// Error message
+				vscode.window.showErrorMessage('Error installing virtualenv. Check output for more info.');
+				return false;
+			});
+
+			// Return if error
+			if (!res) {
+				return;
+			}
+
+			// Report progress
+			progress.report({ increment: 80 });
+
+			// Add env/bin to path
+			const envpath = vscode.Uri.joinPath(uri, "bin:" + config.env["PATH"]);
+			config.env["PATH"] = envpath.fsPath;
+
+			// Install `west`
+			res = await exec(`python3 -m pip install west`, { env: config.env }).then(value => {
+				output.append(value.stdout);
+				output.append(value.stderr);
+				output.appendLine("[SETUP] west installed");
+				return true;
+			}, (reason) => {
+				output.appendLine("[SETUP] unable to install west");
+				output.append(reason);
+
+				// Error message
+				vscode.window.showErrorMessage('Error installing west. Check output for more info.');
+				return false;
+			});
+
+			// Return if error
+			if (!res) {
+				return;
+			}
+
+			progress.report({ increment: 90 });
+
+
+			// TODO: Set the various environment variables 
+			// config.env["GIT_EXEC_PATH"] = `${paths[platform]}/toolchain/Cellar/git/${gitversion}/libexec/git-core`
+			config.env["ZEPHYR_TOOLCHAIN_VARIANT"] = `gnuarmemb`;
+			// TODO: double check this is platform agnostic
+			config.env["GNUARMEMB_TOOLCHAIN_PATH"] = vscode.Uri.joinPath(toolsdir, 'toolchain/gcc-arm-none-eabi-9-2019-q4-major').fsPath;
+
+			console.log("env: " + JSON.stringify(config));
+
 			output.appendLine("[SETUP] Zephyr setup complete!");
-			output.show();
 
 			// Setup flag complete
 			config.setup = true;
@@ -967,7 +940,7 @@ async function update(config: GlobalConfig, project: ProjectConfig) {
 		rootPath = rootPaths[0].uri;
 	}
 
-	// Options for SehllExecution
+	// Options for Shell Execution
 	let options: vscode.ShellExecutionOptions = {
 		executable: "bash",
 		shellArgs: ["-c"],
