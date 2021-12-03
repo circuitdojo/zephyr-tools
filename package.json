@@ -18,7 +18,8 @@
     "onCommand:zephyr-tools.flash",
     "onCommand:zephyr-tools.load",
     "onCommand:zephyr-tools.init-repo",
-    "onCommand:zephyr-tools.clean"
+    "onCommand:zephyr-tools.clean",
+    "onCommand:zephyr-tools.update"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -58,6 +59,10 @@
       {
         "command": "zephyr-tools.clean",
         "title": "Zephyr Tools: Clean"
+      },
+      {
+        "command": "zephyr-tools.update",
+        "title": "Zephyr Tools: Update Dependencies"
       }
     ]
   },
