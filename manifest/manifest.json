@@ -1,23 +1,45 @@
 {
     "win32": [
         {
-            "arch": "i386"
-        },
-        {
-            "arch": "amd64"
+            "arch": "x64",
+            "downloads": [
+                {
+                    "name": "python",
+                    "filename": "python-3.9.9-embed-amd64.zip",
+                    "url": "https://www.python.org/ftp/python/3.9.9/python-3.9.9-embed-amd64.zip",
+                    "md5": ""
+                },
+                {
+                    "name": "git",
+                    "filename": "python-3.9.9-embed-amd64.zip",
+                    "url": "https://www.python.org/ftp/python/3.9.9/python-3.9.9-embed-amd64.zip",
+                    "md5": "",
+                    "suffix": "cmake-3.22.0-windows-x86_64\\bin\\"
+                },
+                {
+                    "name": "ninja",
+                    "filename": "ninja-win.zip",
+                    "url": "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip",
+                    "md5": ""
+                },
+                {
+                    "name": "cmake",
+                    "filename": "cmake-3.22.0-windows-x86_64.zip",
+                    "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-windows-x86_64.zip",
+                    "md5": "",
+                    "suffix": "cmake-3.22.0-windows-x86_64\\bin\\"
+                },
+                {
+                    "name": "toolchain",
+                    "filename": "gcc-arm-none-eabi-9-2019-q4-major-win32.zip",
+                    "url": "https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-win32.zip",
+                    "md5": "",
+                    "suffix": "gcc-arm-none-eabi-9-2019-q4-major-win32\\bin\\"
+                }
+            ]
         }
     ],
     "darwin": [
-        {
-            "arch": "arm",
-            "downloads": [
-                {
-                    "name": "ninja",
-                    "url": "test.com",
-                    "md5": "1234HASH"
-                }
-            ]
-        },
         {
             "arch": "x64",
             "downloads": [
@@ -46,7 +68,7 @@
     ],
     "linux": [
         {
-            "arch": "arm"
+            "arch": "x64"
         }
     ]
 }

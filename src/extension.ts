@@ -5,7 +5,6 @@ import * as cp from 'child_process';
 import * as util from 'util';
 import * as os from 'os';
 import * as downloader from "@microsoft/vscode-file-downloader-api";
-import { rootCertificates } from 'tls';
 
 type ManifestDownloadEntry = {
 	name: string;
@@ -32,6 +31,12 @@ const manifest: Manifest = require("../manifest/manifest.json");
 // Ignore list
 let ignore = [".git", ".vscode", "build"];
 
+// Platform
+let platform: NodeJS.Platform = os.platform();
+
+// Arch
+let arch: string = os.arch();
+
 // Important directories
 let homedir = os.homedir();
 let toolsdir = vscode.Uri.joinPath(vscode.Uri.parse(homedir), ".zephyrtools");
@@ -56,14 +61,8 @@ interface GlobalConfig {
 	env: { [name: string]: string | undefined };
 }
 
-// Platform
-let platform: NodeJS.Platform;
-
-// Arch
-let arch: string;
-
 // Output Channel
-let output: vscode.OutputChannel
+let output: vscode.OutputChannel;
 
 // Terminal
 let terminal: vscode.Terminal;
@@ -74,10 +73,6 @@ let config: GlobalConfig;
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
-
-	// Get the OS info
-	platform = os.platform();
-	arch = os.arch();
 
 	// Get the configuration
 	config = context.globalState.get("zephyr.env") ?? { env: process.env, setup: false };
@@ -99,7 +94,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			});
 
 			// Create & clear output
-			if (output == undefined) {
+			if (output === undefined) {
 				output = vscode.window.createOutputChannel("Zephyr Tools");
 			}
 
@@ -110,7 +105,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			// check if directory in $HOME exists
 			await vscode.workspace.fs.stat(toolsdir).then(
 				(value: vscode.FileStat) => {
-					console.log("toolsdir found")
+					console.log("toolsdir found");
 				},
 				async (reason: any) => {
 					// Otherwise create home directory
@@ -126,11 +121,11 @@ export async function activate(context: vscode.ExtensionContext) {
 			const fileDownloader: downloader.FileDownloader = await downloader.getApi();
 
 			for (const [key, value] of Object.entries(manifest)) {
-				if (platform == key) {
+				if (platform === key) {
 					// For loop to process entry in manifest.json
 					inner: for (const [index, element] of value.entries()) {
 						// Confirm it's the correct architecture 
-						if (element.arch == arch) {
+						if (element.arch === arch) {
 							for (var download of element.downloads) {
 
 								console.log(download.url);
@@ -144,7 +139,7 @@ export async function activate(context: vscode.ExtensionContext) {
 								let filepath = await fileDownloader.getItem(download.filename, context).then((value) => value, (reason) => null);
 
 								// Download if doesn't exist
-								if (filepath == null) {
+								if (filepath === null) {
 									output.appendLine("[SETUP] downloading " + download.url);
 
 
@@ -173,7 +168,7 @@ export async function activate(context: vscode.ExtensionContext) {
 									// Create copy to folder
 									await vscode.workspace.fs.stat(copytopath).then(
 										(value: vscode.FileStat) => {
-											console.log("copytopath found")
+											console.log("copytopath found");
 										},
 										async (reason: any) => {
 											// Otherwise create home directory
@@ -486,16 +481,17 @@ export async function activate(context: vscode.ExtensionContext) {
 
 			// Open file picker for destination directory
 			let dest = await vscode.window.showOpenDialog(dialogOptions);
-			if (dest == undefined)
+			if (dest === undefined) {
 				return;
+			}
 
 			// TODO: determine App destinationa
 			let appDest = vscode.Uri.joinPath(dest[0], "app");
 
 			// Check if .git is already here.
 			let exists = await vscode.workspace.fs.stat(vscode.Uri.joinPath(appDest, ".git")).then(
-				(value) => { return true },
-				(reason) => { return false });
+				(value) => { return true; },
+				(reason) => { return false; });
 
 			if (!exists) {
 
@@ -508,8 +504,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
 				// Prompt for URL to init..
 				let url = await vscode.window.showInputBox(inputOptions);
-				if (url == undefined)
+				if (url === undefined) {
 					return;
+				}
 
 				// git clone to destination
 				let cmd = `git clone ${url} ${appDest.fsPath}`;
@@ -559,7 +556,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			if (typeof error === "string") {
 				text = error;
 			} else if (error instanceof Error) {
-				text = error.message
+				text = error.message;
 			}
 
 			output.append(text);
@@ -599,7 +596,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		// TODO: scan for available ports
 		// TODO: show list and selection dialogue 
 		// TODO: save to configuration
-		console.log("TODO")
+		console.log("TODO");
 	}));
 
 	// Does a pristine zephyr build
@@ -608,9 +605,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Fetch the project config
 		let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? {};
 
-		if (config.setup && project != {}) {
+		if (config.setup && project !== {}) {
 			await build(config, project, true, context);
-		} else if (project == {}) {
+		} else if (project === {}) {
 			vscode.window.showErrorMessage('Run `Zephyr Tools: Init Project` command before building.');
 		} else {
 			// Display an error message box to the user
@@ -754,7 +751,7 @@ async function flash(config: GlobalConfig, project: ProjectConfig) {
 		});
 
 		progress.report({ increment: 100 });
-		output.dispose()
+		output.dispose();
 	});
 
 }
@@ -770,8 +767,9 @@ async function getBoardlist(folder: vscode.Uri): Promise<string[]> {
 		let file = files.pop();
 
 		// Stop looping once done.
-		if (file == undefined)
+		if (file == undefined) {
 			break;
+		}
 
 		if (file[0].includes(".yaml")) {
 
@@ -809,8 +807,9 @@ async function getProjectList(folder: vscode.Uri): Promise<string[]> {
 		let file = files.pop();
 
 		// Stop looping once done.
-		if (file == undefined)
+		if (file == undefined) {
 			break;
+		}
 
 		if (file[0].includes("CMakeLists.txt")) {
 
@@ -879,7 +878,7 @@ async function changeProject(config: GlobalConfig, context: vscode.ExtensionCont
 	}
 
 	// Find all CMakeLists.txt files with `project(` in them
-	let files = await getProjectList(vscode.Uri.joinPath(rootPath, res.stdout.trim()))
+	let files = await getProjectList(vscode.Uri.joinPath(rootPath, res.stdout.trim()));
 	console.log(files);
 
 	// Turn that into a project selection 
@@ -946,7 +945,7 @@ async function update(config: GlobalConfig, project: ProjectConfig) {
 		shellArgs: ["-c"],
 		env: <{ [key: string]: string; }>config.env,
 		cwd: rootPath.fsPath,
-	}
+	};
 
 	// Tasks
 	let taskName = "Zephyr Tools: Update Dependencies";
@@ -995,7 +994,7 @@ async function build(config: GlobalConfig, project: ProjectConfig, pristine: boo
 		executable: "bash",
 		shellArgs: ["-c"],
 		env: <{ [key: string]: string; }>config.env
-	}
+	};
 
 	// Tasks
 	let taskName = "Zephyr Tools: Build";
