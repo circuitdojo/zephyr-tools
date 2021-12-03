@@ -112,7 +112,7 @@ export async function activate(context: vscode.ExtensionContext) {
 					await vscode.workspace.fs.createDirectory(toolsdir);
 				});
 
-			progress.report({ increment: 1 });
+			progress.report({ increment: 5 });
 
 			// Promisified exec
 			let exec = util.promisify(cp.exec);
@@ -213,7 +213,7 @@ export async function activate(context: vscode.ExtensionContext) {
 								const envpath = vscode.Uri.joinPath(setpath, ":" + config.env["PATH"]);
 								config.env["PATH"] = envpath.fsPath;
 
-								console.log(config.env);
+								progress.report({ increment: 5 });
 
 							};
 
@@ -227,7 +227,7 @@ export async function activate(context: vscode.ExtensionContext) {
 						}
 					}
 
-					progress.report({ increment: 50 });
+					progress.report({ increment: 5 });
 
 					// Break from loop since we found the correct platform
 					break;
@@ -279,7 +279,7 @@ export async function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			progress.report({ increment: 55 });
+			progress.report({ increment: 5 });
 
 			// Otherwise, check Python install
 			res = await exec("python3 --version", { env: config.env }).then(value => {
@@ -321,7 +321,7 @@ export async function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			progress.report({ increment: 60 });
+			progress.report({ increment: 5 });
 
 			// install pip (if not already)
 			res = await exec("python3 -m ensurepip", { env: config.env }).then(value => {
@@ -345,7 +345,7 @@ export async function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			progress.report({ increment: 65 });
+			progress.report({ increment: 5 });
 
 			// install virtualenv
 			res = await exec("python3 -m pip install virtualenv", { env: config.env }).then(value => {
@@ -367,7 +367,7 @@ export async function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			progress.report({ increment: 70 });
+			progress.report({ increment: 5 });
 
 			// create virtualenv within `$HOME/.zephyrtools`
 			let uri = vscode.Uri.joinPath(toolsdir, "env");
@@ -394,7 +394,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			}
 
 			// Report progress
-			progress.report({ increment: 80 });
+			progress.report({ increment: 5 });
 
 			// Add env/bin to path
 			const envpath = vscode.Uri.joinPath(uri, "bin:" + config.env["PATH"]);
@@ -420,7 +420,7 @@ export async function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			progress.report({ increment: 90 });
+			progress.report({ increment: 5 });
 
 
 			// TODO: Set the various environment variables 
