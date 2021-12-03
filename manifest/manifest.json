@@ -1,0 +1,52 @@
+{
+    "win32": [
+        {
+            "arch": "i386"
+        },
+        {
+            "arch": "amd64"
+        }
+    ],
+    "darwin": [
+        {
+            "arch": "arm",
+            "downloads": [
+                {
+                    "name": "ninja",
+                    "url": "test.com",
+                    "md5": "1234HASH"
+                }
+            ]
+        },
+        {
+            "arch": "x64",
+            "downloads": [
+                {
+                    "name": "ninja",
+                    "filename": "ninja-mac.zip",
+                    "url": "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-mac.zip",
+                    "md5": "1234HASH"
+                },
+                {
+                    "name": "cmake",
+                    "filename": "cmake-3.22.0-macos-universal.tar.gz",
+                    "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-macos-universal.tar.gz",
+                    "md5": "1234HASH",
+                    "suffix": "cmake-3.22.0-macos-universal/CMake.app/Contents/bin/"
+                },
+                {
+                    "name": "toolchain",
+                    "filename": "gcc-arm-none-eabi-9-2019-q4-major-mac.tar.bz2",
+                    "url": "https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-mac.tar.bz2",
+                    "md5": "",
+                    "suffix": "gcc-arm-none-eabi-9-2019-q4-major/bin/"
+                }
+            ]
+        }
+    ],
+    "linux": [
+        {
+            "arch": "arm"
+        }
+    ]
+}

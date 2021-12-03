@@ -435,11 +435,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
 			progress.report({ increment: 100 });
 
-			vscode.window.showInformationMessage(`Zephyr Tools setup complete!`)
+			vscode.window.showInformationMessage(`Zephyr Tools setup complete!`);
 		});
-
-
-
 
 	}));
 
@@ -634,6 +631,9 @@ export async function activate(context: vscode.ExtensionContext) {
 	}));
 
 	// TODO: command for loading via `newtmgr`
+	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.load', async () => {
+		console.log("TODO");
+	}));
 
 }
 
@@ -788,12 +788,12 @@ async function changeProject(config: Config, context: vscode.ExtensionContext) {
 
 	// Turn that into a project selection 
 	const result = await vscode.window.showQuickPick(files, {
-		placeHolder: 'Pick your target project..',
-		onDidSelectItem: item => vscode.window.showInformationMessage(`Project changed to ${item}`)
+		placeHolder: 'Pick your target project..'
 	});
 
 	if (result) {
 		console.log("Changing project to " + result);
+		vscode.window.showInformationMessage(`Project changed to ${result}`);
 		config.project = result;
 		context.workspaceState.update("config", config);
 	}
@@ -802,15 +802,16 @@ async function changeProject(config: Config, context: vscode.ExtensionContext) {
 
 async function changeBoard(config: Config, context: vscode.ExtensionContext) {
 
+	// TODO: iterative function to find all possible board options
+
 	// Prompt which board to use
 	const result = await vscode.window.showQuickPick(boards, {
-		placeHolder: 'Pick your board..',
-		onDidSelectItem: item => vscode.window.showInformationMessage(`Board changed to ${item}`)
+		placeHolder: 'Pick your board..'
 	});
 
 	if (result) {
-
 		console.log("Changing board to " + result);
+		vscode.window.showInformationMessage(`Board changed to ${result}`);
 		config.board = result;
 		context.workspaceState.update("config", config);
 	}

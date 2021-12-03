@@ -16,9 +16,9 @@
     "onCommand:zephyr-tools.change-board",
     "onCommand:zephyr-tools.change-project",
     "onCommand:zephyr-tools.flash",
+    "onCommand:zephyr-tools.load",
     "onCommand:zephyr-tools.init-repo",
-    "onCommand:zephyr-tools.clean",
-    "onCommand:zephyr-tools.terminal"
+    "onCommand:zephyr-tools.clean"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -26,18 +26,6 @@
       {
         "command": "zephyr-tools.setup",
         "title": "Zephyr Tools: Setup"
-      },
-      {
-        "command": "zephyr-tools.change-board",
-        "title": "Zephyr Tools: Change Board"
-      },
-      {
-        "command": "zephyr-tools.change-project",
-        "title": "Zephyr Tools: Change Project"
-      },
-      {
-        "command": "zephyr-tools.reinstall",
-        "title": "Zephyr Tools: Reinstall"
       },
       {
         "command": "zephyr-tools.build-pristine",
@@ -48,8 +36,20 @@
         "title": "Zephyr Tools: Build"
       },
       {
+        "command": "zephyr-tools.change-board",
+        "title": "Zephyr Tools: Change Board"
+      },
+      {
+        "command": "zephyr-tools.change-project",
+        "title": "Zephyr Tools: Change Project"
+      },
+      {
         "command": "zephyr-tools.flash",
         "title": "Zephyr Tools: Flash"
+      },
+      {
+        "command": "zephyr-tools.load",
+        "title": "Zephyr Tools: Load via Bootloader"
       },
       {
         "command": "zephyr-tools.init-repo",
@@ -58,10 +58,6 @@
       {
         "command": "zephyr-tools.clean",
         "title": "Zephyr Tools: Clean"
-      },
-      {
-        "command": "zephyr-tools.terminal",
-        "title": "Zephyr Tools: Open Terminal"
       }
     ]
   },
