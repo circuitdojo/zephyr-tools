@@ -4,27 +4,57 @@ import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as util from 'util';
 import * as os from 'os';
+import * as downloader from "@microsoft/vscode-file-downloader-api";
+
+type ManifestDownloadEntry = {
+	name: string;
+	url: string;
+	md5: string;
+	suffix?: string;
+	filename: string;
+};
+
+type ManifestEntry = {
+	arch: string;
+	downloads: ManifestDownloadEntry[];
+};
+
+type Manifest = {
+	win32: ManifestEntry[];
+	darwin: ManifestEntry[];
+	linux: ManifestEntry[];
+};
+
+// Manifest data
+const manifest: Manifest = require("../manifest/manifest.json");
 
 // Ignore list
 let ignore = [".git", ".vscode", "build"];
 
-// Paths
-let paths: { [name: string]: string } = { "darwin": "/opt/nordic/ncs", "win32": "C:\\ncs", "linux": "/opt/nordic/ncs" };
+// Important directories
+let homedir = os.homedir();
+let toolsdir = vscode.Uri.joinPath(vscode.Uri.parse(homedir), ".zephyrtools");
 
 // Boards 
 let boards: string[] = [
-	"circuitdojo_feather_nrf9160ns"
+	"circuitdojo_feather_nrf9160_ns",
+	"sparkfun_thing_plus_nrf9160_ns",
+	"particle_xenon"
 ];
 
 // Config for the exention
 interface Config {
 	board?: string;
-	ncsVersion?: string;
+	project?: string;
+	comport?: string;
 	env?: { [name: string]: string | undefined };
 }
 
 // Platform
 let platform: NodeJS.Platform;
+
+// Arch
+let arch: string;
 
 // Output Channel
 let output: vscode.OutputChannel
@@ -36,123 +66,504 @@ let terminal: vscode.Terminal;
 // your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
 
-	// TODO: download/install newtmgr 
-
 	// Get the OS info
 	platform = os.platform();
+	arch = os.arch();
 
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
 	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.setup', async () => {
 
-		// List of string
-		let versions: string[] = new Array(0);
 
-		// Depending on what platform, go to the default location and list all folders besides the `downloads` folder
-		await vscode.workspace.fs.readDirectory(vscode.Uri.parse(paths[platform])).then(async (value: [string, vscode.FileType][]) => {
+		// Show setup progress..
+		await vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: "Setting up Zephyr dependencies",
+			cancellable: true
+		}, async (progress, token) => {
 
-			// Go through and find all the valid versions
-			value.forEach(element => {
-				// Make sure it's not hte downloads folder or non-folder
-				if (element[0] != "downloads" && element[1] == vscode.FileType.Directory) {
-					versions.push(element[0]);
-				}
+			token.onCancellationRequested(() => {
+				console.log("User canceled the long running operation");
 			});
 
-		});
-
-		// Local config 
-		let config: Config = {};
-		config.env = {};
-
-		// Prompt to choose which SDK to use
-		await vscode.window.showQuickPick(versions, { placeHolder: "Pick SDK version.", canPickMany: false }).then(value => {
-
-			// Only set when not undefined
-			if (value != undefined) {
-				config.ncsVersion = value;
+			// Create & clear output
+			if (output == undefined) {
+				output = vscode.window.createOutputChannel("Zephyr SDK");
 			}
 
-		});
+			// Clear output before beginning
+			output.clear();
 
-		// Prompt which board to use
-		await vscode.window.showQuickPick(boards, { placeHolder: "Select board.", canPickMany: false }).then(value => {
+			// Local config 
+			let config: Config = {};
+			config.env = process.env;
 
-			// Only set when not undefined
-			if (value != undefined) {
-				config.board = value;
-			}
+			// check if directory in $HOME exists
+			await vscode.workspace.fs.stat(toolsdir).then(
+				(value: vscode.FileStat) => {
+					console.log("toolsdir found")
+				},
+				async (reason: any) => {
+					// Otherwise create home directory
+					await vscode.workspace.fs.createDirectory(toolsdir);
+				});
 
-		});
+			progress.report({ increment: 1 });
 
-		// Git versions
-		let gitVersions: [string, vscode.FileType][];
+			// Promisified exec
+			let exec = util.promisify(cp.exec);
 
-		// Final git version picked
-		let gitversion: string = "";
+			console.log("env" + JSON.stringify(config.env));
 
-		// Set env based on OS
-		switch (platform) {
-			case "win32":
+			// Check if Git exists in path
+			let res: boolean = await exec("git --version", { env: config.env }).then(value => {
+				output.append(value.stdout);
+				output.append(value.stderr);
+				output.appendLine("[SETUP] git installed");
+				output.show();
+				return true;
+			}, (reason) => {
+				output.appendLine("[SETUP] git is not found");
+				output.append(reason);
+				// TODO: install git instructions 
+				output.show();
 
-				// Get all versions of git in the Toolchain
-				gitVersions = await vscode.workspace.fs.readDirectory(vscode.Uri.parse(`${paths[platform]}\\${config.ncsVersion}\\Cellar\\git`));
+				// Error message
+				vscode.window.showErrorMessage('Unable to continue. Git not installed. Check output for more info.');
+				return false;
+			});
 
-				// Get the first version
-				for (let ver of gitVersions) {
-					if (ver[1] == vscode.FileType.Directory) {
-						gitversion = ver[0];
-						break;
-					}
-				}
-
-				break;
-			case "linux":
-
-				// TODO: build this out
-				// `PATH=${toolchainDir}/bin:${toolchainDir}/usr/bin:${toolchainDir}/segger_embedded_studio/bin:${remote.process.env.PATH}`,
-				// `PYTHONHOME=${toolchainDir}/lib/python3.8`,
-				// `PYTHONPATH=${toolchainDir}/usr/lib/python3.8:${toolchainDir}/lib/python3.8/site-packages:${toolchainDir}/usr/lib/python3/dist-packages:${toolchainDir}/usr/lib/python3.8/lib-dynload`,
-				// `GIT_EXEC_PATH=${toolchainDir}/usr/lib/git-core`,
-				// `LD_LIBRARY_PATH=/var/lib/snapd/lib/gl:/var/lib/snapd/lib/gl32:/var/lib/snapd/void:${toolchainDir}/lib/python3.8/site-packages/.libs_cffi_backend:${toolchainDir}/lib/python3.8/site-packages/Pillow.libs:${toolchainDir}/lib/x86_64-linux-gnu:${toolchainDir}/segger_embedded_studio/bin:${toolchainDir}/usr/lib/x86_64-linux-gnu:${toolchainDir}/lib:${toolchainDir}/usr/lib:${toolchainDir}/lib/x86_64-linux-gnu:${toolchainDir}/usr/lib/x86_64-linux-gnu`
-
-				break;
-			case "darwin":
-
-				// Get all versions of git in the Toolchain
-				gitVersions = await vscode.workspace.fs.readDirectory(vscode.Uri.parse(`${paths[platform]}/${config.ncsVersion}/toolchain/Cellar/git`));
-
-				// Get the first version
-				for (let ver of gitVersions) {
-					if (ver[1] == vscode.FileType.Directory) {
-						gitversion = ver[0];
-						break;
-					}
-				}
-
-				// Se the various environment variables 
-				config.env = process.env;
-				config.env["PATH"] = `${paths[platform]}/${config.ncsVersion}/toolchain/bin:${config.env["PATH"]}`;
-				config.env["GIT_EXEC_PATH"] = `${paths[platform]}/${config.ncsVersion}/toolchain/Cellar/git/${gitversion}/libexec/git-core`
-				config.env["ZEPHYR_TOOLCHAIN_VARIANT"] = `gnuarmemb`
-				config.env["GNUARMEMB_TOOLCHAIN_PATH"] = `${paths[platform]}/${config.ncsVersion}/toolchain/`
-
-				console.log("env: " + JSON.stringify(config));
-				break;
-			default:
-				vscode.window.showErrorMessage('Unsupported platform for Zephyr Tools!');
+			// Return if error
+			if (!res) {
 				return;
-		}
+			}
 
-		// Save this informaiton to disk
-		context.workspaceState.update("config", config);
+
+			// Download python if platform is windows
+			if (platform == "win32") {
+				// TODO: download standalone version of python 
+				// TODO: add to path to env
+			} else {
+
+				// Otherwise, check Python install
+				res = await exec("python3 --version", { env: config.env }).then(value => {
+
+					if (value.stdout.includes("Python 3")) {
+						output.appendLine("[SETUP] python3 found");
+					} else {
+						output.appendLine("[SETUP] python3 not found");
+						output.appendLine("[SETUP] you can install python by doing X");
+
+						// TODO: specific download links or instructions depending on platform
+
+						vscode.window.showErrorMessage('Error finding python. Check output for more info.');
+						return false;
+					}
+
+					output.show();
+					return true;
+				}, (reason) => {
+					output.append(reason.stderr);
+					console.error(reason);
+					output.show();
+
+					// Error message
+					vscode.window.showErrorMessage('Error getting python. Check output for more info.');
+					return false;
+				});
+
+				// Return if error
+				if (!res) {
+					return;
+				}
+
+			}
+
+			progress.report({ increment: 2 });
+
+			// install pip (if not already)
+			res = await exec("python3 -m ensurepip", { env: config.env }).then(value => {
+				output.append(value.stdout);
+				output.append(value.stderr);
+				output.appendLine("[SETUP] pip installed");
+				output.show();
+
+				return true;
+			}, (reason) => {
+				output.appendLine("[SETUP] unable to install pip");
+				output.append(reason);
+				output.show();
+
+				// Error message
+				vscode.window.showErrorMessage('Error installing pip. Check output for more info.');
+
+				return false;
+			});
+
+			// Return if error
+			if (!res) {
+				return;
+			}
+
+			progress.report({ increment: 3 });
+
+			// install virtualenv
+			res = await exec("python3 -m pip install --user virtualenv", { env: config.env }).then(value => {
+				output.append(value.stdout);
+				output.append(value.stderr);
+				output.appendLine("[SETUP] virtualenv installed");
+				output.show();
+				return true;
+			}, (reason) => {
+				output.appendLine("[SETUP] unable to install virtualenv");
+				output.append(reason);
+				output.show();
+
+				// Error message
+				vscode.window.showErrorMessage('Error installing virtualenv. Check output for more info.');
+				return false;
+			});
+
+			// Return if error
+			if (!res) {
+				return;
+			}
+
+			progress.report({ increment: 4 });
+
+			// create virtualenv within `$HOME/.zephyrtools`
+			let uri = vscode.Uri.joinPath(toolsdir, "env");
+
+			console.log("path: " + uri.fsPath);
+
+			res = await exec(`python3 -m virtualenv ${uri.fsPath}`, { env: config.env }).then(value => {
+				output.append(value.stdout);
+				output.append(value.stderr);
+				output.appendLine("[SETUP] virtual python environment created");
+				output.show();
+				return true;
+			}, (reason) => {
+				output.appendLine("[SETUP] unable to setup virtualenv");
+				output.append(reason);
+				output.show();
+
+				// Error message
+				vscode.window.showErrorMessage('Error installing virtualenv. Check output for more info.');
+				return false;
+			});
+
+			// Return if error
+			if (!res) {
+				return;
+			}
+
+			// Add env/bin to path
+			const envpath = vscode.Uri.joinPath(uri, "bin:" + config.env["PATH"]);
+			config.env["PATH"] = envpath.fsPath;
+
+			console.log(config.env["PATH"]);
+
+			progress.report({ increment: 5 });
+
+			// Downloader
+			const fileDownloader: downloader.FileDownloader = await downloader.getApi();
+
+			for (const [key, value] of Object.entries(manifest)) {
+				if (platform == key) {
+					// For loop to process entry in manifest.json
+					inner: for (const [index, element] of value.entries()) {
+						// Confirm it's the correct architecture 
+						if (element.arch == arch) {
+							for (var download of element.downloads) {
+
+								console.log(download.url);
+
+								// TODO: EXTRA CREDIT -- check if already exists & hash 
+
+								// Check if we can unzip..
+								const shouldUnzip = download.url.includes(".zip");
+
+								// Check if it already exists
+								let filepath = await fileDownloader.getItem(download.filename, context).then((value) => value, (reason) => null);
+
+								// Download if doesn't exist
+								if (filepath == null) {
+									output.appendLine("[SETUP] downloading " + download.url);
+									output.show();
+
+									filepath = await fileDownloader.downloadFile(
+										vscode.Uri.parse(download.url),
+										download.filename,
+										context,
+									/* cancellationToken */ undefined,
+									/* progressCallback */ undefined,
+										{ shouldUnzip: shouldUnzip }
+									);
+								}
+
+								// TODO: EXTRA CREDIT - check MD5
+
+								console.log(filepath.fsPath);
+
+								// Get the path to copy the contents to..
+								const copytopath = vscode.Uri.joinPath(toolsdir, download.name);
+
+								// Unpack and place into `$HOME/.zephyrtools`
+								if (shouldUnzip) {
+									await vscode.workspace.fs.copy(filepath, copytopath, { overwrite: true });
+								} else if (download.url.includes("tar")) {
+
+									// Create copy to folder
+									await vscode.workspace.fs.stat(copytopath).then(
+										(value: vscode.FileStat) => {
+											console.log("copytopath found")
+										},
+										async (reason: any) => {
+											// Otherwise create home directory
+											await vscode.workspace.fs.createDirectory(copytopath);
+										});
+
+
+									// Then untar
+									const cmd = `tar -xvf "${filepath.fsPath}" -C "${copytopath.fsPath}"`;
+
+									output.appendLine("[SETUP] extracting " + filepath.fsPath);
+									output.show();
+
+									res = await exec(cmd, { env: config.env }).then(value => {
+										output.append(value.stdout);
+										output.append(value.stderr);
+										output.show();
+										return true;
+									}, (reason) => {
+										output.append(reason);
+										output.show();
+
+										// Error message
+										vscode.window.showErrorMessage('Error un-tar of download. Check output for more info.');
+
+										return false;
+									});
+
+									// Return if untar was unsuccessful
+									if (!res) {
+										return;
+									}
+
+								}
+
+								// Set path
+								let setpath = copytopath;
+
+								// Executables to path
+								if (download.suffix) {
+									setpath = vscode.Uri.joinPath(setpath, download.suffix);
+								}
+
+								const envpath = vscode.Uri.joinPath(setpath, ":" + config.env["PATH"]);
+								config.env["PATH"] = envpath.fsPath;
+
+								console.log(config.env);
+
+							};
+
+							break inner;
+						} else {
+
+							// Check if we're at the end of arch check
+							if (index == (value.length - 1)) {
+								vscode.window.showErrorMessage('Unsupported architecture for Zephyr Tools!');
+							}
+						}
+					}
+
+					progress.report({ increment: 50 });
+
+					// Install `west`
+					res = await exec(`python3 -m pip install west`, { env: config.env }).then(value => {
+						output.append(value.stdout);
+						output.append(value.stderr);
+						output.appendLine("[SETUP] west installed");
+						output.show();
+						return true;
+					}, (reason) => {
+						output.appendLine("[SETUP] unable to install west");
+						output.append(reason);
+						output.show();
+
+						// Error message
+						vscode.window.showErrorMessage('Error installing west. Check output for more info.');
+						return false;
+					});
+
+					// Return if error
+					if (!res) {
+						return;
+					}
+
+					progress.report({ increment: 75 });
+
+					// TODO: Set the various environment variables 
+					// config.env["GIT_EXEC_PATH"] = `${paths[platform]}/toolchain/Cellar/git/${gitversion}/libexec/git-core`
+					config.env["ZEPHYR_TOOLCHAIN_VARIANT"] = `gnuarmemb`;
+					// TODO: fix this to be platform agnostic
+					config.env["GNUARMEMB_TOOLCHAIN_PATH"] = vscode.Uri.joinPath(toolsdir, 'toolchain/gcc-arm-none-eabi-9-2019-q4-major').fsPath;
+
+					console.log("env: " + JSON.stringify(config));
+
+					// Break from loop since we found the correct platform
+					break;
+
+				} else {
+
+					// Check if this is the last iteration 
+					let platforms = Object.keys(manifest);
+					let last = platforms[platforms.length - 1];
+
+					if (last == key) {
+						vscode.window.showErrorMessage('Unsupported platform for Zephyr Tools!');
+					}
+				}
+			}
+
+			output.appendLine("[SETUP] Zephyr setup complete!");
+			output.show();
+
+			// Save this informaiton to disk
+			context.workspaceState.update("config", config);
+
+			progress.report({ increment: 100 });
+
+			vscode.window.showInformationMessage(`Zephyr Tools setup complete!`)
+		});
+
+
 
 
 	}));
 
-	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.reinstall', async () => {
-		// TODO: do stuff here.
+	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.init-repo', async () => {
+
+		// Fetch the board and NCS version
+		let config: Config = context.workspaceState.get("config") ?? {};
+		if (config == {} || config.env == undefined) {
+			vscode.window.showErrorMessage('Run `Zephyr Tools: Setup` command before building.');
+			return;
+		}
+
+
+		try {
+
+			// Options for SehllExecution
+			let options: vscode.ShellExecutionOptions = {
+				executable: "bash",
+				shellArgs: ["-c"],
+				env: <{ [key: string]: string; }>config.env
+			}
+
+			// Tasks
+			let taskName = "Zephyr Tools: Init Repo";
+			let tasks: vscode.Task[] = [];
+
+			// TODO: prompt for URL to init..
+			// TODO: depending on input either init local or init remote	
+
+			// TODO: if remote, prompt for place to init to (or a reasonable default?)
+
+			// TODO 6. Init repository with `west init -m`
+
+			// `west update`
+			let cmd = `west update`;
+			let shellexec = new vscode.ShellExecution(cmd, options);
+			let task = new vscode.Task(
+				{ type: "zephyr-tools", command: taskName },
+				vscode.TaskScope.Workspace,
+				taskName,
+				"zephyr-tools",
+				shellexec
+			);
+			tasks.push(task);
+
+			// Install python dependencies `pip install -r zephyr/requirements.txt`
+			cmd = "pip install -r zephyr/scripts/requirements.txt";
+			shellexec = new vscode.ShellExecution(cmd, options);
+			task = new vscode.Task(
+				{ type: "zephyr-tools", command: taskName },
+				vscode.TaskScope.Workspace,
+				taskName,
+				"zephyr-tools",
+				shellexec
+			);
+			tasks.push(task);
+
+			// Iterate over each task
+			// TODO: one at a time..
+			for (let task of tasks) {
+				const execution = await vscode.tasks.executeTask(task);
+				await vscode.tasks.onDidEndTask(e => {
+					if (e.execution == execution) {
+						console.log("done!");
+					}
+				})
+			}
+
+			// Select the project
+			await changeProject(config, context);
+
+			// TODO: open workspace in existing window (?)
+
+		} catch (error) {
+
+			let text = "";
+			if (typeof error === "string") {
+				text = error;
+			} else if (error instanceof Error) {
+				text = error.message
+			}
+
+			output.append(text);
+			output.show();
+			vscode.window.showErrorMessage(`Zephyr Tools: Init Repo error. See output for details.`);
+
+		}
+
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.change-project', async () => {
+
+		// Fetch the board and NCS version
+		let config: Config = context.workspaceState.get("config") ?? {};
+
+		if (config != {}) {
+			changeProject(config, context);
+		} else {
+			// Display an error message box to the user
+			vscode.window.showErrorMessage('Run `Zephyr Toools: Setup` command before building.');
+		}
+
+
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.change-board', async () => {
+
+
+		// Fetch the board and NCS version
+		let config: Config = context.workspaceState.get("config") ?? {};
+
+		if (config != {}) {
+			changeBoard(config, context);
+		} else {
+			// Display an error message box to the user
+			vscode.window.showErrorMessage('Run `Zephyr Toools: Setup` command before building.');
+		}
+
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.select-com-port', async () => {
+		// TODO: scan for available ports
+		// TODO: show list and selection dialogue 
+		// TODO: save to configuration
 		console.log("TODO")
 	}));
 
@@ -163,11 +574,13 @@ export async function activate(context: vscode.ExtensionContext) {
 		let config: Config = context.workspaceState.get("config") ?? {};
 
 		// Do some work
-		if (config != {}) {
-			await build(config, true);
+		if (config != {} || config.env != undefined || config.project != undefined) {
+			await build(config, true, context);
+		} else if (config.project == undefined) {
+			vscode.window.showErrorMessage('Run `Zephyr Tools: Init Project` command before building.');
 		} else {
 			// Display an error message box to the user
-			vscode.window.showErrorMessage('Run `Zephyr Toools: Setup` command before building.');
+			vscode.window.showErrorMessage('Run `Zephyr Tools: Setup` command before building.');
 		}
 
 
@@ -180,11 +593,12 @@ export async function activate(context: vscode.ExtensionContext) {
 		let config: Config = context.workspaceState.get("config") ?? {};
 
 		// Do some work
-		if (config != {}) {
-			await build(config, false);
+		if (config != {} || config.env != undefined || config.project != undefined) {
+			await build(config, false, context);
+		} else if (config.project == undefined) {
+			vscode.window.showErrorMessage('Run `Zephyr Tools: Init Project` command before building.');
 		} else {
-			// Display an error message box to the user
-			vscode.window.showErrorMessage('Run `Zephyr Toools: Setup` command before building.');
+			vscode.window.showErrorMessage('Run `Zephyr Tools: Setup` command before building.');
 		}
 
 
@@ -219,83 +633,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 	}));
 
-	// TODO: command for creating terminal for command line work (with added env)
-	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.terminal', async () => {
-		// Fetch the board and NCS version
-		let config: Config = context.workspaceState.get("config") ?? {};
-
-		// Flash board
-		if (config != {}) {
-
-			let rootPath = await getRootPath();
-
-			// Return if rootPath undefined
-			if (rootPath == undefined || config.env == undefined) {
-				vscode.window.showErrorMessage('Run `Zephyr Toools: Setup` command before flashing.');
-				return;
-			}
-
-			// Create a terminal session
-			let options: vscode.TerminalOptions = {
-				env: <{ [name: string]: string | null }>config.env, name: "Zephyr SDK", cwd: rootPath
-			};
-			terminal = vscode.window.createTerminal(options);
-			terminal.show();
-
-
-		} else {
-			// Display an error message box to the user
-			vscode.window.showErrorMessage('Run `Zephyr Toools: Setup` command before flashing.');
-		}
-	}));
-
 	// TODO: command for loading via `newtmgr`
 
-	// TODO: install command for installing versions of the sdk. (pulls manifest from Nordic's servers)
-
-}
-
-// sharable getRootPath function
-async function getRootPath(): Promise<string | undefined> {
-
-	// Get the workspace root
-	let rootPaths = vscode.workspace.workspaceFolders?.map(folder => folder.uri.path);
-
-	// Search each rootPath to see if there is a Cmakelists.txt
-	if (rootPaths == undefined) {
-		vscode.window.showErrorMessage('Please open your project first!');
-		return;
-	}
-
-	let rootPath = "";
-
-	// Determine if the directory is buildable
-	for (let element of rootPaths) {
-		await vscode.workspace.fs.readDirectory(vscode.Uri.parse(element)).then((value) => {
-
-			// Iterate each entry
-			for (let entry of value) {
-				if (entry[0] == "CMakeLists.txt" && entry[1] == vscode.FileType.File) {
-					rootPath = element;
-					break;
-				}
-			}
-		});
-
-		// Set the root path
-		if (rootPath != "") {
-			break;
-		}
-
-	}
-
-	// Check if the root path is still not defined
-	if (rootPath == "") {
-		vscode.window.showErrorMessage('Zephyr project not found!');
-		return;
-	}
-
-	return rootPath;
 }
 
 // TODO: select programmer ID if there are multiple..
@@ -310,8 +649,7 @@ async function flash(config: Config) {
 	output.clear();
 
 	// Get the active workspace root path
-	let rootPath = await getRootPath();
-	let workspaceName = vscode.workspace.name;
+	let rootPath = "";
 
 	// Return if rootPath undefined
 	if (rootPath == undefined) {
@@ -319,7 +657,8 @@ async function flash(config: Config) {
 	}
 
 	// Dest path
-	let destPath = `${paths[platform]}/${config.ncsVersion}/nrf/applications/user/${workspaceName}`;
+	// let destPath = `${paths[platform]}/nrf/applications/user/${workspaceName}`;
+	let destPath = "";
 
 	// Create command based on current OS
 	let cmd = "";
@@ -327,7 +666,7 @@ async function flash(config: Config) {
 
 	// Process slightly differently due to how windows is setup
 	if (platform == "win32") {
-		cmd = `${paths["win"]}\\${config.ncsVersion}\\toolchain\\git-bash.exe -c "cd ${rootPath} && ${cmd}"`
+		// cmd = `${paths["win"]}\\toolchain\\git-bash.exe -c "cd ${rootPath} && ${cmd}"`
 	}
 
 	// Show output as things begin.
@@ -340,7 +679,7 @@ async function flash(config: Config) {
 	// Show we're building..
 	await vscode.window.withProgress({
 		location: vscode.ProgressLocation.Notification,
-		title: "Flashing board!",
+		title: "Flashing board",
 		cancellable: false
 	}, async (progress, token) => {
 
@@ -361,209 +700,193 @@ async function flash(config: Config) {
 			vscode.window.showErrorMessage('Error flashing. Check output for more info.');
 		});
 
-
-
 		progress.report({ increment: 100 });
+		output.dispose()
 	});
 
 }
 
-// Syncs files based on timestamp.
-// Ignores .vscode and build folders
-async function syncFolders(config: Config, source: string, dest: string) {
+async function getProjectList(folder: vscode.Uri): Promise<string[]> {
 
-	console.log("Syncing " + source + " to: " + dest);
+	let files = await vscode.workspace.fs.readDirectory(folder);
+	let projects: string[] = [];
 
-	// Create dest folder (errors ignored)
-	await vscode.workspace.fs.createDirectory(vscode.Uri.parse(dest));
+	while (true) {
 
-	// TODO: check if source is a folder(?)
+		let file = files.pop();
 
-	let contents = await vscode.workspace.fs.readDirectory(vscode.Uri.parse(source));
+		// Stop looping once done.
+		if (file == undefined)
+			break;
 
-	for (let entry of contents) {
+		if (file[0].includes("CMakeLists.txt")) {
 
-		// Check if entry is in ignore list
-		if (ignore.includes(entry[0])) {
-			console.log("Ignoring: " + entry[0]);
-			continue;
+			// Check the filefolder
+			let filepath = vscode.Uri.joinPath(folder, file[0]);
+			let contents = await vscode.workspace.openTextDocument(filepath).then((document) => {
+				return document.getText();
+			});
+
+			if (contents.includes("project(")) {
+				projects.push(filepath.fsPath.replace("CMakeLists.txt", ""));
+			}
 		}
-
-		// Then depending on what the file is do stuff
-		switch (entry[1]) {
-			case vscode.FileType.Directory:
-
-				// Get the Uris
-				let sourceFolder = source + "/" + entry[0];
-				let destFolder = dest + "/" + entry[0];
-
-				// Recurse (barf) the subfolder
-				await syncFolders(config, sourceFolder, destFolder);
-
-				break;
-			case vscode.FileType.File:
-
-				console.log("Filename: " + entry[0]);
-
-				// Get the Uris
-				let sourceFile = vscode.Uri.parse(source + "/" + entry[0]);
-				let destFile = vscode.Uri.parse(dest + "/" + entry[0]);
-
-				// Get source stat
-				let sourceStat = await vscode.workspace.fs.stat(sourceFile);
-
-				// check if destination has it
-				let destStat = await vscode.workspace.fs.stat(destFile).then((value) => {
-					return value;
-				}, (reason) => {
-					console.log("File stat error: " + reason);
-					return undefined;
-				});
-
-				// compare stat results
-				if ((destStat != undefined && sourceStat.mtime > destStat.mtime) ||
-					destStat == undefined) {
-
-					console.log("Copying " + entry[0]);
-
-					// copy it to the dest
-					await vscode.workspace.fs.copy(sourceFile, destFile, { overwrite: true });
-
-				}
-
-				break;
-			default:
-				continue;
+		else if (file[0].includes("build") || file[0].includes(".git")) {
+			// Don't do anything
 		}
+		else if (file[1] == vscode.FileType.Directory) {
+			let path = vscode.Uri.joinPath(folder, file[0]);
+			let subfolders = await vscode.workspace.fs.readDirectory(path);
 
+			for (let { index, value } of subfolders.map((value, index) => ({ index, value }))) {
+				subfolders[index][0] = vscode.Uri.parse(`${file[0]}/${subfolders[index][0]}`).fsPath;
+				// console.log(subfolders[index][0]);
+			}
+
+			files = files.concat(subfolders);
+		}
 	}
+
+	return projects;
 
 }
 
-async function build(config: Config, pristine: boolean) {
+async function changeProject(config: Config, context: vscode.ExtensionContext) {
 
-	// Create output
+	// Create & clear output
 	if (output == undefined) {
 		output = vscode.window.createOutputChannel("Zephyr SDK");
 	}
 
-	// Clear output
-	output.clear();
-
-	// Get the active workspace root path
-	let rootPath = await getRootPath();
-	let workspaceName = vscode.workspace.name;
-	let sync = false
-
-	// Return if undefined
-	if (rootPath == undefined || config.board == undefined || config.ncsVersion == undefined) {
-		vscode.window.showErrorMessage('Run `Zephyr Toools: Setup` command before building.');
+	// Get the workspace root
+	let rootPath;
+	let rootPaths = vscode.workspace.workspaceFolders;
+	if (rootPaths == undefined) {
 		return;
-	}
-
-	// Dest path
-	let destPath: string = rootPath;
-
-	// Only sync folders if the root path is not within the SDK path.
-	if (!rootPath.includes(`${paths[platform]}/${config.ncsVersion}`)) {
-		// Set sync flag
-		sync = true;
-
-		// Set destpath
-		destPath = `${paths[platform]}/${config.ncsVersion}/nrf/applications/user/${workspaceName}`;
-
-		// Sync source with destiation within NCS
-		await syncFolders(config, rootPath, destPath);
+	} else {
+		rootPath = rootPaths[0].uri;
 	}
 
 	// Promisified exec
 	let exec = util.promisify(cp.exec);
 
-	// Create command based on current OS
-	let cmd = "";
-	cmd = `west build -b ${config.board}${pristine ? ' -p' : ''}`;
+	// Clear output before beginning
+	output.clear();
 
-	// Process slightly differently due to how windows is setup
-	if (platform == "win32") {
-		cmd = `${paths["win"]}\\${config.ncsVersion}\\toolchain\\git-bash.exe --login -c "cd ${rootPath} && ${cmd}"`
+	// Get manifest path `west config manifest.path`
+	let cmd = "west config manifest.path";
+	let res = await exec(cmd, { env: config.env, cwd: rootPath.fsPath });
+	if (res.stderr) {
+		output.append(res.stderr);
+		output.show();
+		return;
 	}
 
-	// TOOO: handle real-time stream during build (i.e. pipe line by line progress..)
-	// Show we're building..
-	await vscode.window.withProgress({
-		location: vscode.ProgressLocation.Notification,
-		title: "Running build!",
-		cancellable: false
-	}, async (progress, token) => {
+	// Find all CMakeLists.txt files with `project(` in them
+	let files = await getProjectList(vscode.Uri.joinPath(rootPath, res.stdout.trim()))
+	console.log(files);
 
-		token.onCancellationRequested(() => {
-			console.log("User canceled the long running operation");
-		});
-
-		console.info(rootPath + " " + JSON.stringify(config.env));
-
-		// Execute the task
-		await exec(cmd, { cwd: destPath, env: config.env }).then(value => {
-			output.append(value.stdout);
-			output.append(value.stderr);
-			output.show();
-		}, (reason) => {
-			output.append(reason.stderr);
-			console.error(reason);
-			// Error message
-			vscode.window.showErrorMessage('Error flashing. Check output for more info.');
-			// Show output
-			output.show();
-		});
-
-		progress.report({ increment: 100 });
+	// Turn that into a project selection 
+	const result = await vscode.window.showQuickPick(files, {
+		placeHolder: 'Pick your target project..',
+		onDidSelectItem: item => vscode.window.showInformationMessage(`Project changed to ${item}`)
 	});
 
-	console.debug("Copy " + destPath + "/build to " + rootPath);
-
-	// Copy back build output
-	if (sync) {
-		await vscode.workspace.fs.copy(vscode.Uri.parse(destPath + "/build"), vscode.Uri.parse(rootPath + "/build"), { overwrite: true }).then(() => {
-
-		}, (reason) => {
-			console.error(reason.stdout);
-			console.error(reason.stderr);
-		});
+	if (result) {
+		console.log("Changing project to " + result);
+		config.project = result;
+		context.workspaceState.update("config", config);
 	}
+
+}
+
+async function changeBoard(config: Config, context: vscode.ExtensionContext) {
+
+	// Prompt which board to use
+	const result = await vscode.window.showQuickPick(boards, {
+		placeHolder: 'Pick your board..',
+		onDidSelectItem: item => vscode.window.showInformationMessage(`Board changed to ${item}`)
+	});
+
+	if (result) {
+
+		console.log("Changing board to " + result);
+		config.board = result;
+		context.workspaceState.update("config", config);
+	}
+
+};
+
+async function build(config: Config, pristine: boolean, context: vscode.ExtensionContext) {
+
+	// Return if env is not set 
+	if (config.env == undefined) {
+		console.log("Env is undefined!");
+		return;
+	}
+
+	// Return if undefined
+	if (config.board == undefined) {
+		// Change board function
+		await changeBoard(config, context);
+	}
+
+	// Options for SehllExecution
+	let options: vscode.ShellExecutionOptions = {
+		executable: "bash",
+		shellArgs: ["-c"],
+		env: <{ [key: string]: string; }>config.env
+	}
+
+	// Tasks
+	let taskName = "Zephyr Tools: Build";
+	let tasks: vscode.Task[] = [];
+
+	// Enable python env
+	// TODO: this is depening what platform..
+	let cmd = `west build -b ${config.board}${pristine ? ' -p' : ''} -s ${config.project}`;
+	let exec = new vscode.ShellExecution(cmd, options);
+
+	// Task
+	let task = new vscode.Task(
+		{ type: "zephyr-tools", command: taskName },
+		vscode.TaskScope.Workspace,
+		taskName,
+		"zephyr-tools",
+		exec
+	);
+	tasks.push(task);
+
+	// Iterate over each task
+	for (let task of tasks) {
+		await vscode.tasks.executeTask(task);
+	}
+
+	vscode.window.showInformationMessage(`Building for ${config.board}`);
 
 }
 
 async function clean(config: Config) {
 
-	// Create output
-	if (output == undefined) {
-		output = vscode.window.createOutputChannel("Zephyr SDK");
+	// Get the active workspace root path
+	let rootPath;
+	let rootPaths = vscode.workspace.workspaceFolders;
+	if (rootPaths == undefined) {
+		return;
+	} else {
+		rootPath = rootPaths[0].uri;
 	}
 
-	// Clear output
-	output.clear();
-
-	// Get the active workspace root path
-	let rootPath = await getRootPath();
-	let workspaceName = vscode.workspace.name;
-
 	// Return if undefined
-	if (rootPath == undefined || config.board == undefined || config.ncsVersion == undefined) {
+	if (rootPath == undefined || config.board == undefined) {
 		return;
 	}
 
-	// Dest path
-	let destPath = `${paths[platform]}/${config.ncsVersion}/nrf/applications/user/${workspaceName}`;
-
-	// Set the path
-	let path = rootPath + "/build";
-	if (platform == "win32") {
-		path = rootPath + "\\build";
-	}
+	//Get build folder
+	let buildFolder = vscode.Uri.joinPath(rootPath, "build");
 
 	// Remove build folder
-	await vscode.workspace.fs.delete(vscode.Uri.parse(rootPath + "/build"), { recursive: true, useTrash: true });
-	await vscode.workspace.fs.delete(vscode.Uri.parse(destPath), { recursive: true, useTrash: true });
+	await vscode.workspace.fs.delete(buildFolder, { recursive: true, useTrash: true });
 
 }
 
