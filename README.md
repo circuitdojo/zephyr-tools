@@ -22,12 +22,22 @@ Requires `git` and `python3` to be installed. The easiest way to do that is with
 
 ### Windows
 
-TBD
+Requires `git` and `python` to be installed.
+
+- Download and install `git` from here: https://git-scm.com/download/win
+- Download and install `python` from here: https://www.python.org/ftp/python/3.9.9/python-3.9.9-amd64.exe
 
 ### Linux
 
-TBD
+Requires `git` and `python` to be installed.
 
+Use your distro's package manager of choice to install. 
+
+For example on Ubuntu:
+
+```
+apt install git python3
+```
 
 ## Extension Settings
 
