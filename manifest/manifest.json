@@ -7,14 +7,20 @@
                     "name": "python",
                     "filename": "python-3.9.9-embed-amd64.zip",
                     "url": "https://www.python.org/ftp/python/3.9.9/python-3.9.9-embed-amd64.zip",
-                    "md5": ""
-                },
-                {
-                    "name": "git",
-                    "filename": "python-3.9.9-embed-amd64.zip",
-                    "url": "https://www.python.org/ftp/python/3.9.9/python-3.9.9-embed-amd64.zip",
                     "md5": "",
-                    "suffix": "cmake-3.22.0-windows-x86_64\\bin\\"
+                    "env": [
+                        {
+                            "name": "PATH",
+                            "usepath": true,
+                            "append": true
+                        },
+                        {
+                            "name": "PATH",
+                            "suffix": "Scripts",
+                            "usepath": true,
+                            "append": true
+                        }
+                    ]
                 },
                 {
                     "name": "ninja",
@@ -34,7 +40,20 @@
                     "filename": "gcc-arm-none-eabi-9-2019-q4-major-win32.zip",
                     "url": "https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-win32.zip",
                     "md5": "",
-                    "suffix": "gcc-arm-none-eabi-9-2019-q4-major-win32\\bin\\"
+                    "suffix": "bin\\",
+                    "env": [
+                        {
+                            "name": "ZEPHYR_TOOLCHAIN_VARIANT",
+                            "value": "gnuarmemb",
+                            "usepath": false,
+                            "append": false
+                        },
+                        {
+                            "name": "GNUARMEMB_TOOLCHAIN_PATH",
+                            "usepath": true,
+                            "append": false
+                        }
+                    ]
                 }
             ]
         }
@@ -61,7 +80,21 @@
                     "filename": "gcc-arm-none-eabi-9-2019-q4-major-mac.tar.bz2",
                     "url": "https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-mac.tar.bz2",
                     "md5": "",
-                    "suffix": "gcc-arm-none-eabi-9-2019-q4-major/bin/"
+                    "suffix": "gcc-arm-none-eabi-9-2019-q4-major/bin/",
+                    "env": [
+                        {
+                            "name": "ZEPHYR_TOOLCHAIN_VARIANT",
+                            "value": "gnuarmemb",
+                            "usepath": false,
+                            "append": false
+                        },
+                        {
+                            "name": "GNUARMEMB_TOOLCHAIN_PATH",
+                            "suffix": "gcc-arm-none-eabi-9-2019-q4-major",
+                            "usepath": true,
+                            "append": false
+                        }
+                    ]
                 }
             ]
         }
