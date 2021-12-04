@@ -39,6 +39,16 @@ For example on Ubuntu:
 apt install git python3
 ```
 
+## TODO List
+
+Here are some of the tasks needed to be completed for this project:
+
+- [ ] Creating a new project from scratch/template
+- [ ] CI/CD
+- [ ] Flashing via `west flash`
+- [ ] Flashing via `newtmgr` or `mcumgr`
+- [ ] Linux support tested
+
 ## Extension Settings
 
 TBD
