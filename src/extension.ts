@@ -488,7 +488,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			}
 
 			// TODO: determine App destinationa
-			let appDest = path.join(dest[0].path, "app");
+			let appDest = path.join(dest[0].fsPath, "app");
 
 			// Check if .git is already here.
 			let exists = await fs.pathExists(path.join(appDest, ".git"));
@@ -812,7 +812,7 @@ async function getBoardlist(folder: vscode.Uri): Promise<string[]> {
 			let subfolders = await vscode.workspace.fs.readDirectory(path);
 
 			for (let { index, value } of subfolders.map((value, index) => ({ index, value }))) {
-				subfolders[index][0] = vscode.Uri.parse(`${file[0]}/${subfolders[index][0]}`).path;
+				subfolders[index][0] = vscode.Uri.parse(`${file[0]}/${subfolders[index][0]}`).fsPath;
 				// console.log(subfolders[index][0]);
 			}
 
@@ -846,7 +846,7 @@ async function getProjectList(folder: vscode.Uri): Promise<string[]> {
 			});
 
 			if (contents.includes("project(")) {
-				let project = path.parse(filepath.path);
+				let project = path.parse(filepath.fsPath);
 				projects.push(project.dir);
 			}
 		}
@@ -858,7 +858,7 @@ async function getProjectList(folder: vscode.Uri): Promise<string[]> {
 			let subfolders = await vscode.workspace.fs.readDirectory(path);
 
 			for (let { index, value } of subfolders.map((value, index) => ({ index, value }))) {
-				subfolders[index][0] = vscode.Uri.parse(`${file[0]}/${subfolders[index][0]}`).path;
+				subfolders[index][0] = vscode.Uri.parse(`${file[0]}/${subfolders[index][0]}`).fsPath;
 				// console.log(subfolders[index][0]);
 			}
 
@@ -897,7 +897,7 @@ async function changeProject(config: GlobalConfig, context: vscode.ExtensionCont
 
 	// Get manifest path `west config manifest.path`
 	let cmd = "west config manifest.path";
-	let res = await exec(cmd, { env: config.env, cwd: rootPath.path });
+	let res = await exec(cmd, { env: config.env, cwd: rootPath.fsPath });
 	if (res.stderr) {
 		output.append(res.stderr);
 		output.show();
@@ -969,7 +969,7 @@ async function update(config: GlobalConfig, project: ProjectConfig) {
 	// Options for Shell Execution
 	let options: vscode.ShellExecutionOptions = {
 		env: <{ [key: string]: string; }>config.env,
-		cwd: rootPath.path,
+		cwd: rootPath.fsPath,
 	};
 
 	// Tasks
