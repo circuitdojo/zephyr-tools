@@ -179,8 +179,8 @@ export async function activate(context: vscode.ExtensionContext) {
 								const copytopath = path.join(toolsdir, download.name);
 
 								// Unpack and place into `$HOME/.zephyrtools`
-								if (shouldUnzip) {
-									await fs.copy(filepath.path, copytopath, { overwrite: true });
+								if (!download.url.includes("tar")) {
+									await fs.copy(filepath.fsPath, copytopath, { overwrite: true });
 								} else if (download.url.includes("tar")) {
 
 									// Create copy to folder
@@ -214,7 +214,6 @@ export async function activate(context: vscode.ExtensionContext) {
 								// Set path
 								let setpath = path.join(copytopath, download.suffix ?? "");
 								config.env["PATH"] = path.join(setpath, pathdivider + config.env["PATH"]);
-								console.log("env[PATH]: " + setpath);
 
 								// Set remainin env variables
 								for (let entry of download.env ?? []) {
@@ -224,7 +223,7 @@ export async function activate(context: vscode.ExtensionContext) {
 									} else if (entry.usepath && !entry.append) {
 										config.env[entry.name] = path.join(copytopath, entry.suffix ?? "");
 									} else if (entry.usepath && entry.append) {
-										config.env[entry.name] = path.join(copytopath, (entry.suffix ?? "") + pathdivider, config.env[entry.name] ?? "");
+										config.env[entry.name] = path.join(copytopath, (entry.suffix ?? "") + pathdivider + config.env[entry.name] ?? "");
 									}
 
 									console.log(`env[${entry.name}]: ${config.env[entry.name]}`);

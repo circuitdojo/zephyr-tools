@@ -4,25 +4,6 @@
             "arch": "x64",
             "downloads": [
                 {
-                    "name": "python",
-                    "filename": "python-3.9.9-embed-amd64.zip",
-                    "url": "https://www.python.org/ftp/python/3.9.9/python-3.9.9-embed-amd64.zip",
-                    "md5": "",
-                    "env": [
-                        {
-                            "name": "PATH",
-                            "usepath": true,
-                            "append": true
-                        },
-                        {
-                            "name": "PATH",
-                            "suffix": "Scripts",
-                            "usepath": true,
-                            "append": true
-                        }
-                    ]
-                },
-                {
                     "name": "ninja",
                     "filename": "ninja-win.zip",
                     "url": "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip",
