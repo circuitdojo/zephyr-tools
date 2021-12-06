@@ -1011,14 +1011,23 @@ async function build(config: GlobalConfig, project: ProjectConfig, pristine: boo
 	if (project.board === undefined) {
 		// Change board function
 		await changeBoard(config, context);
+
+		// Check again..
+		if (project.board === undefined) {
+			await vscode.window.showErrorMessage(`You must choose a board to continue.`);
+			return;
+		}
 	}
 
-	// Check again..
-	if (project.board === undefined) {
-		vscode.window.showErrorMessage(`You must choose a board to continue.`);
-		return;
-	}
+	if (project.target === undefined) {
+		await changeProject(config, context);
 
+		// Check again..
+		if (project.target === undefined) {
+			await vscode.window.showErrorMessage(`You must choose a project to build.`);
+			return;
+		}
+	}
 
 	// Get the active workspace root path
 	let rootPath;
