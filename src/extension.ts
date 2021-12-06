@@ -79,6 +79,12 @@ interface GlobalConfig {
 	env: { [name: string]: string | undefined };
 }
 
+// Pending Task
+interface ZephyrTask {
+	name?: string,
+	data?: any,
+};
+
 // Output Channel
 let output: vscode.OutputChannel;
 
@@ -441,11 +447,36 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	}));
 
-	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.init-repo', async () => {
+	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.init-repo', async (_dest: vscode.Uri | undefined) => {
+
+		let dest = _dest;
+
+		// Check if undefined
+		if (dest === undefined) {
+			// Options for picker
+			const dialogOptions: vscode.OpenDialogOptions = {
+				canSelectFiles: false,
+				canSelectFolders: true,
+				title: "Select destination folder."
+			};
+
+			// Open file picker for destination directory
+			let open = await vscode.window.showOpenDialog(dialogOptions);
+			if (open === undefined) {
+				vscode.window.showErrorMessage('Provide a target folder to initialize your repo.');
+				return;
+			}
+
+			// Get fsPath
+			open[0].fsPath;
+
+			// Copy it over
+			dest = open[0];
+		}
 
 		// See if config is set first
 		if (config.isSetup) {
-			initProject(config, context);
+			initRepo(config, context, dest);
 		} else {
 			vscode.window.showErrorMessage('Run `Zephyr Tools: Setup` command first.');
 			return;
@@ -571,9 +602,19 @@ export async function activate(context: vscode.ExtensionContext) {
 		console.log("TODO");
 	}));
 
+	// Check if there's a task to run
+	let task: ZephyrTask | undefined = context.globalState.get("zephyr.task");
+	if (task !== undefined && task.name !== undefined) {
+
+		console.log("Run task! " + JSON.stringify(task));
+
+		await context.globalState.update("zephyr.task", undefined);
+		await vscode.commands.executeCommand(task.name, task.data);
+	}
+
 }
 
-async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext) {
+async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext, dest: vscode.Uri) {
 	// Create output
 	if (output === undefined) {
 		output = vscode.window.createOutputChannel("Zephyr Tools");
@@ -591,28 +632,31 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext) 
 			placeHolder: 'Where would you like to initialize from?'
 		};
 
+		// Get the root path of the workspace
+		let rootPath = getRootPath();
 
-		// Options for picker
-		const dialogOptions: vscode.OpenDialogOptions = {
-			canSelectFiles: false,
-			canSelectFolders: true,
-			title: "Select destination folder."
-		};
+		// Check if we're in the right workspace
+		if (rootPath?.path !== dest.path) {
 
-		// Open file picker for destination directory
-		let dest = await vscode.window.showOpenDialog(dialogOptions);
-		if (dest === undefined) {
-			return;
+			console.log("Setting task!");
+
+			// Set init-repo task next 
+			let task: ZephyrTask = { name: "zephyr-tools.init-repo", data: dest };
+			context.globalState.update("zephyr.task", task);
+
+			// Change workspace
+			await vscode.commands.executeCommand('vscode.openFolder', dest);
+
 		}
 
 		// Options for Shell execution options
 		let shellOptions: vscode.ShellExecutionOptions = {
 			env: <{ [key: string]: string; }>config.env,
-			cwd: dest[0].fsPath
+			cwd: dest.fsPath
 		};
 
 		// TODO: determine App destinationa
-		let appDest = path.join(dest[0].fsPath, "app");
+		let appDest = path.join(dest.fsPath, "app");
 
 		// Check if .git is already here.
 		let exists = await fs.pathExists(path.join(appDest, ".git"));
@@ -623,7 +667,10 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext) 
 			const inputOptions: vscode.InputBoxOptions = {
 				prompt: "Enter git URL.",
 				placeHolder: "https://github.com/circuitdojo/nrf9160-feather-examples-and-drivers.git",
-				ignoreFocusOut: true
+				ignoreFocusOut: true,
+				validateInput: (text) => {
+					return text !== undefined ? null : 'Enter a Git url.';
+				}
 			};
 
 			// Prompt for URL to init..
@@ -693,8 +740,6 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext) 
 			project.isInit = true;
 			await context.workspaceState.update("zephyr.project", project);
 
-			await vscode.commands.executeCommand('vscode.openFolder', data.dest);
-
 		};
 
 		// Install python dependencies `pip install -r zephyr/requirements.txt`
@@ -713,7 +758,7 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext) 
 		// Start execution
 		await TaskManager.push(task, {
 			ignoreError: false, lastTask: true, successMessage: "Init complete!",
-			callback: done, callbackData: { dest: dest[0] }
+			callback: done, callbackData: { dest: dest }
 		});
 
 	} catch (error) {
@@ -810,7 +855,7 @@ function getRootPath(): vscode.Uri | undefined {
 		rootPath = undefined;
 	}
 
-	return rootPath
+	return rootPath;
 }
 
 async function getBoardlist(folder: vscode.Uri): Promise<string[]> {

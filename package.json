@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Zephyr SDK Tools (Unofficial)",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "circuitdojo",
   "engines": {
     "vscode": "^1.52.0",
@@ -12,6 +12,7 @@
     "Other"
   ],
   "activationEvents": [
+    "onStartupFinished",
     "onCommand:zephyr-tools.setup",
     "onCommand:zephyr-tools.build",
     "onCommand:zephyr-tools.build-pristine",
