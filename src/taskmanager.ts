@@ -79,6 +79,11 @@ export class TaskManager {
                     vscode.window.showInformationMessage(`${this.currentOptions.successMessage}`);
                 }
 
+                // Call the callback on success
+                if (this.currentOptions?.callback !== undefined) {
+                    this.currentOptions?.callback(this.currentOptions.callbackData);
+                }
+
                 // Execute next...
                 let next = this.tasks.shift();
                 if (next !== undefined) {
