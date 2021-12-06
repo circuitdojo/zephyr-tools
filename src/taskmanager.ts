@@ -1,10 +1,14 @@
 import * as vscode from "vscode";
 
+type TaskManagerCallback = (data: any) => void;
+
 type TaskManagerTaskOptions = {
     errorMessage?: string,
     ignoreError: boolean,
     lastTask: boolean,
     successMessage?: string,
+    callback?: TaskManagerCallback,
+    callbackData?: any,
 };
 
 type TaskManagerTask = {
@@ -76,10 +80,10 @@ export class TaskManager {
                 }
 
                 // Execute next...
-                let next = this.tasks.pop();
+                let next = this.tasks.shift();
                 if (next !== undefined) {
-                    this.current = await vscode.tasks.executeTask(next.task);
                     this.currentOptions = next.options;
+                    this.current = await vscode.tasks.executeTask(next.task);
                 } else {
                     this.currentOptions = undefined;
                     this.current = undefined;

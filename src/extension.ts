@@ -560,6 +560,11 @@ export async function activate(context: vscode.ExtensionContext) {
 			// Start execution
 			await TaskManager.push(task, { ignoreError: false, lastTask: false });
 
+			// Generic callback
+			let done = (data: any) => {
+				vscode.commands.executeCommand('vscode.openFolder', data.dest);
+			};
+
 			// Install python dependencies `pip install -r zephyr/requirements.txt`
 			cmd = "pip install -r zephyr/scripts/requirements.txt";
 			exec = new vscode.ShellExecution(cmd, shellOptions);
@@ -574,10 +579,10 @@ export async function activate(context: vscode.ExtensionContext) {
 			);
 
 			// Start execution
-			await TaskManager.push(task, { ignoreError: false, lastTask: true, successMessage: "Init complete!" });
-
-			// Open workspace
-			await vscode.commands.executeCommand('vscode.openFolder', dest[0]);
+			await TaskManager.push(task, {
+				ignoreError: false, lastTask: true, successMessage: "Init complete!",
+				callback: done, callbackData: { dest: dest[0] }
+			});
 
 		} catch (error) {
 
