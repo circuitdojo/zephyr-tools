@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Zephyr SDK Tools (Unofficial)",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "circuitdojo",
   "engines": {
     "vscode": "^1.52.0",

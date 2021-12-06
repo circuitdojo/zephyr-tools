@@ -460,11 +460,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		try {
 
-			// Options for Shell execution options
-			let shellOptions: vscode.ShellExecutionOptions = {
-				env: <{ [key: string]: string; }>config.env,
-			};
-
 			// Tasks
 			let taskName = "Zephyr Tools: Init Repo";
 
@@ -487,6 +482,12 @@ export async function activate(context: vscode.ExtensionContext) {
 			if (dest === undefined) {
 				return;
 			}
+
+			// Options for Shell execution options
+			let shellOptions: vscode.ShellExecutionOptions = {
+				env: <{ [key: string]: string; }>config.env,
+				cwd: dest[0].fsPath
+			};
 
 			// TODO: determine App destinationa
 			let appDest = path.join(dest[0].fsPath, "app");
