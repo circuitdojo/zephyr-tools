@@ -82,7 +82,43 @@
     ],
     "linux": [
         {
-            "arch": "x64"
+            "arch": "x64",
+            "downloads": [
+                {
+                    "name": "ninja",
+                    "filename": "ninja-mac.zip",
+                    "url": "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-linux.zip",
+                    "md5": ""
+                },
+                {
+                    "name": "cmake",
+                    "filename": "cmake-3.22.0-macos-universal.tar.gz",
+                    "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-linux-x86_64.tar.gz",
+                    "md5": "",
+                    "suffix": "cmake-3.22.0-linux-x86_64/bin/"
+                },
+                {
+                    "name": "toolchain",
+                    "filename": "gcc-arm-none-eabi-9-2019-q4-major-mac.tar.bz2",
+                    "url": "https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2",
+                    "md5": "",
+                    "suffix": "gcc-arm-none-eabi-10.3-2021.10/bin/",
+                    "env": [
+                        {
+                            "name": "ZEPHYR_TOOLCHAIN_VARIANT",
+                            "value": "gnuarmemb",
+                            "usepath": false,
+                            "append": false
+                        },
+                        {
+                            "name": "GNUARMEMB_TOOLCHAIN_PATH",
+                            "suffix": "gcc-arm-none-eabi-10.3-2021.10",
+                            "usepath": true,
+                            "append": false
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }

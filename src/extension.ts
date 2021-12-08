@@ -113,7 +113,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		await vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
 			title: "Setting up Zephyr dependencies",
-			cancellable: true
+			cancellable: false
 		}, async (progress, token) => {
 
 			token.onCancellationRequested(() => {
@@ -243,6 +243,7 @@ export async function activate(context: vscode.ExtensionContext) {
 							// Check if we're at the end of arch check
 							if (index === (value.length - 1)) {
 								vscode.window.showErrorMessage('Unsupported architecture for Zephyr Tools!');
+								return;
 							}
 						}
 					}
@@ -344,30 +345,32 @@ export async function activate(context: vscode.ExtensionContext) {
 
 			progress.report({ increment: 5 });
 
-			// install pip (if not already)
-			cmd = `${python} -m ensurepip`;
-			output.appendLine(cmd);
-			res = await exec(cmd, { env: config.env }).then(value => {
-				output.append(value.stdout);
-				output.appendLine("[SETUP] pip installed");
+			// Note: linux does not have ensurepip
+			if (platform !== "linux") {
+				// install pip (if not already)
+				cmd = `${python} -m ensurepip`;
+				output.appendLine(cmd);
+				res = await exec(cmd, { env: config.env }).then(value => {
+					output.append(value.stdout);
+					output.appendLine("[SETUP] pip installed");
 
-				return true;
-			}, (reason) => {
-				output.appendLine("[SETUP] unable to install pip");
-				output.append(reason.stdout);
-				output.append(reason.stderr);
+					return true;
+				}, (reason) => {
+					output.appendLine("[SETUP] unable to install pip");
+					output.append(reason.stdout);
+					output.append(reason.stderr);
 
-				// Error message
-				vscode.window.showErrorMessage('Error installing pip. Check output for more info.');
+					// Error message
+					vscode.window.showErrorMessage('Error installing pip. Check output for more info.');
 
-				return false;
-			});
+					return false;
+				});
 
-			// Return if error
-			if (!res) {
-				return;
+				// Return if error
+				if (!res) {
+					return;
+				}
 			}
-
 			progress.report({ increment: 5 });
 
 			// install virtualenv

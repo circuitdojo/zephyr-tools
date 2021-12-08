@@ -36,7 +36,7 @@ Use your distro's package manager of choice to install.
 For example on Ubuntu:
 
 ```
-apt install git python3
+sudo apt install git python3 python3-pip
 ```
 
 ## TODO List
