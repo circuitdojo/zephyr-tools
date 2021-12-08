@@ -4,6 +4,11 @@
             "arch": "x64",
             "downloads": [
                 {
+                    "name": "newtmgr",
+                    "filename": "newtmgr.zip",
+                    "url": "https://docs.jaredwolff.com/files/newtmgr/windows/newtmgr.zip"
+                },
+                {
                     "name": "ninja",
                     "filename": "ninja-win.zip",
                     "url": "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip",
@@ -43,6 +48,11 @@
         {
             "arch": "x64",
             "downloads": [
+                {
+                    "name": "newtmgr",
+                    "filename": "newtmgr.zip",
+                    "url": "https://docs.jaredwolff.com/files/newtmgr/darwin/newtmgr.zip"
+                },
                 {
                     "name": "ninja",
                     "filename": "ninja-mac.zip",
@@ -84,6 +94,11 @@
         {
             "arch": "x64",
             "downloads": [
+                {
+                    "name": "newtmgr",
+                    "filename": "newtmgr.zip",
+                    "url": "https://docs.jaredwolff.com/files/newtmgr/linux/newtmgr.zip"
+                },
                 {
                     "name": "ninja",
                     "filename": "ninja-mac.zip",

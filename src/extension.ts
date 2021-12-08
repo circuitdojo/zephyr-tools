@@ -91,6 +91,9 @@ let output: vscode.OutputChannel;
 // Configuratoin
 let config: GlobalConfig;
 
+// Original Environment
+let envOriginal = process.env;
+
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
@@ -101,13 +104,21 @@ export async function activate(context: vscode.ExtensionContext) {
 	// Get the configuration
 	config = context.globalState.get("zephyr.env") ?? { env: process.env, isSetup: false };
 
+	// Then set the application environment to match
+	if (config.env["PATH"] !== undefined && config.env["PATH"] !== "") {
+		context.environmentVariableCollection.replace("PATH", config.env["PATH"]);
+	}
+
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
 	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.setup', async () => {
 
-		// Reset env
-		config.env = process.env;
+		// Reset "zephyr.env"
+		context.globalState.update("zephyr.task", undefined);
+		context.globalState.update("zephyr.env", undefined);
+		config.env = envOriginal;
+		config.isSetup = false;
 
 		// Show setup progress..
 		await vscode.window.withProgress({
@@ -443,6 +454,11 @@ export async function activate(context: vscode.ExtensionContext) {
 			// Save this informaiton to disk
 			context.globalState.update("zephyr.env", config);
 
+			// TODO: Then set the application environment to match
+			if (config.env["PATH"] !== undefined && config.env["PATH"] !== "") {
+				context.environmentVariableCollection.replace("PATH", config.env["PATH"]);
+			}
+
 			progress.report({ increment: 100 });
 
 			vscode.window.showInformationMessage(`Zephyr Tools setup complete!`);
@@ -611,7 +627,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		console.log("Run task! " + JSON.stringify(task));
 
-		await context.globalState.update("zephyr.task", undefined);
+		context.globalState.update("zephyr.task", undefined);
 		await vscode.commands.executeCommand(task.name, task.data);
 	}
 
@@ -639,7 +655,7 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext, 
 		let rootPath = getRootPath();
 
 		// Check if we're in the right workspace
-		if (rootPath?.path !== dest.path) {
+		if (rootPath?.fsPath !== dest.fsPath) {
 
 			console.log("Setting task!");
 
