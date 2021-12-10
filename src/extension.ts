@@ -684,11 +684,11 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext, 
 
 			// Options for input box
 			const inputOptions: vscode.InputBoxOptions = {
-				prompt: "Enter git URL.",
-				placeHolder: "https://github.com/circuitdojo/nrf9160-feather-examples-and-drivers.git",
+				prompt: "Enter git repository URL.",
+				placeHolder: "<Enter your git repository address here>",
 				ignoreFocusOut: true,
 				validateInput: (text) => {
-					return text !== undefined ? null : 'Enter a Git url.';
+					return (text !== undefined && text !== "") ? null : 'Enter a valid git repository address.';
 				}
 			};
 

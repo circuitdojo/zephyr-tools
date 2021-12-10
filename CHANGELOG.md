@@ -2,6 +2,13 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+## [0.1.6]
+
+### Changed:
+
+* Blank `git` URL handling for initialization command 
+* Updating Readme checklist
+
 ## [0.1.5]
 
 ### Changed:

@@ -47,7 +47,8 @@ Here are some of the tasks needed to be completed for this project:
 - [ ] CI/CD
 - [ ] Flashing via `west flash`
 - [ ] Flashing via `newtmgr` or `mcumgr`
-- [ ] Linux support tested
+- [x] Download and add `newtmgr` to path 
+- [x] Linux support tested
 
 ## Extension Settings
 
