@@ -2,6 +2,13 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+## [0.1.8]
+
+### Added:
+
+* Setup for `newtmgr` 
+* Loading via `newtmgr` to devices with bootloader
+
 ## [0.1.7]
 
 ### Changed:

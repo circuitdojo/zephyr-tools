@@ -7,6 +7,8 @@ import * as os from 'os';
 import * as downloader from "@microsoft/vscode-file-downloader-api";
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import * as serial from 'serialport';
+
 import { TaskManager } from './taskmanager';
 
 type ManifestEnvEntry = {
@@ -62,6 +64,12 @@ switch (platform) {
 		break;
 }
 
+// Baud list
+let baudlist = [
+	"1000000",
+	"115200",
+];
+
 // Important directories
 let toolsdir = path.join(os.homedir(), toolsfoldername);
 
@@ -69,7 +77,6 @@ let toolsdir = path.join(os.homedir(), toolsfoldername);
 interface ProjectConfig {
 	board?: string;
 	target?: string;
-	comport?: string;
 	isInit: boolean;
 }
 
@@ -618,8 +625,113 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// TODO: command for loading via `newtmgr/mcumgr`
 	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.load', async () => {
-		console.log("TODO");
+
+		// Fetch the project config
+		let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+
+		// Flash board
+		if (!config.isSetup) {
+			// Display an error message box to the user
+			vscode.window.showErrorMessage('Run `Zephyr Toools: Setup` command before loading.');
+			return;
+		}
+
+		// Create & clear output
+		if (output === undefined) {
+			output = vscode.window.createOutputChannel("Zephyr Tools");
+		}
+
+		// Clear output before beginning
+		output.clear();
+		output.show();
+
+		// Get the root path of the workspace
+		let rootPath = getRootPath();
+		if (rootPath === undefined) {
+			vscode.window.showErrorMessage('Unable to get root path.');
+			return;
+		}
+
+		// Promisified exec
+		let exec = util.promisify(cp.exec);
+
+		// Run `newtmgr conn show` to see if there is a profile called "vscode-zephyr-tools"
+		let cmd = "newtmgr conn show";
+		let res = await exec(cmd, { env: config.env });
+		if (res.stderr) {
+			output.append(res.stderr);
+			output.show();
+			return;
+		}
+
+		// Kick them back if it doesn't exist
+		if (!res.stdout.includes("vscode-zephyr-tools")) {
+			vscode.window.showErrorMessage('Run `Zephyr Toools: Setup Newtmgr` before loading.');
+			return;
+		}
+
+		// Check if app_update.bin exists. If not, warn them about building and that bootloader is enabled
+		let exists = await fs.pathExists(path.join(rootPath.fsPath, "build", "zephyr", "app_update.bin"));
+		if (!exists) {
+			vscode.window.showErrorMessage('app_update.bin not found. Build project with bootloader before loading.');
+			return;
+		}
+
+		// Otherwise load with app_update.bin
+		await load(config, project);
+
 	}));
+
+
+	// Command for setting up `newtmgr/mcumgr`
+	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.setup-newtmgr', async () => {
+
+		// Check if setup
+		if (!config.isSetup) {
+			// Display an error message box to the user
+			vscode.window.showErrorMessage('Run `Zephyr Toools: Setup` command before loading.');
+			return;
+		}
+
+		// Get port
+		let ports = await serial.list();
+		let portlist = ports.map((value) => {
+			return value.path;
+		});
+
+		// Have them choose from list of ports
+		const port = await vscode.window.showQuickPick(portlist, {
+			title: "Pick your serial port.",
+			placeHolder: portlist[0],
+		});
+
+		// Then have them choose BAUD (default to 1000000)
+		const baud = await vscode.window.showQuickPick(baudlist, {
+			title: "Pick your baud rate.",
+			placeHolder: baudlist[0],
+		});
+
+		if (baud === undefined) {
+			vscode.window.showErrorMessage('Invalid baud rate choice.');
+			return;
+		}
+
+		// Promisified exec
+		let exec = util.promisify(cp.exec);
+
+		// Create a vscode-tools connection profile
+		let cmd = `newtmgr conn add vscode-zephyr-tools type=serial connstring='dev=${port},baud=${baud}'`;
+		let res = await exec(cmd, { env: config.env });
+		if (res.stderr) {
+			output.append(res.stderr);
+			output.show();
+			return;
+		}
+
+		vscode.window.showErrorMessage('Newtmgr successfully configured.');
+
+	}));
+
 
 	// Check if there's a task to run
 	let task: ZephyrTask | undefined = context.globalState.get("zephyr.task");
@@ -795,16 +907,65 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext, 
 	}
 }
 
+async function load(config: GlobalConfig, project: ProjectConfig) {
+
+	// Options for SehllExecution
+	let options: vscode.ShellExecutionOptions = {
+		env: <{ [key: string]: string; }>config.env,
+	};
+
+	// Tasks
+	let taskName = "Zephyr Tools: Load";
+
+	// Upload image
+	let cmd = `newtmgr -c vscode-zephyr-tools image upload ${path.join("build", "zephyr", "app_update.bin")}`;
+	let exec = new vscode.ShellExecution(cmd, options);
+
+	// Task
+	let task = new vscode.Task(
+		{ type: "zephyr-tools", command: taskName },
+		vscode.TaskScope.Workspace,
+		taskName,
+		"zephyr-tools",
+		exec
+	);
+
+	// Start execution
+	await TaskManager.push(task, {
+		ignoreError: false,
+		lastTask: true,
+		errorMessage: "Load error! Did you init your project?",
+		successMessage: "Load complete!"
+	});
+
+
+	// Command
+	cmd = `newtmgr -c vscode-zephyr-tools reset`;
+	exec = new vscode.ShellExecution(cmd, options);
+
+	// Task
+	task = new vscode.Task(
+		{ type: "zephyr-tools", command: taskName },
+		vscode.TaskScope.Workspace,
+		taskName,
+		"zephyr-tools",
+		exec
+	);
+
+	// Start execution
+	await TaskManager.push(task, {
+		ignoreError: false,
+		lastTask: true,
+		errorMessage: "Load error! Did you init your project?",
+		successMessage: "Load complete!"
+	});
+
+	vscode.window.showInformationMessage(`Loading via bootloader for ${project.board}`);
+
+}
+
 // TODO: select programmer ID if there are multiple..
 async function flash(config: GlobalConfig, project: ProjectConfig) {
-
-	// Get the active workspace root path
-	let rootPath = "";
-
-	// Return if rootPath undefined
-	if (rootPath === undefined) {
-		return;
-	}
 
 	// Options for SehllExecution
 	let options: vscode.ShellExecutionOptions = {

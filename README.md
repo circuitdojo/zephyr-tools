@@ -45,20 +45,20 @@ Here are some of the tasks needed to be completed for this project:
 
 - [ ] Creating a new project from scratch/template
 - [ ] CI/CD
-- [ ] Flashing via `west flash`
-- [ ] Flashing via `newtmgr` or `mcumgr`
+- [ ] Init check for branchs and prompts which to download
+- [x] Flashing via `west flash`
+- [x] Flashing via `newtmgr` or `mcumgr`
 - [x] Download and add `newtmgr` to path 
 - [x] Linux support tested
 
-## Extension Settings
-
-TBD
-
-## Known Issues
-
-TBD
-
 ## Release Notes
+
+## [0.1.8]
+
+### Added:
+
+* Setup for `newtmgr` 
+* Loading via `newtmgr` to devices with bootloader
 
 ## [0.1.7]
 
