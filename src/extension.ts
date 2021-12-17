@@ -798,14 +798,6 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext, 
 // TODO: select programmer ID if there are multiple..
 async function flash(config: GlobalConfig, project: ProjectConfig) {
 
-	// Create output
-	if (output === undefined) {
-		output = vscode.window.createOutputChannel("Zephyr Tools");
-	}
-
-	// Clear output
-	output.clear();
-
 	// Get the active workspace root path
 	let rootPath = "";
 
@@ -814,53 +806,37 @@ async function flash(config: GlobalConfig, project: ProjectConfig) {
 		return;
 	}
 
-	// Dest path
-	// let destPath = `${paths[platform]}/nrf/applications/user/${workspaceName}`;
-	let destPath = "";
+	// Options for SehllExecution
+	let options: vscode.ShellExecutionOptions = {
+		env: <{ [key: string]: string; }>config.env,
+	};
 
-	// Create command based on current OS
-	let cmd = "";
-	cmd = "west flash";
+	// Tasks
+	let taskName = "Zephyr Tools: Flash";
 
-	// Process slightly differently due to how windows is setup
-	if (platform === "win32") {
-		// cmd = `${paths["win"]}\\toolchain\\git-bash.exe -c "cd ${rootPath} && ${cmd}"`
-	}
+	// Enable python env
+	// TODO: determine what command to use
+	let cmd = `west flash --erase --softreset`;
+	let exec = new vscode.ShellExecution(cmd, options);
 
-	// Show output as things begin.
-	output.show();
+	// Task
+	let task = new vscode.Task(
+		{ type: "zephyr-tools", command: taskName },
+		vscode.TaskScope.Workspace,
+		taskName,
+		"zephyr-tools",
+		exec
+	);
 
-	// Promisified exec
-	let exec = util.promisify(cp.exec);
-
-	// TOOO: handle real-time stream during build
-	// Show we're building..
-	await vscode.window.withProgress({
-		location: vscode.ProgressLocation.Notification,
-		title: "Flashing board",
-		cancellable: false
-	}, async (progress, token) => {
-
-		token.onCancellationRequested(() => {
-			console.log("User canceled the long running operation");
-		});
-
-		// Execute the task
-		await exec(cmd, { cwd: destPath, env: config.env }).then((value) => {
-			output.append(value.stdout);
-			output.append(value.stderr);
-		}, (reason) => {
-			output.append(reason.stdout);
-			console.info(reason.stdout);
-			output.append(reason.stderr);
-			console.error(reason.stderr);
-			// Error message 
-			vscode.window.showErrorMessage('Error flashing. Check output for more info.');
-		});
-
-		progress.report({ increment: 100 });
-		output.dispose();
+	// Start execution
+	await TaskManager.push(task, {
+		ignoreError: false,
+		lastTask: true,
+		errorMessage: "Flash error! Did you init your project?",
+		successMessage: "Flash complete!"
 	});
+
+	vscode.window.showInformationMessage(`Flashing for ${project.board}`);
 
 }
 

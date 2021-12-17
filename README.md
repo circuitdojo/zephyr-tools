@@ -60,8 +60,4 @@ TBD
 
 ## Release Notes
 
-See the following summary below. More details in CHANGELOG.md
-
-### 0.0.1
-
-Experiemental development version
+More details in [CHANGELOG.md](CHANGELOG.md)

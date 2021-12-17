@@ -2,6 +2,12 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+## [0.1.7]
+
+### Changed:
+
+* `west flash` with `--softreset --erase` flags
+
 ## [0.1.6]
 
 ### Changed:
