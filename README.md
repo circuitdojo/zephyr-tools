@@ -46,12 +46,22 @@ Here are some of the tasks needed to be completed for this project:
 - [ ] Creating a new project from scratch/template
 - [ ] CI/CD
 - [ ] Init check for branchs and prompts which to download
+- [ ] Using probe-rs for programming (cross platform)
 - [x] Flashing via `west flash`
 - [x] Flashing via `newtmgr` or `mcumgr`
 - [x] Download and add `newtmgr` to path 
 - [x] Linux support tested
 
 ## Release Notes
+
+## [0.1.9]
+
+### Changed:
+
+* west flash uses nrfjprog by default
+* adding a note to investigate using probe-rs to avoid installing j-link and nrfjprog
+* Success message using showInformationMessage
+* Changing success message for reset function
 
 ## [0.1.8]
 

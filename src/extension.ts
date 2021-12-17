@@ -977,7 +977,7 @@ async function flash(config: GlobalConfig, project: ProjectConfig) {
 
 	// Enable python env
 	// TODO: determine what command to use
-	let cmd = `west flash --erase --softreset`;
+	let cmd = `west flash -r nrfjprog --erase --softreset`;
 	let exec = new vscode.ShellExecution(cmd, options);
 
 	// Task

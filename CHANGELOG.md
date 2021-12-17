@@ -2,6 +2,15 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+## [0.1.9]
+
+### Changed:
+
+* west flash uses nrfjprog by default
+* adding a note to investigate using probe-rs to avoid installing j-link and nrfjprog
+* Success message using showInformationMessage
+* Changing success message for reset function
+
 ## [0.1.8]
 
 ### Added:
