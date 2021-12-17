@@ -728,7 +728,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 
-		vscode.window.showErrorMessage('Newtmgr successfully configured.');
+		vscode.window.showInformationMessage('Newtmgr successfully configured.');
 
 	}));
 
@@ -956,8 +956,8 @@ async function load(config: GlobalConfig, project: ProjectConfig) {
 	await TaskManager.push(task, {
 		ignoreError: false,
 		lastTask: true,
-		errorMessage: "Load error! Did you init your project?",
-		successMessage: "Load complete!"
+		errorMessage: "Reset error! Did you init your project?",
+		successMessage: "Device reset!"
 	});
 
 	vscode.window.showInformationMessage(`Loading via bootloader for ${project.board}`);
