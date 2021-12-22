@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "publisher": "circuitdojo",
   "preview": true,
   "icon": "img/bulb.png",
@@ -90,7 +90,6 @@
     "@types/node": "^12.11.7",
     "@types/vscode": "^1.52.0",
     "@types/fs-extra": "^8.0.1",
-    "@types/serialport": "^8.0.1",
     "@typescript-eslint/eslint-plugin": "^4.9.0",
     "@typescript-eslint/parser": "^4.9.0",
     "eslint": "^7.15.0",
@@ -101,7 +100,6 @@
   },
   "dependencies": {
     "@microsoft/vscode-file-downloader-api": "^1.0.1",
-    "serialport": "^10.0.0",
     "fs-extra": "^10.0.0"
   },
   "extensionDependencies": [

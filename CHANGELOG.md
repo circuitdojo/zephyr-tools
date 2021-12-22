@@ -2,6 +2,16 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.10]
+
+### Removed:
+
+* Use of serialports npm package
+
+### Added:
+
+* Additional download and use of zephyr-tools-monitor
+
 ## [0.1.9]
 
 ### Changed:

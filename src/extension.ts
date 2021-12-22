@@ -7,7 +7,6 @@ import * as os from 'os';
 import * as downloader from "@microsoft/vscode-file-downloader-api";
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import * as serial from 'serialport';
 
 import { TaskManager } from './taskmanager';
 
@@ -693,16 +692,28 @@ export async function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 
+		// Promisified exec
+		let exec = util.promisify(cp.exec);
+
+
+		// Get listofports
+		let cmd = `zephyr-tools-monitor -l`;
+		let res = await exec(cmd, { env: config.env });
+		if (res.stderr) {
+			output.append(res.stderr);
+			output.show();
+			return;
+		}
+
 		// Get port
-		let ports = await serial.list();
-		let portlist = ports.map((value) => {
-			return value.path;
-		});
+		let ports = JSON.parse(res.stdout);
+
+		console.log(ports);
 
 		// Have them choose from list of ports
-		const port = await vscode.window.showQuickPick(portlist, {
+		const port = await vscode.window.showQuickPick(ports, {
 			title: "Pick your serial port.",
-			placeHolder: portlist[0],
+			placeHolder: ports[0],
 		});
 
 		// Then have them choose BAUD (default to 1000000)
@@ -716,12 +727,9 @@ export async function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 
-		// Promisified exec
-		let exec = util.promisify(cp.exec);
-
 		// Create a vscode-tools connection profile
-		let cmd = `newtmgr conn add vscode-zephyr-tools type=serial connstring='dev=${port},baud=${baud}'`;
-		let res = await exec(cmd, { env: config.env });
+		cmd = `newtmgr conn add vscode-zephyr-tools type=serial connstring='dev=${port},baud=${baud}'`;
+		res = await exec(cmd, { env: config.env });
 		if (res.stderr) {
 			output.append(res.stderr);
 			output.show();
