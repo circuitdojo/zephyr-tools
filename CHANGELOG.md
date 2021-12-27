@@ -2,6 +2,29 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.12]
+
+Load and monitor in place!
+
+Added:
+* Load and monitor functionality 
+* Flash and monitor functionality as well
+
+Changed:
+* For quickPick, enabling ignoreFocusOut otherwise we get failures
+* Canceling running tasks for the flash/load commands
+* Saving of port either determined by a monitor command or newtmgr (should be the same port no matter what)
+
+### [0.1.11]
+
+Updating manifest and add monitor command
+
+Added:
+* Created monitor command for monitoring serial
+
+Changed:
+* Brought out getPort and getBaud so they can be re-used
+
 ### [0.1.10]
 
 ### Removed:

@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "publisher": "circuitdojo",
   "preview": true,
   "icon": "img/bulb.png",
@@ -21,9 +21,11 @@
     "onCommand:zephyr-tools.change-board",
     "onCommand:zephyr-tools.change-project",
     "onCommand:zephyr-tools.flash",
+    "onCommand:zephyr-tools.flash-and-monitor",
     "onCommand:zephyr-tools.setup-newtmgr",
     "onCommand:zephyr-tools.monitor",
     "onCommand:zephyr-tools.load",
+    "onCommand:zephyr-tools.load-and-monitor",
     "onCommand:zephyr-tools.init-repo",
     "onCommand:zephyr-tools.clean",
     "onCommand:zephyr-tools.update"
@@ -56,8 +58,16 @@
         "title": "Zephyr Tools: Flash"
       },
       {
+        "command": "zephyr-tools.flash-and-monitor",
+        "title": "Zephyr Tools: Flash and Monitor"
+      },
+      {
         "command": "zephyr-tools.load",
         "title": "Zephyr Tools: Load via Bootloader"
+      },
+      {
+        "command": "zephyr-tools.load-and-monitor",
+        "title": "Zephyr Tools: Load via Bootloader and Monitor"
       },
       {
         "command": "zephyr-tools.setup-newtmgr",

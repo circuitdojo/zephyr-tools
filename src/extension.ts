@@ -76,6 +76,7 @@ let toolsdir = path.join(os.homedir(), toolsfoldername);
 interface ProjectConfig {
 	board?: string;
 	target?: string;
+	port?: string;
 	isInit: boolean;
 }
 
@@ -625,6 +626,9 @@ export async function activate(context: vscode.ExtensionContext) {
 	// TODO: command for loading via `newtmgr/mcumgr`
 	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.load', async () => {
 
+		// Cancel all pending tasks
+		await TaskManager.cancel();
+
 		// Fetch the project config
 		let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
 
@@ -681,12 +685,89 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	}));
 
+	// TODO: command for loading via `newtmgr/mcumgr`
+	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.load-and-monitor', async () => {
+
+		// Cancel all pending tasks
+		await TaskManager.cancel();
+
+		// Fetch the project config
+		let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+
+		// Flash board
+		if (!config.isSetup) {
+			// Display an error message box to the user
+			vscode.window.showErrorMessage('Run `Zephyr Toools: Setup` command before loading.');
+			return;
+		}
+
+		// Create & clear output
+		if (output === undefined) {
+			output = vscode.window.createOutputChannel("Zephyr Tools");
+		}
+
+		// Clear output before beginning
+		output.clear();
+		output.show();
+
+		// Get the root path of the workspace
+		let rootPath = getRootPath();
+		if (rootPath === undefined) {
+			vscode.window.showErrorMessage('Unable to get root path.');
+			return;
+		}
+
+		// Promisified exec
+		let exec = util.promisify(cp.exec);
+
+		// Run `newtmgr conn show` to see if there is a profile called "vscode-zephyr-tools"
+		let cmd = "newtmgr conn show";
+		let res = await exec(cmd, { env: config.env });
+		if (res.stderr) {
+			output.append(res.stderr);
+			output.show();
+			return;
+		}
+
+		// Kick them back if it doesn't exist
+		if (!res.stdout.includes("vscode-zephyr-tools")) {
+			vscode.window.showErrorMessage('Run `Zephyr Toools: Setup Newtmgr` before loading.');
+			return;
+		}
+
+		// Check if app_update.bin exists. If not, warn them about building and that bootloader is enabled
+		let exists = await fs.pathExists(path.join(rootPath.fsPath, "build", "zephyr", "app_update.bin"));
+		if (!exists) {
+			vscode.window.showErrorMessage('app_update.bin not found. Build project with bootloader before loading.');
+			return;
+		}
+
+		// Otherwise load with app_update.bin
+		await load(config, project);
+
+		// Set port if necessary
+		if (project.port === undefined) {
+			// Get serial settings
+			project.port = await getPort();
+			if (project.port === undefined) {
+				vscode.window.showErrorMessage('Error obtaining serial port.');
+				return;
+			}
+
+			// Save settings
+			await context.workspaceState.update("zephyr.project", project);
+		}
+
+		await monitor(config, project);
+
+
+	}));
+
 	// Update dependencies
 	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.monitor', async () => {
 
 		// Fetch the project config
 		let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
-
 
 		// Check if setup
 		if (!config.isSetup) {
@@ -695,14 +776,62 @@ export async function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 
+		// Set port if necessary
+		if (project.port === undefined) {
+			// Get serial settings
+			project.port = await getPort();
+			if (project.port === undefined) {
+				vscode.window.showErrorMessage('Error obtaining serial port.');
+				return;
+			}
+
+			// Save settings
+			await context.workspaceState.update("zephyr.project", project);
+		}
+
 		await monitor(config, project);
 
 
 	}));
 
+	// Command for flashing and monitoring
+	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.flash-and-monitor', async () => {
+
+		// Fetch the project config
+		let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+
+		// Flash board
+		if (config.isSetup) {
+			await flash(config, project);
+
+			// Set port if necessary
+			if (project.port === undefined) {
+				// Get serial settings
+				project.port = await getPort();
+				if (project.port === undefined) {
+					vscode.window.showErrorMessage('Error obtaining serial port.');
+					return;
+				}
+
+				// Save settings
+				await context.workspaceState.update("zephyr.project", project);
+			}
+
+			await monitor(config, project);
+		} else {
+			// Display an error message box to the user
+			vscode.window.showErrorMessage('Run `Zephyr Toools: Setup` command before flashing.');
+		}
+
+
+
+	}));
 
 	// Command for setting up `newtmgr/mcumgr`
 	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.setup-newtmgr', async () => {
+
+		// Fetch the project config
+		let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
 
 		// Check if setup
 		if (!config.isSetup) {
@@ -727,6 +856,9 @@ export async function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 
+		// Set port in project
+		project.port = port;
+		await context.workspaceState.update("zephyr.project", project);
 
 		// Create a vscode-tools connection profile
 		let cmd = `newtmgr conn add vscode-zephyr-tools type=serial connstring='dev=${port},baud=${baud}'`;
@@ -938,6 +1070,7 @@ async function getPort(): Promise<string | undefined> {
 	const port = await vscode.window.showQuickPick(ports, {
 		title: "Pick your serial port.",
 		placeHolder: ports[0],
+		ignoreFocusOut: true,
 	});
 
 	if (port === undefined) {
@@ -956,6 +1089,7 @@ async function getBaud(_baud: string): Promise<string | undefined> {
 	const baud = await vscode.window.showQuickPick(baudlist, {
 		title: "Pick your baud rate.",
 		placeHolder: _baud,
+		ignoreFocusOut: true,
 	}) ?? _baud;
 
 	if (baud === "") {
@@ -1035,13 +1169,7 @@ async function monitor(config: GlobalConfig, project: ProjectConfig) {
 
 	// Tasks
 	let taskName = "Zephyr Tools: Serial Monitor";
-
-	// Get serial settings
-	let port = await getPort();
-	if (port === undefined) {
-		vscode.window.showErrorMessage('Error obtaining serial port.');
-		return;
-	}
+	let port = project.port;
 
 	// Command to run
 	let cmd = `zephyr-tools-monitor --port ${port} --follow`;
@@ -1067,6 +1195,9 @@ async function monitor(config: GlobalConfig, project: ProjectConfig) {
 
 // TODO: select programmer ID if there are multiple..
 async function flash(config: GlobalConfig, project: ProjectConfig) {
+
+	// Cancel running tasks
+	await TaskManager.cancel();
 
 	// Options for SehllExecution
 	let options: vscode.ShellExecutionOptions = {
@@ -1242,7 +1373,8 @@ async function changeProject(config: GlobalConfig, context: vscode.ExtensionCont
 
 	// Turn that into a project selection 
 	const result = await vscode.window.showQuickPick(files, {
-		placeHolder: 'Pick your target project..'
+		placeHolder: 'Pick your target project..',
+		ignoreFocusOut: true,
 	});
 
 	if (result) {
@@ -1274,7 +1406,8 @@ async function changeBoard(config: GlobalConfig, context: vscode.ExtensionContex
 
 	// Prompt which board to use
 	const result = await vscode.window.showQuickPick(boards, {
-		placeHolder: 'Pick your board..'
+		placeHolder: 'Pick your board..',
+		ignoreFocusOut: true,
 	});
 
 	if (result) {
