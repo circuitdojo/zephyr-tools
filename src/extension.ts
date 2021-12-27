@@ -33,6 +33,7 @@ type ManifestEntry = {
 };
 
 type Manifest = {
+	version: Number,
 	win32: ManifestEntry[];
 	darwin: ManifestEntry[];
 	linux: ManifestEntry[];
@@ -83,6 +84,7 @@ interface ProjectConfig {
 // Config for the exention
 interface GlobalConfig {
 	isSetup: boolean,
+	manifestVersion: Number,
 	env: { [name: string]: string | undefined };
 }
 
@@ -109,7 +111,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	TaskManager.init();
 
 	// Get the configuration
-	config = context.globalState.get("zephyr.env") ?? { env: process.env, isSetup: false };
+	config = context.globalState.get("zephyr.env") ?? { env: process.env, manifestVersion: 0, isSetup: false };
 
 	// Then set the application environment to match
 	if (config.env["PATH"] !== undefined && config.env["PATH"] !== "") {
@@ -164,125 +166,126 @@ export async function activate(context: vscode.ExtensionContext) {
 			// Download dependenices first!
 			const fileDownloader: downloader.FileDownloader = await downloader.getApi();
 
-			for (const [key, value] of Object.entries(manifest)) {
-				if (platform === key) {
-					// For loop to process entry in manifest.json
-					inner: for (const [index, element] of value.entries()) {
-						// Confirm it's the correct architecture 
-						if (element.arch === arch) {
-							for (var download of element.downloads) {
+			// Define what manifest to use
+			let platformManifest: ManifestEntry[] | undefined;
+			switch (platform) {
+				case "darwin":
+					platformManifest = manifest.darwin;
+					break;
+				case "linux":
+					platformManifest = manifest.linux;
+					break;
+				case "win32":
+					platformManifest = manifest.win32;
+					break;
+			};
 
-								// TODO: EXTRA CREDIT -- check if already exists & hash 
+			// Skip out if not found
+			if (platformManifest === undefined) {
+				vscode.window.showErrorMessage('Unsupported platform for Zephyr Tools!');
+				return;
+			}
 
-								// Check if we can unzip..
-								const shouldUnzip = download.url.includes(".zip");
+			// For loop to process entry in manifest.json
+			for (const [index, element] of platformManifest.entries()) {
+				// Confirm it's the correct architecture 
+				if (element.arch === arch) {
+					for (var download of element.downloads) {
 
-								// Check if it already exists
-								let filepath = await fileDownloader.getItem(download.filename, context).then((value) => value, (reason) => null);
+						// TODO: EXTRA CREDIT -- check if already exists & hash 
 
-								// Download if doesn't exist
-								if (filepath === null) {
-									output.appendLine("[SETUP] downloading " + download.url);
+						// Check if we can unzip..
+						const shouldUnzip = download.url.includes(".zip");
+
+						// Check if it already exists
+						let filepath = await fileDownloader.getItem(download.filename, context).then((value) => value, (reason) => null);
+
+						// Download if doesn't exist
+						if (filepath === null) {
+							output.appendLine("[SETUP] downloading " + download.url);
 
 
-									filepath = await fileDownloader.downloadFile(
-										vscode.Uri.parse(download.url),
-										download.filename,
-										context,
-										undefined,
-										undefined,
-										{ shouldUnzip: shouldUnzip }
-									);
-								}
+							filepath = await fileDownloader.downloadFile(
+								vscode.Uri.parse(download.url),
+								download.filename,
+								context,
+								undefined,
+								undefined,
+								{ shouldUnzip: shouldUnzip }
+							);
+						}
 
-								// TODO: EXTRA CREDIT - check MD5
+						// TODO: EXTRA CREDIT - check MD5
 
-								// Get the path to copy the contents to..
-								const copytopath = path.join(toolsdir, download.name);
+						// Get the path to copy the contents to..
+						const copytopath = path.join(toolsdir, download.name);
 
-								// Unpack and place into `$HOME/.zephyrtools`
-								if (!download.url.includes("tar")) {
-									await fs.copy(filepath.fsPath, copytopath, { overwrite: true });
-								} else if (download.url.includes("tar")) {
+						// Unpack and place into `$HOME/.zephyrtools`
+						if (!download.url.includes("tar")) {
+							await fs.copy(filepath.fsPath, copytopath, { overwrite: true });
+						} else if (download.url.includes("tar")) {
 
-									// Create copy to folder
-									if (!await fs.pathExists(copytopath)) {
-										await fs.mkdirp(copytopath);
-									}
+							// Create copy to folder
+							if (!await fs.pathExists(copytopath)) {
+								await fs.mkdirp(copytopath);
+							}
 
-									// Then untar
-									const cmd = `tar -xvf "${filepath.path}" -C "${copytopath}"`;
-									output.appendLine(cmd);
-									let res = await exec(cmd, { env: config.env }).then(value => {
-										output.append(value.stdout);
-										return true;
-									}, (reason) => {
-										output.append(reason.stdout);
-										output.append(reason.stderr);
+							// Then untar
+							const cmd = `tar -xvf "${filepath.path}" -C "${copytopath}"`;
+							output.appendLine(cmd);
+							let res = await exec(cmd, { env: config.env }).then(value => {
+								output.append(value.stdout);
+								return true;
+							}, (reason) => {
+								output.append(reason.stdout);
+								output.append(reason.stderr);
 
-										// Error message
-										vscode.window.showErrorMessage('Error un-tar of download. Check output for more info.');
+								// Error message
+								vscode.window.showErrorMessage('Error un-tar of download. Check output for more info.');
 
-										return false;
-									});
+								return false;
+							});
 
-									// Return if untar was unsuccessful
-									if (!res) {
-										return;
-									}
-
-								}
-
-								// Set path
-								let setpath = path.join(copytopath, download.suffix ?? "");
-								config.env["PATH"] = path.join(setpath, pathdivider + config.env["PATH"]);
-
-								// Set remainin env variables
-								for (let entry of download.env ?? []) {
-
-									if (entry.value) {
-										config.env[entry.name] = entry.value;
-									} else if (entry.usepath && !entry.append) {
-										config.env[entry.name] = path.join(copytopath, entry.suffix ?? "");
-									} else if (entry.usepath && entry.append) {
-										config.env[entry.name] = path.join(copytopath, (entry.suffix ?? "") + pathdivider + config.env[entry.name] ?? "");
-									}
-
-									console.log(`env[${entry.name}]: ${config.env[entry.name]}`);
-								}
-
-								progress.report({ increment: 5 });
-
-							};
-
-							break inner;
-						} else {
-
-							// Check if we're at the end of arch check
-							if (index === (value.length - 1)) {
-								vscode.window.showErrorMessage('Unsupported architecture for Zephyr Tools!');
+							// Return if untar was unsuccessful
+							if (!res) {
 								return;
 							}
+
 						}
-					}
 
-					progress.report({ increment: 5 });
+						// Set path
+						let setpath = path.join(copytopath, download.suffix ?? "");
+						config.env["PATH"] = path.join(setpath, pathdivider + config.env["PATH"]);
 
-					// Break from loop since we found the correct platform
-					break;
+						// Set remainin env variables
+						for (let entry of download.env ?? []) {
+
+							if (entry.value) {
+								config.env[entry.name] = entry.value;
+							} else if (entry.usepath && !entry.append) {
+								config.env[entry.name] = path.join(copytopath, entry.suffix ?? "");
+							} else if (entry.usepath && entry.append) {
+								config.env[entry.name] = path.join(copytopath, (entry.suffix ?? "") + pathdivider + config.env[entry.name] ?? "");
+							}
+
+							console.log(`env[${entry.name}]: ${config.env[entry.name]}`);
+						}
+
+						progress.report({ increment: 5 });
+
+					};
 
 				} else {
 
-					// Check if this is the last iteration 
-					let platforms = Object.keys(manifest);
-					let last = platforms[platforms.length - 1];
-
-					if (last === key) {
-						vscode.window.showErrorMessage('Unsupported platform for Zephyr Tools!');
+					// Check if we're at the end of arch check
+					if (index === (platformManifest.length - 1)) {
+						vscode.window.showErrorMessage('Unsupported architecture for Zephyr Tools!');
 						return;
 					}
 				}
 			}
+
+			progress.report({ increment: 5 });
 
 			// Check if Git exists in path
 			let res: boolean = await exec("git --version", { env: config.env }).then(value => {
@@ -455,6 +458,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
 			output.appendLine("[SETUP] Zephyr setup complete!");
 
+			// Save manifest to the .zephyrtools root
+			config.manifestVersion = manifest.version;
+
 			// Setup flag complete
 			config.isSetup = true;
 
@@ -474,6 +480,12 @@ export async function activate(context: vscode.ExtensionContext) {
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.init-repo', async (_dest: vscode.Uri | undefined) => {
+
+		// Check if manifest is good
+		if (config.manifestVersion !== manifest.version) {
+			vscode.window.showErrorMessage('An update is required. Run `Zephyr Tools: Setup` command first.');
+			return;
+		}
 
 		let dest = _dest;
 
@@ -513,6 +525,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.change-project', async () => {
 
+		// Check if manifest is good
+		if (config.manifestVersion !== manifest.version) {
+			vscode.window.showErrorMessage('An update is required. Run `Zephyr Tools: Setup` command first.');
+			return;
+		}
+
 		// See if config is set first
 		if (config.isSetup) {
 			changeProject(config, context);
@@ -525,6 +543,13 @@ export async function activate(context: vscode.ExtensionContext) {
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.change-board', async () => {
+
+		// Check if manifest is good
+		if (config.manifestVersion !== manifest.version) {
+			vscode.window.showErrorMessage('An update is required. Run `Zephyr Tools: Setup` command first.');
+			return;
+		}
+
 		// See if config is set first
 		if (config.isSetup) {
 			changeBoard(config, context);
@@ -544,6 +569,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Does a pristine zephyr build
 	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.build-pristine', async () => {
+
+		// Check if manifest is good
+		if (config.manifestVersion !== manifest.version) {
+			vscode.window.showErrorMessage('An update is required. Run `Zephyr Tools: Setup` command first.');
+			return;
+		}
 
 		// Fetch the project config
 		let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
@@ -566,6 +597,12 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Fetch the project config
 		let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
 
+		// Check if manifest is good
+		if (config.manifestVersion !== manifest.version) {
+			vscode.window.showErrorMessage('An update is required. Run `Zephyr Tools: Setup` command first.');
+			return;
+		}
+
 		// Do some work
 		if (config.isSetup && project.isInit) {
 			await build(config, project, false, context);
@@ -583,6 +620,12 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Fetch the project config
 		let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
 
+		// Check if manifest is good
+		if (config.manifestVersion !== manifest.version) {
+			vscode.window.showErrorMessage('An update is required. Run `Zephyr Tools: Setup` command first.');
+			return;
+		}
+
 		// Flash board
 		if (config.isSetup) {
 			await flash(config, project);
@@ -597,6 +640,12 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.clean', async () => {
 		// Fetch the project config
 		let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+
+		// Check if manifest is good
+		if (config.manifestVersion !== manifest.version) {
+			vscode.window.showErrorMessage('An update is required. Run `Zephyr Tools: Setup` command first.');
+			return;
+		}
 
 		// Flash board
 		if (config.isSetup) {
@@ -613,7 +662,13 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Fetch the project config
 		let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
 
-		// Flash board
+		// Check if manifest is good
+		if (config.manifestVersion !== manifest.version) {
+			vscode.window.showErrorMessage('An update is required. Run `Zephyr Tools: Setup` command first.');
+			return;
+		}
+
+		// Make sure we're setup first otherwise update
 		if (config.isSetup) {
 			await update(config, project);
 		} else {
@@ -632,7 +687,13 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Fetch the project config
 		let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
 
-		// Flash board
+		// Check if manifest is good
+		if (config.manifestVersion !== manifest.version) {
+			vscode.window.showErrorMessage('An update is required. Run `Zephyr Tools: Setup` command first.');
+			return;
+		}
+
+		// Make sure we're setup first
 		if (!config.isSetup) {
 			// Display an error message box to the user
 			vscode.window.showErrorMessage('Run `Zephyr Toools: Setup` command before loading.');
@@ -694,7 +755,13 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Fetch the project config
 		let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
 
-		// Flash board
+		// Check if manifest is good
+		if (config.manifestVersion !== manifest.version) {
+			vscode.window.showErrorMessage('An update is required. Run `Zephyr Tools: Setup` command first.');
+			return;
+		}
+
+		// Make sure we're setup first
 		if (!config.isSetup) {
 			// Display an error message box to the user
 			vscode.window.showErrorMessage('Run `Zephyr Toools: Setup` command before loading.');
@@ -769,6 +836,12 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Fetch the project config
 		let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
 
+		// Check if manifest is good
+		if (config.manifestVersion !== manifest.version) {
+			vscode.window.showErrorMessage('An update is required. Run `Zephyr Tools: Setup` command first.');
+			return;
+		}
+
 		// Check if setup
 		if (!config.isSetup) {
 			// Display an error message box to the user
@@ -799,6 +872,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// Fetch the project config
 		let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+
+		// Check if manifest is good
+		if (config.manifestVersion !== manifest.version) {
+			vscode.window.showErrorMessage('An update is required. Run `Zephyr Tools: Setup` command first.');
+			return;
+		}
 
 		// Flash board
 		if (config.isSetup) {
@@ -832,6 +911,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// Fetch the project config
 		let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+
+		// Check if manifest is good
+		if (config.manifestVersion !== manifest.version) {
+			vscode.window.showErrorMessage('An update is required. Run `Zephyr Tools: Setup` command first.');
+			return;
+		}
 
 		// Check if setup
 		if (!config.isSetup) {

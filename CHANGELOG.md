@@ -2,9 +2,23 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
-### [0.1.12]
+### [0.1.14]
 
-Load and monitor in place!
+Changed:
+* Due to the addition of manifestVersion, can't iterate by object entries now.
+
+Added:
+* Version checks at the start of each command
+
+### [0.1.13]
+
+Changed:
+* Fixing issue setting newtmgr serial connection
+
+Removed:
+* Finished TODOs
+
+### [0.1.12]
 
 Added:
 * Load and monitor functionality 
@@ -16,8 +30,6 @@ Changed:
 * Saving of port either determined by a monitor command or newtmgr (should be the same port no matter what)
 
 ### [0.1.11]
-
-Updating manifest and add monitor command
 
 Added:
 * Created monitor command for monitoring serial

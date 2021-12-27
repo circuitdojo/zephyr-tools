@@ -51,6 +51,22 @@ Here are some of the tasks needed to be completed for this project:
 
 ## Release Notes
 
+### [0.1.14]
+
+Changed:
+* Due to the addition of manifestVersion, can't iterate by object entries now.
+
+Added:
+* Version checks at the start of each command
+
+### [0.1.13]
+
+Changed:
+* Fixing issue setting newtmgr serial connection
+
+Removed:
+* Finished TODOs
+* 
 ### [0.1.12]
 
 Load and monitor in place!
