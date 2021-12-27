@@ -5,8 +5,8 @@
             "downloads": [
                 {
                     "name": "zephyr-tools-monitor",
-                    "filename": "zephyr-tools-monitor-0.1.0-x86_64-pc-windows-msvc.zip",
-                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.0/zephyr-tools-monitor-0.1.0-x86_64-pc-windows-msvc.zip"
+                    "filename": "zephyr-tools-monitor-0.1.1-x86_64-pc-windows-msvc.zip",
+                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.1/zephyr-tools-monitor-0.1.1-x86_64-pc-windows-msvc.zip"
                 },
                 {
                     "name": "newtmgr",
@@ -55,8 +55,8 @@
             "downloads": [
                 {
                     "name": "zephyr-tools-monitor",
-                    "filename": "zephyr-tools-monitor-0.1.0-x86_64-apple-darwin.tar.gz",
-                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.0/zephyr-tools-monitor-0.1.0-x86_64-apple-darwin.tar.gz"
+                    "filename": "zephyr-tools-monitor-0.1.1-x86_64-apple-darwin.tar.gz",
+                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.1/zephyr-tools-monitor-0.1.1-x86_64-apple-darwin.tar.gz"
                 },
                 {
                     "name": "newtmgr",
@@ -106,8 +106,8 @@
             "downloads": [
                 {
                     "name": "zephyr-tools-monitor",
-                    "filename": "zephyr-tools-monitor-0.1.0-x86_64-unknown-linux-gnu.tar.gz",
-                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.0/zephyr-tools-monitor-0.1.0-x86_64-unknown-linux-gnu.tar.gz"
+                    "filename": "zephyr-tools-monitor-0.1.1-x86_64-unknown-linux-gnu.tar.gz",
+                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.1/zephyr-tools-monitor-0.1.1-x86_64-unknown-linux-gnu.tar.gz"
                 },
                 {
                     "name": "newtmgr",

@@ -681,6 +681,25 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	}));
 
+	// Update dependencies
+	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.monitor', async () => {
+
+		// Fetch the project config
+		let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+
+
+		// Check if setup
+		if (!config.isSetup) {
+			// Display an error message box to the user
+			vscode.window.showErrorMessage('Run `Zephyr Toools: Setup` command before loading.');
+			return;
+		}
+
+		await monitor(config, project);
+
+
+	}));
+
 
 	// Command for setting up `newtmgr/mcumgr`
 	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.setup-newtmgr', async () => {
@@ -695,41 +714,23 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Promisified exec
 		let exec = util.promisify(cp.exec);
 
-
-		// Get listofports
-		let cmd = `zephyr-tools-monitor -l`;
-		let res = await exec(cmd, { env: config.env });
-		if (res.stderr) {
-			output.append(res.stderr);
-			output.show();
+		// Get serial settings
+		let port = await getPort();
+		if (port === undefined) {
+			vscode.window.showErrorMessage('Error obtaining serial port.');
 			return;
 		}
 
-		// Get port
-		let ports = JSON.parse(res.stdout);
-
-		console.log(ports);
-
-		// Have them choose from list of ports
-		const port = await vscode.window.showQuickPick(ports, {
-			title: "Pick your serial port.",
-			placeHolder: ports[0],
-		});
-
-		// Then have them choose BAUD (default to 1000000)
-		const baud = await vscode.window.showQuickPick(baudlist, {
-			title: "Pick your baud rate.",
-			placeHolder: baudlist[0],
-		});
-
+		let baud = await getBaud("1000000");
 		if (baud === undefined) {
-			vscode.window.showErrorMessage('Invalid baud rate choice.');
+			vscode.window.showErrorMessage('Error obtaining serial baud.');
 			return;
 		}
+
 
 		// Create a vscode-tools connection profile
-		cmd = `newtmgr conn add vscode-zephyr-tools type=serial connstring='dev=${port},baud=${baud}'`;
-		res = await exec(cmd, { env: config.env });
+		let cmd = `newtmgr conn add vscode-zephyr-tools type=serial connstring='dev=${port},baud=${baud}'`;
+		let res = await exec(cmd, { env: config.env });
 		if (res.stderr) {
 			output.append(res.stderr);
 			output.show();
@@ -915,6 +916,57 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext, 
 	}
 }
 
+async function getPort(): Promise<string | undefined> {
+	// Promisified exec
+	let exec = util.promisify(cp.exec);
+
+	// Get listofports
+	let cmd = `zephyr-tools-monitor -l`;
+	let res = await exec(cmd, { env: config.env });
+	if (res.stderr) {
+		output.append(res.stderr);
+		output.show();
+		return undefined;
+	}
+
+	// Get port
+	let ports = JSON.parse(res.stdout);
+
+	console.log(ports);
+
+	// Have them choose from list of ports
+	const port = await vscode.window.showQuickPick(ports, {
+		title: "Pick your serial port.",
+		placeHolder: ports[0],
+	});
+
+	if (port === undefined) {
+		vscode.window.showErrorMessage('Invalid port choice.');
+		return undefined;
+	}
+
+	return port;
+
+}
+
+async function getBaud(_baud: string): Promise<string | undefined> {
+
+
+	// Then have them choose BAUD (default to 1000000 for newtmgr)
+	const baud = await vscode.window.showQuickPick(baudlist, {
+		title: "Pick your baud rate.",
+		placeHolder: _baud,
+	}) ?? _baud;
+
+	if (baud === "") {
+		vscode.window.showErrorMessage('Invalid baud rate choice.');
+		return undefined;
+	}
+
+	return baud;
+
+}
+
 async function load(config: GlobalConfig, project: ProjectConfig) {
 
 	// Options for SehllExecution
@@ -969,6 +1021,47 @@ async function load(config: GlobalConfig, project: ProjectConfig) {
 	});
 
 	vscode.window.showInformationMessage(`Loading via bootloader for ${project.board}`);
+
+
+}
+
+async function monitor(config: GlobalConfig, project: ProjectConfig) {
+
+
+	// Options for SehllExecution
+	let options: vscode.ShellExecutionOptions = {
+		env: <{ [key: string]: string; }>config.env,
+	};
+
+	// Tasks
+	let taskName = "Zephyr Tools: Serial Monitor";
+
+	// Get serial settings
+	let port = await getPort();
+	if (port === undefined) {
+		vscode.window.showErrorMessage('Error obtaining serial port.');
+		return;
+	}
+
+	// Command to run
+	let cmd = `zephyr-tools-monitor --port ${port} --follow`;
+	let exec = new vscode.ShellExecution(cmd, options);
+
+	// Task
+	let task = new vscode.Task(
+		{ type: "zephyr-tools", command: taskName },
+		vscode.TaskScope.Workspace,
+		taskName,
+		"zephyr-tools",
+		exec
+	);
+
+	// Start execution
+	await TaskManager.push(task, {
+		ignoreError: false,
+		lastTask: true,
+		errorMessage: "Serial monitor error!",
+	});
 
 }
 
