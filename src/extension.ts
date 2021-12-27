@@ -861,7 +861,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		await context.workspaceState.update("zephyr.project", project);
 
 		// Create a vscode-tools connection profile
-		let cmd = `newtmgr conn add vscode-zephyr-tools type=serial connstring='dev=${port},baud=${baud}'`;
+		let cmd = `newtmgr conn add vscode-zephyr-tools type=serial connstring="dev=${port},baud=${baud}"`;
 		let res = await exec(cmd, { env: config.env });
 		if (res.stderr) {
 			output.append(res.stderr);

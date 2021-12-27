@@ -43,14 +43,11 @@ sudo apt install git python3 python3-pip
 
 Here are some of the tasks needed to be completed for this project:
 
+- [ ] Reinstall dependencies if manifest differs from what's installed
 - [ ] Creating a new project from scratch/template
 - [ ] CI/CD
 - [ ] Init check for branchs and prompts which to download
 - [ ] Using probe-rs for programming (cross platform)
-- [x] Flashing via `west flash`
-- [x] Flashing via `newtmgr` or `mcumgr`
-- [x] Download and add `newtmgr` to path 
-- [x] Linux support tested
 
 ## Release Notes
 
