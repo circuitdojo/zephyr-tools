@@ -803,7 +803,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 
 		// Check if app_update.bin exists. If not, warn them about building and that bootloader is enabled
-		let exists = await fs.pathExists(path.join(rootPath.fsPath, "build", "zephyr", "app_update.bin"));
+		let exists = await fs.pathExists(path.join(project.target ?? "", "build", "zephyr", "app_update.bin"));
 		if (!exists) {
 			vscode.window.showErrorMessage('app_update.bin not found. Build project with bootloader before loading.');
 			return;
@@ -1197,7 +1197,7 @@ async function load(config: GlobalConfig, project: ProjectConfig) {
 	let taskName = "Zephyr Tools: Load";
 
 	// Upload image
-	let cmd = `newtmgr -c vscode-zephyr-tools image upload ${path.join("build", "zephyr", "app_update.bin")}`;
+	let cmd = `newtmgr -c vscode-zephyr-tools image upload ${path.join(project.target ?? "", "build", "zephyr", "app_update.bin")}`;
 	let exec = new vscode.ShellExecution(cmd, options);
 
 	// Task
@@ -1287,6 +1287,7 @@ async function flash(config: GlobalConfig, project: ProjectConfig) {
 	// Options for SehllExecution
 	let options: vscode.ShellExecutionOptions = {
 		env: <{ [key: string]: string; }>config.env,
+		cwd: project.target
 	};
 
 	// Tasks
@@ -1546,6 +1547,9 @@ async function update(config: GlobalConfig, project: ProjectConfig) {
 
 async function build(config: GlobalConfig, project: ProjectConfig, pristine: boolean, context: vscode.ExtensionContext) {
 
+	// Cancel running tasks
+	await TaskManager.cancel();
+
 	// Return if env is not set 
 	if (config.env === undefined) {
 		console.log("Env is undefined!");
@@ -1586,13 +1590,14 @@ async function build(config: GlobalConfig, project: ProjectConfig, pristine: boo
 	// Options for SehllExecution
 	let options: vscode.ShellExecutionOptions = {
 		env: <{ [key: string]: string; }>config.env,
+		cwd: project.target
 	};
 
 	// Tasks
 	let taskName = "Zephyr Tools: Build";
 
 	// Enable python env
-	let cmd = `west build -b ${project.board}${pristine ? ' -p' : ''} -s "${project.target}"`;
+	let cmd = `west build -b ${project.board}${pristine ? ' -p' : ''}`;
 	let exec = new vscode.ShellExecution(cmd, options);
 
 	// Task
@@ -1628,16 +1633,17 @@ async function clean(config: GlobalConfig, project: ProjectConfig) {
 	}
 
 	// Return if undefined
-	if (rootPath === undefined || project.board === undefined) {
+	if (rootPath === undefined || project.board === undefined || project.target === undefined) {
 		return;
 	}
 
 	//Get build folder
-	let buildFolder = vscode.Uri.joinPath(rootPath, "build");
+	let buildFolder = path.join(project.target.toString(), "build");
 
 	// Remove build folder
-	await vscode.workspace.fs.delete(buildFolder, { recursive: true, useTrash: true });
+	await fs.remove(buildFolder);
 
+	vscode.window.showInformationMessage(`Cleaning ${project.target}`);
 }
 
 // this method is called when your extension is deactivated

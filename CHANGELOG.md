@@ -2,6 +2,18 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.15]
+
+**Important change** build directory is local to the sample being built. For example, `app/samples/tracker` now builds to `app/samples/tracker/build/` instead of `app/build`.
+
+Changed:
+* Using project.target for build directory
+* Use of fs.remove instead of vscode.workspace.fs
+* Build also cancels running tasks
+
+Added:
+* Message indicating clean success
+
 ### [0.1.14]
 
 Changed:
