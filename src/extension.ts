@@ -1012,11 +1012,8 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext, 
 			cwd: dest.fsPath
 		};
 
-		// TODO: determine App destinationa
-		let appDest = path.join(dest.fsPath, "app");
-
 		// Check if .git is already here.
-		let exists = await fs.pathExists(path.join(appDest, ".git"));
+		let exists = await fs.pathExists(path.join(dest.fsPath, ".git"));
 
 		if (!exists) {
 
@@ -1038,7 +1035,7 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext, 
 			}
 
 			// git clone to destination
-			let cmd = `git clone ${url} "${appDest}"`;
+			let cmd = `west init -m ${url}`;
 			let exec = new vscode.ShellExecution(cmd, shellOptions);
 
 			// Task
@@ -1057,28 +1054,12 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext, 
 
 		}
 
-		// Init repository with `west init -l`
-		let cmd = `west init -l "${appDest}"`;
+		// `west update`
+		let cmd = `west update`;
 		let exec = new vscode.ShellExecution(cmd, shellOptions);
 
 		// Task
 		let task = new vscode.Task(
-			{ type: "zephyr-tools", command: taskName },
-			vscode.TaskScope.Workspace,
-			taskName,
-			"zephyr-tools",
-			exec
-		);
-
-		// Start execution
-		await TaskManager.push(task, { ignoreError: true, lastTask: false });
-
-		// `west update`
-		cmd = `west update`;
-		exec = new vscode.ShellExecution(cmd, shellOptions);
-
-		// Task
-		task = new vscode.Task(
 			{ type: "zephyr-tools", command: taskName },
 			vscode.TaskScope.Workspace,
 			taskName,

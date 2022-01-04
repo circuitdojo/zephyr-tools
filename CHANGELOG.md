@@ -2,6 +2,14 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.16]
+
+    Changed:
+    * Instead of cloning and then initializing, clone directly using west init
+    
+    Removed:
+    * Second west init as it's not needed
+
 ### [0.1.15]
 
 **Important change** build directory is local to the sample being built. For example, `app/samples/tracker` now builds to `app/samples/tracker/build/` instead of `app/build`.
