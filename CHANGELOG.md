@@ -2,6 +2,13 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.18]
+
+Fixed bug with `Load` command.
+
+Changed:
+* Using project target as the path for app_update.bin (this was already done for the other load/flash commands)
+
 ### [0.1.17]
 
 Added:

@@ -736,7 +736,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 
 		// Check if app_update.bin exists. If not, warn them about building and that bootloader is enabled
-		let exists = await fs.pathExists(path.join(rootPath.fsPath, "build", "zephyr", "app_update.bin"));
+		let exists = await fs.pathExists(path.join(project.target ?? "", "build", "zephyr", "app_update.bin"));
 		if (!exists) {
 			vscode.window.showErrorMessage('app_update.bin not found. Build project with bootloader before loading.');
 			return;
