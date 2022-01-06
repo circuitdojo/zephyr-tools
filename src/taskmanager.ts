@@ -65,7 +65,7 @@ export class TaskManager {
             if (this.current === e.execution) {
 
                 // Checks return code
-                if (e.exitCode !== 0 && !this.currentOptions?.ignoreError) {
+                if (e.exitCode !== 0 && this.currentOptions?.ignoreError === false) {
 
                     if (this.currentOptions?.errorMessage !== undefined) {
                         vscode.window.showErrorMessage(`${this.currentOptions.errorMessage}`);

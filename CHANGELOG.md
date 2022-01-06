@@ -2,6 +2,18 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.17]
+
+Added:
+* Creating custom settings.json to disable built in git client
+
+Changed:
+* Config.path only necessary items
+* Removed env: config.env for many setup tasks
+* Added setting of VIRTUAL_ENV
+* Checking for .west instead of .git
+
+
 ### [0.1.16]
 
     Changed:

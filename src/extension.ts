@@ -100,9 +100,6 @@ let output: vscode.OutputChannel;
 // Configuratoin
 let config: GlobalConfig;
 
-// Original Environment
-let envOriginal = process.env;
-
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
@@ -126,8 +123,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Reset "zephyr.env"
 		context.globalState.update("zephyr.task", undefined);
 		context.globalState.update("zephyr.env", undefined);
-		config.env = envOriginal;
 		config.isSetup = false;
+		config.env = {};
+		config.env["PATH"] = process.env["PATH"];
 
 		// Show setup progress..
 		await vscode.window.withProgress({
@@ -231,9 +229,9 @@ export async function activate(context: vscode.ExtensionContext) {
 							}
 
 							// Then untar
-							const cmd = `tar -xvf "${filepath.path}" -C "${copytopath}"`;
+							const cmd = `tar -xvkf "${filepath.path}" -C "${copytopath}"`;
 							output.appendLine(cmd);
-							let res = await exec(cmd, { env: config.env }).then(value => {
+							let res = await exec(cmd).then(value => {
 								output.append(value.stdout);
 								return true;
 							}, (reason) => {
@@ -268,7 +266,7 @@ export async function activate(context: vscode.ExtensionContext) {
 								config.env[entry.name] = path.join(copytopath, (entry.suffix ?? "") + pathdivider + config.env[entry.name] ?? "");
 							}
 
-							console.log(`env[${entry.name}]: ${config.env[entry.name]}`);
+							// console.log(`env[${entry.name}]: ${config.env[entry.name]}`);
 						}
 
 						progress.report({ increment: 5 });
@@ -288,7 +286,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			progress.report({ increment: 5 });
 
 			// Check if Git exists in path
-			let res: boolean = await exec("git --version", { env: config.env }).then(value => {
+			let res: boolean = await exec("git --version").then(value => {
 				output.append(value.stdout);
 				output.append(value.stderr);
 				output.appendLine("[SETUP] git installed");
@@ -325,7 +323,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			// Otherwise, check Python install
 			let cmd = `${python} --version`;
 			output.appendLine(cmd);
-			res = await exec(cmd, { env: config.env }).then(value => {
+			res = await exec(cmd).then(value => {
 
 				if (value.stdout.includes("Python 3")) {
 					output.appendLine("[SETUP] python3 found");
@@ -371,7 +369,7 @@ export async function activate(context: vscode.ExtensionContext) {
 				// install pip (if not already)
 				cmd = `${python} -m ensurepip`;
 				output.appendLine(cmd);
-				res = await exec(cmd, { env: config.env }).then(value => {
+				res = await exec(cmd).then(value => {
 					output.append(value.stdout);
 					output.appendLine("[SETUP] pip installed");
 
@@ -397,7 +395,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			// install virtualenv
 			cmd = `${python} -m pip install virtualenv`;
 			output.appendLine(cmd);
-			await exec(cmd, { env: config.env }).then(value => {
+			await exec(cmd).then(value => {
 				output.append(value.stdout);
 				output.appendLine("[SETUP] virtualenv installed");
 				return true;
@@ -412,7 +410,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 			cmd = `${python} -m virtualenv "${pythonenv}"`;
 			output.appendLine(cmd);
-			res = await exec(cmd, { env: config.env }).then(value => {
+			res = await exec(cmd).then(value => {
 				output.append(value.stdout);
 				output.appendLine("[SETUP] virtual python environment created");
 				return true;
@@ -432,6 +430,9 @@ export async function activate(context: vscode.ExtensionContext) {
 			// Report progress
 			progress.report({ increment: 5 });
 
+			// Set VIRTUAL_ENV path otherwise we get terribly annoying errors setting up
+			config.env["VIRTUAL_ENV"] = pythonenv;
+
 			// Add env/bin to path
 			config.env["PATH"] = path.join(pythonenv, `Scripts${pathdivider}` + config.env["PATH"]);
 			config.env["PATH"] = path.join(pythonenv, `bin${pathdivider}` + config.env["PATH"]);
@@ -444,7 +445,7 @@ export async function activate(context: vscode.ExtensionContext) {
 				return true;
 			}, (reason) => {
 				output.appendLine("[SETUP] unable to install west");
-				output.append(reason);
+				output.append(JSON.stringify(reason));
 
 				// Error message
 				vscode.window.showErrorMessage('Error installing west. Check output for more info.');
@@ -1006,6 +1007,18 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext, 
 
 		}
 
+		// Set .vscode/settings.json
+		// Temporarily of course..
+		let settings = {
+			"git.enabled": false,
+			"git.path": null,
+			"git.autofetch": false
+		};
+
+		// Make .vscode dir and settings.json
+		await fs.mkdirp(path.join(dest.fsPath, ".vscode"));
+		await fs.writeFile(path.join(dest.fsPath, ".vscode", "settings.json"), JSON.stringify(settings));
+
 		// Options for Shell execution options
 		let shellOptions: vscode.ShellExecutionOptions = {
 			env: <{ [key: string]: string; }>config.env,
@@ -1013,7 +1026,7 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext, 
 		};
 
 		// Check if .git is already here.
-		let exists = await fs.pathExists(path.join(dest.fsPath, ".git"));
+		let exists = await fs.pathExists(path.join(dest.fsPath, ".west"));
 
 		if (!exists) {
 
@@ -1048,7 +1061,7 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext, 
 			);
 
 			// Start execution
-			await TaskManager.push(task, { ignoreError: false, lastTask: false });
+			await TaskManager.push(task, { ignoreError: true, lastTask: false });
 
 			// TODO: pick branch?
 
