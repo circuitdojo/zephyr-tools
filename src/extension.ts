@@ -229,7 +229,7 @@ export async function activate(context: vscode.ExtensionContext) {
 							}
 
 							// Then untar
-							const cmd = `tar -xvkf "${filepath.path}" -C "${copytopath}"`;
+							const cmd = `tar -xvf "${filepath.path}" -C "${copytopath}"`;
 							output.appendLine(cmd);
 							let res = await exec(cmd).then(value => {
 								output.append(value.stdout);
@@ -1263,6 +1263,7 @@ async function monitor(config: GlobalConfig, project: ProjectConfig) {
 	// Options for SehllExecution
 	let options: vscode.ShellExecutionOptions = {
 		env: <{ [key: string]: string; }>config.env,
+		cwd: project.target
 	};
 
 	// Tasks
