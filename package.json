@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.1.18",
+  "version": "0.1.19",
   "publisher": "circuitdojo",
   "preview": true,
   "icon": "img/bulb.png",
@@ -24,6 +24,7 @@
     "onCommand:zephyr-tools.flash-and-monitor",
     "onCommand:zephyr-tools.setup-newtmgr",
     "onCommand:zephyr-tools.monitor",
+    "onCommand:zephyr-tools.setup-monitor",
     "onCommand:zephyr-tools.load",
     "onCommand:zephyr-tools.load-and-monitor",
     "onCommand:zephyr-tools.init-repo",
@@ -72,6 +73,10 @@
       {
         "command": "zephyr-tools.setup-newtmgr",
         "title": "Zephyr Tools: Setup Newtmgr"
+      },
+      {
+        "command": "zephyr-tools.setup-monitor",
+        "title": "Zephyr Tools: Setup Serial Monitor"
       },
       {
         "command": "zephyr-tools.monitor",

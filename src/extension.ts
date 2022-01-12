@@ -561,11 +561,30 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	}));
 
-	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.select-com-port', async () => {
-		// TODO: scan for available ports
-		// TODO: show list and selection dialogue 
-		// TODO: save to configuration
-		console.log("TODO");
+	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.setup-monitor', async () => {
+
+		// Check if manifest is good
+		if (config.manifestVersion !== manifest.version) {
+			vscode.window.showErrorMessage('An update is required. Run `Zephyr Tools: Setup` command first.');
+			return;
+		}
+		// Fetch the project config
+		let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+
+		// Get serial settings
+		let port = await getPort();
+		if (port === undefined) {
+			vscode.window.showErrorMessage('Error obtaining serial port.');
+			return;
+		}
+
+		// Set port in project
+		project.port = port;
+		await context.workspaceState.update("zephyr.project", project);
+
+		// Message output
+		vscode.window.showInformationMessage(`Serial monitor set to use ${project.port}`);
+
 	}));
 
 	// Does a pristine zephyr build
@@ -1251,7 +1270,7 @@ async function monitor(config: GlobalConfig, project: ProjectConfig) {
 	let port = project.port;
 
 	// Command to run
-	let cmd = `zephyr-tools-monitor --port ${port} --follow`;
+	let cmd = `zephyr-tools-monitor --port ${port} --follow --save`;
 	let exec = new vscode.ShellExecution(cmd, options);
 
 	// Task

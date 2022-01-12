@@ -2,6 +2,17 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.19]
+
+Updating zephyr-tools-monitor to allow for saving of logs.
+
+Added:
+* setup-monitor command
+
+Changed:
+* Manifest uprev to 9.
+* Updated version of zephyr-tools-monitor to 0.1.2
+
 ### [0.1.18]
 
 Fixed bug with `Load` command.

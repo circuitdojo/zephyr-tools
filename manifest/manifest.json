@@ -1,13 +1,13 @@
 {
-    "version": 8,
+    "version": 9,
     "win32": [
         {
             "arch": "x64",
             "downloads": [
                 {
                     "name": "zephyr-tools-monitor",
-                    "filename": "zephyr-tools-monitor-0.1.1-x86_64-pc-windows-msvc.zip",
-                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.1/zephyr-tools-monitor-0.1.1-x86_64-pc-windows-msvc.zip"
+                    "filename": "zephyr-tools-monitor-0.1.2-x86_64-pc-windows-msvc.zip",
+                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.2/zephyr-tools-monitor-0.1.2-x86_64-pc-windows-msvc.zip"
                 },
                 {
                     "name": "newtmgr",
@@ -56,8 +56,8 @@
             "downloads": [
                 {
                     "name": "zephyr-tools-monitor",
-                    "filename": "zephyr-tools-monitor-0.1.1-x86_64-apple-darwin.tar.gz",
-                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.1/zephyr-tools-monitor-0.1.1-x86_64-apple-darwin.tar.gz"
+                    "filename": "zephyr-tools-monitor-0.1.2-x86_64-apple-darwin.tar.gz",
+                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.2/zephyr-tools-monitor-0.1.2-x86_64-apple-darwin.tar.gz"
                 },
                 {
                     "name": "newtmgr",
@@ -107,8 +107,8 @@
             "downloads": [
                 {
                     "name": "zephyr-tools-monitor",
-                    "filename": "zephyr-tools-monitor-0.1.1-x86_64-unknown-linux-gnu.tar.gz",
-                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.1/zephyr-tools-monitor-0.1.1-x86_64-unknown-linux-gnu.tar.gz"
+                    "filename": "zephyr-tools-monitor-0.1.2-x86_64-unknown-linux-gnu.tar.gz",
+                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.2/zephyr-tools-monitor-0.1.2-x86_64-unknown-linux-gnu.tar.gz"
                 },
                 {
                     "name": "newtmgr",
