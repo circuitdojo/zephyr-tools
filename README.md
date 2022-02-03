@@ -43,6 +43,7 @@ sudo apt install git python3 python3-pip
 
 Here are some of the tasks needed to be completed for this project:
 
+- [ ] Disable auto logging to file
 - [ ] Reinstall dependencies if manifest differs from what's installed
 - [ ] Creating a new project from scratch/template
 - [ ] CI/CD

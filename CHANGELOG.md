@@ -2,6 +2,12 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.20]
+
+Changed:
+* cwd is set for monitor command
+* Removing 'k' flag for tar since we *need* to overwrite files.
+
 ### [0.1.19]
 
 Updating zephyr-tools-monitor to allow for saving of logs.
