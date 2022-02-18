@@ -1,5 +1,5 @@
 {
-    "version": 9,
+    "version": 10,
     "win32": [
         {
             "arch": "x64",
@@ -7,31 +7,33 @@
                 {
                     "name": "zephyr-tools-monitor",
                     "filename": "zephyr-tools-monitor-0.1.2-x86_64-pc-windows-msvc.zip",
-                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.2/zephyr-tools-monitor-0.1.2-x86_64-pc-windows-msvc.zip"
+                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.2/zephyr-tools-monitor-0.1.2-x86_64-pc-windows-msvc.zip",
+                    "md5": "b076b3c595c222c3c58d04cd27b215ac"
                 },
                 {
                     "name": "newtmgr",
                     "filename": "newtmgr.zip",
-                    "url": "https://docs.jaredwolff.com/files/newtmgr/windows/newtmgr.zip"
+                    "url": "https://docs.jaredwolff.com/files/newtmgr/windows/newtmgr.zip",
+                    "md5": "3ed9e43ff509a54fd5010c144e45697b"
                 },
                 {
                     "name": "ninja",
                     "filename": "ninja-win.zip",
                     "url": "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip",
-                    "md5": ""
+                    "md5": "8dad6a63141d57aae277e68ef7658ca1"
                 },
                 {
                     "name": "cmake",
                     "filename": "cmake-3.22.0-windows-x86_64.zip",
                     "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-windows-x86_64.zip",
-                    "md5": "",
+                    "md5": "1a273903dcb295455b69af7c9c10efa2",
                     "suffix": "cmake-3.22.0-windows-x86_64\\bin\\"
                 },
                 {
                     "name": "toolchain",
                     "filename": "gcc-arm-none-eabi-9-2019-q4-major-win32.zip",
                     "url": "https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-win32.zip",
-                    "md5": "",
+                    "md5": "82525522fefbde0b7811263ee8172b10",
                     "suffix": "bin\\",
                     "env": [
                         {
@@ -57,31 +59,33 @@
                 {
                     "name": "zephyr-tools-monitor",
                     "filename": "zephyr-tools-monitor-0.1.2-x86_64-apple-darwin.tar.gz",
-                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.2/zephyr-tools-monitor-0.1.2-x86_64-apple-darwin.tar.gz"
+                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.2/zephyr-tools-monitor-0.1.2-x86_64-apple-darwin.tar.gz",
+                    "md5": "94548dcd27b90baf2497cd3e14743879"
                 },
                 {
                     "name": "newtmgr",
                     "filename": "newtmgr.zip",
-                    "url": "https://docs.jaredwolff.com/files/newtmgr/darwin/newtmgr.zip"
+                    "url": "https://docs.jaredwolff.com/files/newtmgr/darwin/newtmgr.zip",
+                    "md5": "7a707d8e518d46d92758a7b1b87366ed"
                 },
                 {
                     "name": "ninja",
                     "filename": "ninja-mac.zip",
                     "url": "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-mac.zip",
-                    "md5": "1234HASH"
+                    "md5": "4ac3da15e1ace3a0f846021e018a3acd"
                 },
                 {
                     "name": "cmake",
                     "filename": "cmake-3.22.0-macos-universal.tar.gz",
                     "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-macos-universal.tar.gz",
-                    "md5": "1234HASH",
+                    "md5": "438fc508b37b70a1d1bb112a4ffd4ad7",
                     "suffix": "cmake-3.22.0-macos-universal/CMake.app/Contents/bin/"
                 },
                 {
                     "name": "toolchain",
                     "filename": "gcc-arm-none-eabi-9-2019-q4-major-mac.tar.bz2",
                     "url": "https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-mac.tar.bz2",
-                    "md5": "",
+                    "md5": "241b64f0578db2cf146034fc5bcee3d4",
                     "suffix": "gcc-arm-none-eabi-9-2019-q4-major/bin/",
                     "env": [
                         {
@@ -108,31 +112,33 @@
                 {
                     "name": "zephyr-tools-monitor",
                     "filename": "zephyr-tools-monitor-0.1.2-x86_64-unknown-linux-gnu.tar.gz",
-                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.2/zephyr-tools-monitor-0.1.2-x86_64-unknown-linux-gnu.tar.gz"
+                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.2/zephyr-tools-monitor-0.1.2-x86_64-unknown-linux-gnu.tar.gz",
+                    "md5": "6e7243d7c1d3b203b34a9fbf2bc97e73"
                 },
                 {
                     "name": "newtmgr",
                     "filename": "newtmgr.zip",
-                    "url": "https://docs.jaredwolff.com/files/newtmgr/linux/newtmgr.zip"
+                    "url": "https://docs.jaredwolff.com/files/newtmgr/linux/newtmgr.zip",
+                    "md5": "9900ec263d39264787903688cdefeed1"
                 },
                 {
                     "name": "ninja",
-                    "filename": "ninja-mac.zip",
+                    "filename": "ninja-linux.zip",
                     "url": "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-linux.zip",
-                    "md5": ""
+                    "md5": "817e12e06e2463aeb5cb4e1d19ced606"
                 },
                 {
                     "name": "cmake",
-                    "filename": "cmake-3.22.0-macos-universal.tar.gz",
+                    "filename": "cmake-3.22.0-linux-x86_64.tar.gz",
                     "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-linux-x86_64.tar.gz",
-                    "md5": "",
+                    "md5": "5537bbc683e364e5408a393a737f53a1",
                     "suffix": "cmake-3.22.0-linux-x86_64/bin/"
                 },
                 {
                     "name": "toolchain",
-                    "filename": "gcc-arm-none-eabi-9-2019-q4-major-mac.tar.bz2",
+                    "filename": "gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2",
                     "url": "https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2",
-                    "md5": "",
+                    "md5": "2383e4eb4ea23f248d33adc70dc3227e",
                     "suffix": "gcc-arm-none-eabi-10.3-2021.10/bin/",
                     "env": [
                         {

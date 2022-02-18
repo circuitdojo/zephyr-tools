@@ -2,6 +2,18 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.21]
+
+Added:
+* Custom downloader implementation to fix CA cert issues on Windows (and to have more control!)
+
+Changed;
+* Extension.ts now uses FileDownloader
+
+Removed:
+* Use of file downloader from MS
+* Need for extension dep (file-downloader)
+
 ### [0.1.20]
 
 Changed:

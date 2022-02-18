@@ -4,11 +4,12 @@ import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as util from 'util';
 import * as os from 'os';
-import * as downloader from "@microsoft/vscode-file-downloader-api";
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import * as unzip from 'node-stream-zip';
 
 import { TaskManager } from './taskmanager';
+import { FileDownload } from './download';
 
 type ManifestEnvEntry = {
 	name: string,
@@ -161,9 +162,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
 			progress.report({ increment: 5 });
 
-			// Download dependenices first!
-			const fileDownloader: downloader.FileDownloader = await downloader.getApi();
-
 			// Define what manifest to use
 			let platformManifest: ManifestEntry[] | undefined;
 			switch (platform) {
@@ -184,52 +182,48 @@ export async function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 
+			// Set up downloader path
+			FileDownload.init(path.join(toolsdir, "downloads"));
+
 			// For loop to process entry in manifest.json
 			for (const [index, element] of platformManifest.entries()) {
 				// Confirm it's the correct architecture 
 				if (element.arch === arch) {
 					for (var download of element.downloads) {
 
-						// TODO: EXTRA CREDIT -- check if already exists & hash 
-
-						// Check if we can unzip..
-						const shouldUnzip = download.url.includes(".zip");
-
 						// Check if it already exists
-						let filepath = await fileDownloader.getItem(download.filename, context).then((value) => value, (reason) => null);
+						let filepath = await FileDownload.exists(download.filename);
 
-						// Download if doesn't exist
-						if (filepath === null) {
+						// Download if doesn't exist _or_ hash doesn't match
+						if (filepath === null || (await FileDownload.check(download.filename, download.md5) === false)) {
 							output.appendLine("[SETUP] downloading " + download.url);
-
-
-							filepath = await fileDownloader.downloadFile(
-								vscode.Uri.parse(download.url),
-								download.filename,
-								context,
-								undefined,
-								undefined,
-								{ shouldUnzip: shouldUnzip }
-							);
+							filepath = await FileDownload.fetch(download.url);
 						}
-
-						// TODO: EXTRA CREDIT - check MD5
 
 						// Get the path to copy the contents to..
 						const copytopath = path.join(toolsdir, download.name);
 
+						// Remove copy to path 
+						await fs.remove(copytopath);
+						await fs.mkdirp(copytopath);
+
 						// Unpack and place into `$HOME/.zephyrtools`
-						if (!download.url.includes("tar")) {
-							await fs.copy(filepath.fsPath, copytopath, { overwrite: true });
+						if (download.url.includes(".zip")) {
+
+							// Unzip and copy 
+							output.appendLine(`[SETUP] unzip ${filepath} to ${copytopath}`);
+							const zip = new unzip.async({ file: filepath });
+							zip.on('extract', (entry, file) => {
+								// Make executable
+								fs.chmodSync(file, 0o755);
+							});
+							await zip.extract(null, copytopath);
+							await zip.close();
+
 						} else if (download.url.includes("tar")) {
 
-							// Create copy to folder
-							if (!await fs.pathExists(copytopath)) {
-								await fs.mkdirp(copytopath);
-							}
-
 							// Then untar
-							const cmd = `tar -xvf "${filepath.path}" -C "${copytopath}"`;
+							const cmd = `tar -xvf "${filepath}" -C "${copytopath}"`;
 							output.appendLine(cmd);
 							let res = await exec(cmd).then(value => {
 								output.append(value.stdout);
