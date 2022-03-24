@@ -2,6 +2,11 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.22]
+
+Changed:
+* All directories now checked for boards. (Particularly useful for nRF NCS and boards like Thingy91)
+
 ### [0.1.21]
 
 Added:

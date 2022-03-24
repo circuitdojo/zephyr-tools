@@ -1494,9 +1494,23 @@ async function changeBoard(config: GlobalConfig, context: vscode.ExtensionContex
 		rootPath = rootPaths[0].uri;
 	}
 
-	// Get boards
-	let boardsDir = vscode.Uri.joinPath(rootPath, "zephyr/boards");
-	let boards = await getBoardlist(boardsDir);
+	let boards: string[] = [];
+
+	let files = await vscode.workspace.fs.readDirectory(rootPath);
+	for (const [index, [file, type]] of files.entries()) {
+
+		if (type == vscode.FileType.Directory) {
+			// Get boards
+			let boardsDir = vscode.Uri.joinPath(rootPath, `${file}/boards`);
+
+			// Only check if path exists
+			if (fs.pathExistsSync(boardsDir.fsPath)) {
+				boards = boards.concat(await getBoardlist(boardsDir));
+			}
+
+		}
+
+	}
 
 	// Prompt which board to use
 	const result = await vscode.window.showQuickPick(boards, {
