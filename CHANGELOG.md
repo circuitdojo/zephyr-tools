@@ -2,6 +2,12 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.23]
+
+Changed:
+* Asks for branch name or uses default if nothing is entered
+* Added a delay between programming and resetting device using mcumgr
+  
 ### [0.1.22]
 
 Changed:
