@@ -1060,8 +1060,25 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext, 
 				return;
 			}
 
+			// Ask for branch
+			const branchInputOptions: vscode.InputBoxOptions = {
+				prompt: "Enter branch name.",
+				placeHolder: "Press enter for default",
+				ignoreFocusOut: true,
+			};
+
+			let branch = await vscode.window.showInputBox(branchInputOptions);
+
 			// git clone to destination
 			let cmd = `west init -m ${url}`;
+
+			// Set branch option
+			if (branch !== undefined && branch !== "") {
+				console.log(`Bramch '${branch}'`);
+
+				cmd = cmd + ` --mr ${branch}`;
+			}
+
 			let exec = new vscode.ShellExecution(cmd, shellOptions);
 
 			// Task
@@ -1075,8 +1092,6 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext, 
 
 			// Start execution
 			await TaskManager.push(task, { ignoreError: true, lastTask: false });
-
-			// TODO: pick branch?
 
 		}
 
@@ -1193,6 +1208,10 @@ async function getBaud(_baud: string): Promise<string | undefined> {
 
 }
 
+function delay(milliseconds: number) {
+	return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
 async function load(config: GlobalConfig, project: ProjectConfig) {
 
 	// Options for SehllExecution
@@ -1224,6 +1243,8 @@ async function load(config: GlobalConfig, project: ProjectConfig) {
 		successMessage: "Load complete!"
 	});
 
+	// Delay 
+	delay(1000);
 
 	// Command
 	cmd = `newtmgr -c vscode-zephyr-tools reset`;
