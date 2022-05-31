@@ -748,13 +748,6 @@ export async function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 
-		// Check if app_update.bin exists. If not, warn them about building and that bootloader is enabled
-		let exists = await fs.pathExists(path.join(project.target ?? "", "build", "zephyr", "app_update.bin"));
-		if (!exists) {
-			vscode.window.showErrorMessage('app_update.bin not found. Build project with bootloader before loading.');
-			return;
-		}
-
 		// Otherwise load with app_update.bin
 		await load(config, project);
 
@@ -813,13 +806,6 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Kick them back if it doesn't exist
 		if (!res.stdout.includes("vscode-zephyr-tools")) {
 			vscode.window.showErrorMessage('Run `Zephyr Toools: Setup Newtmgr` before loading.');
-			return;
-		}
-
-		// Check if app_update.bin exists. If not, warn them about building and that bootloader is enabled
-		let exists = await fs.pathExists(path.join(project.target ?? "", "build", "zephyr", "app_update.bin"));
-		if (!exists) {
-			vscode.window.showErrorMessage('app_update.bin not found. Build project with bootloader before loading.');
 			return;
 		}
 
@@ -1069,8 +1055,11 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext, 
 
 			let branch = await vscode.window.showInputBox(branchInputOptions);
 
+			// TODO: determine choices for west.yml
+			let manifest = "west.yml"
+
 			// git clone to destination
-			let cmd = `west init -m ${url}`;
+			let cmd = `west init -m ${url} --mr ${manifest}`;
 
 			// Set branch option
 			if (branch !== undefined && branch !== "") {
@@ -1222,8 +1211,29 @@ async function load(config: GlobalConfig, project: ProjectConfig) {
 	// Tasks
 	let taskName = "Zephyr Tools: Load";
 
+	// Check if update file exists
+	let files = ["app_update.bin", "zephyr.signed.bin"];
+	let index = 0;
+	let found = false;
+
+	for (var file of files) {
+		// Check if app_update.bin exists. If not, warn them about building and that bootloader is enabled
+		let exists = await fs.pathExists(path.join(project.target ?? "", "build", "zephyr", file));
+		if (exists) {
+			found = true;
+			break;
+		}
+
+		index++;
+	}
+
+	// Don't proceed if nothing found..
+	if (!found) {
+		vscode.window.showWarningMessage('Binary not found. Build project before loading.');
+		return;
+	}
 	// Upload image
-	let cmd = `newtmgr -c vscode-zephyr-tools image upload ${path.join(project.target ?? "", "build", "zephyr", "app_update.bin")}`;
+	let cmd = `newtmgr -c vscode-zephyr-tools image upload ${path.join(project.target ?? "", "build", "zephyr", files[index])}`;
 	let exec = new vscode.ShellExecution(cmd, options);
 
 	// Task

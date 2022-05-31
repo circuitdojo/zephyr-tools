@@ -2,6 +2,11 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.24]
+
+Changed:
+* List now includes app_update.bin and zephyr.signed.bin
+
 ### [0.1.23]
 
 Changed:
