@@ -2,6 +2,12 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.25]
+
+Changed:
+* Improved relabiltiy for transfers over USB when loading a new image.
+
+
 ### [0.1.24]
 
 Changed:

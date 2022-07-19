@@ -1233,7 +1233,7 @@ async function load(config: GlobalConfig, project: ProjectConfig) {
 		return;
 	}
 	// Upload image
-	let cmd = `newtmgr -c vscode-zephyr-tools image upload ${path.join(project.target ?? "", "build", "zephyr", files[index])}`;
+	let cmd = `newtmgr -c vscode-zephyr-tools image upload ${path.join(project.target ?? "", "build", "zephyr", files[index])} -r 3 -t 0.1`;
 	let exec = new vscode.ShellExecution(cmd, options);
 
 	// Task
