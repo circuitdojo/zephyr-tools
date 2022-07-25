@@ -2,6 +2,12 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.26]
+
+Changed:
+* Increased timeout for newtmgr from 0.1 to 0.25s
+
+
 ### [0.1.25]
 
 Changed:
