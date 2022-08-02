@@ -1059,7 +1059,7 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext, 
 			let manifest = "west.yml"
 
 			// git clone to destination
-			let cmd = `west init -m ${url} --mr ${manifest}`;
+			let cmd = `west init -m ${url} --mf ${manifest}`;
 
 			// Set branch option
 			if (branch !== undefined && branch !== "") {

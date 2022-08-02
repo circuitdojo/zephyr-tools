@@ -2,6 +2,11 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.27]
+
+Changed:
+* Fixing SDK install issues with manifest flag.
+
 ### [0.1.26]
 
 Changed:
