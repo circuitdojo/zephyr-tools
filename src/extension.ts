@@ -16,7 +16,12 @@ type ManifestEnvEntry = {
 	value?: string,
 	usepath: boolean,
 	append: boolean,
-	suffix?: string,
+	suffix?: string
+};
+
+type CmdEntry = {
+	cmd: string,
+	usepath: boolean,
 };
 
 type ManifestDownloadEntry = {
@@ -25,7 +30,10 @@ type ManifestDownloadEntry = {
 	md5: string;
 	suffix?: string;
 	env?: ManifestEnvEntry[],
-	filename: string;
+	cmd?: CmdEntry[],
+	filename: string,
+	clear_target?: boolean
+	copy_to_subfolder?: string,
 };
 
 type ManifestEntry = {
@@ -187,6 +195,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 			// For loop to process entry in manifest.json
 			for (const [index, element] of platformManifest.entries()) {
+
 				// Confirm it's the correct architecture 
 				if (element.arch === arch) {
 					for (var download of element.downloads) {
@@ -201,11 +210,18 @@ export async function activate(context: vscode.ExtensionContext) {
 						}
 
 						// Get the path to copy the contents to..
-						const copytopath = path.join(toolsdir, download.name);
+						let copytopath = path.join(toolsdir, download.name);
+
+						// Add additional suffix if need be
+						if (download.copy_to_subfolder) {
+							copytopath = path.join(copytopath, download.copy_to_subfolder);
+						}
 
 						// Remove copy to path 
-						await fs.remove(copytopath);
-						await fs.mkdirp(copytopath);
+						if (download.clear_target !== false) {
+							await fs.remove(copytopath);
+							await fs.mkdirp(copytopath);
+						}
 
 						// Unpack and place into `$HOME/.zephyrtools`
 						if (download.url.includes(".zip")) {
@@ -260,12 +276,39 @@ export async function activate(context: vscode.ExtensionContext) {
 								config.env[entry.name] = path.join(copytopath, (entry.suffix ?? "") + pathdivider + config.env[entry.name] ?? "");
 							}
 
-							// console.log(`env[${entry.name}]: ${config.env[entry.name]}`);
+							console.log(`env[${entry.name}]: ${config.env[entry.name]}`);
+						}
+
+						// Run any commands that are needed..
+						for (let entry of download.cmd ?? []) {
+							output.appendLine(entry.cmd);
+
+							// Prepend
+							let cmd = entry.cmd;
+							if (entry.usepath) {
+								cmd = path.join(copytopath, entry.cmd ?? "");
+							}
+
+							// Run the command
+							let res = await exec(cmd).then(value => {
+								output.append(value.stdout);
+								return true;
+							}, (reason) => {
+								output.append(reason.stdout);
+								output.append(reason.stderr);
+
+								// Error message
+								vscode.window.showErrorMessage('Error for sdk command.');
+
+								return false;
+							});
 						}
 
 						progress.report({ increment: 5 });
 
 					};
+
+					break;
 
 				} else {
 
@@ -1149,7 +1192,7 @@ async function getPort(): Promise<string | undefined> {
 	let exec = util.promisify(cp.exec);
 
 	// Get listofports
-	let cmd = `zephyr-tools-monitor -l`;
+	let cmd = `zephyr-tools -l`;
 	let res = await exec(cmd, { env: config.env });
 	if (res.stderr) {
 		output.append(res.stderr);
@@ -1232,6 +1275,31 @@ async function load(config: GlobalConfig, project: ProjectConfig) {
 		vscode.window.showWarningMessage('Binary not found. Build project before loading.');
 		return;
 	}
+
+	// Put device into BL mode automagically
+	if (project.board == "circuitdojo_feather_nrf9160_ns") {
+		let cmd = `zephyr-tools -b`;
+		let exec = new vscode.ShellExecution(cmd, options);
+
+		// Task
+		let task = new vscode.Task(
+			{ type: "zephyr-tools", command: taskName },
+			vscode.TaskScope.Workspace,
+			taskName,
+			"zephyr-tools",
+			exec
+		);
+
+		// Start execution
+		await TaskManager.push(task, {
+			ignoreError: false,
+			lastTask: true,
+			errorMessage: "Load error! Did you init your project?",
+			successMessage: "Load complete!"
+		});
+	}
+
+
 	// Upload image
 	let cmd = `newtmgr -c vscode-zephyr-tools image upload ${path.join(project.target ?? "", "build", "zephyr", files[index])} -r 3 -t 0.25`;
 	let exec = new vscode.ShellExecution(cmd, options);
@@ -1296,7 +1364,7 @@ async function monitor(config: GlobalConfig, project: ProjectConfig) {
 	let port = project.port;
 
 	// Command to run
-	let cmd = `zephyr-tools-monitor --port ${port} --follow --save`;
+	let cmd = `zephyr-tools --port ${port} --follow --save`;
 	let exec = new vscode.ShellExecution(cmd, options);
 
 	// Task

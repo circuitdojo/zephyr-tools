@@ -2,6 +2,14 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.28]
+
+Changed:
+* Automagically places circuitdojo_nrf9160_feather_ns into BL mode 
+* Updated version of zephyr-tools CLI tool to 0.1.5
+* Added aarch64 target for Mac
+* Using Zephyr toolchain for all targets (0.15.1)
+
 ### [0.1.27]
 
 Changed:
