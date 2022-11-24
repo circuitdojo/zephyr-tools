@@ -1,13 +1,13 @@
 {
-    "version": 11,
+    "version": 12,
     "win32": [
         {
             "arch": "x64",
             "downloads": [
                 {
-                    "name": "zephyr-tools-monitor",
-                    "filename": "zephyr-tools-0.1.5-x86_64-pc-windows-msvc.zip",
-                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.5/zephyr-tools-0.1.5-x86_64-pc-windows-msvc.zip",
+                    "name": "zephyr-tools",
+                    "filename": "zephyr-tools-0.1.7-x86_64-pc-windows-msvc.zip",
+                    "url": "https://github.com/circuitdojo/zephyr-tools-cli/releases/download/0.1.7/zephyr-tools-0.1.7-x86_64-pc-windows-msvc.zip",
                     "md5": "3d3504f84fe98e645b27fb6c63e761fa"
                 },
                 {
@@ -67,9 +67,9 @@
             "arch": "x64",
             "downloads": [
                 {
-                    "name": "zephyr-tools-monitor",
-                    "filename": "zephyr-tools-0.1.5-x86_64-apple-darwin.tar.gz",
-                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.5/zephyr-tools-0.1.5-x86_64-apple-darwin.tar.gz",
+                    "name": "zephyr-tools",
+                    "filename": "zephyr-tools-0.1.7-x86_64-apple-darwin.tar.gz",
+                    "url": "https://github.com/circuitdojo/zephyr-tools-cli/releases/download/0.1.7/zephyr-tools-0.1.7-x86_64-apple-darwin.tar.gz",
                     "md5": "cc6008e13fc6e51cee3aa2f6afcb9087"
                 },
                 {
@@ -124,9 +124,9 @@
             "arch": "arm64",
             "downloads": [
                 {
-                    "name": "zephyr-tools-monitor",
-                    "filename": "zephyr-tools-0.1.5-aarch64-apple-darwin.tar.gz",
-                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.5/zephyr-tools-0.1.5-aarch64-apple-darwin.tar.gz",
+                    "name": "zephyr-tools",
+                    "filename": "zephyr-tools-0.1.7-aarch64-apple-darwin.tar.gz",
+                    "url": "https://github.com/circuitdojo/zephyr-tools-cli/releases/download/0.1.7/zephyr-tools-0.1.7-aarch64-apple-darwin.tar.gz",
                     "md5": "9505f60901af7781f95dfa36fedb9fcd"
                 },
                 {
@@ -177,9 +177,9 @@
             "arch": "x64",
             "downloads": [
                 {
-                    "name": "zephyr-tools-monitor",
-                    "filename": "zephyr-tools-0.1.5-x86_64-unknown-linux-gnu.tar.gz",
-                    "url": "https://github.com/circuitdojo/zephyr-tools-monitor/releases/download/0.1.5/zephyr-tools-0.1.5-x86_64-unknown-linux-gnu.tar.gz",
+                    "name": "zephyr-tools",
+                    "filename": "zephyr-tools-0.1.7-x86_64-unknown-linux-gnu.tar.gz",
+                    "url": "https://github.com/circuitdojo/zephyr-tools-cli/releases/download/0.1.7/zephyr-tools-0.1.7-x86_64-unknown-linux-gnu.tar.gz",
                     "md5": "f29d7214fe80c20ad48597848fc004e8"
                 },
                 {

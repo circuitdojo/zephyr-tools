@@ -2,6 +2,15 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.30]
+
+Update manifest for latest version of zephyr-tools CLI
+
+Changed:
+* Up-rev manifest v ersion
+* Pointing to latests zephyr tools for all platforms (0.1.6)
+
+
 ### [0.1.29]
 
 Changed:
