@@ -2,6 +2,11 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.29]
+
+Changed:
+* M1 macs use `arm64` arch name insteado of `aarch64`
+
 ### [0.1.28]
 
 Changed:

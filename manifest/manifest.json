@@ -121,7 +121,7 @@
             ]
         },
         {
-            "arch": "aarch64",
+            "arch": "arm64",
             "downloads": [
                 {
                     "name": "zephyr-tools-monitor",
