@@ -1,3 +1,9 @@
+/**
+ * @author Jared Wolff <jared@circuitdojo.org>
+ * @copyright Circuit Dojo LLC
+ * @license Apache 2.0
+ */
+
 import * as vscode from "vscode";
 
 type TaskManagerCallback = (data: any) => void;
