@@ -2,6 +2,15 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+
+### [0.1.31]
+
+Changing license
+
+Changed:
+* Changed to Apache 2.0. Opened the source on Github
+
+
 ### [0.1.30]
 
 Update manifest for latest version of zephyr-tools CLI
