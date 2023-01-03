@@ -43,10 +43,8 @@ sudo apt install git python3 python3-pip
 
 Here are some of the tasks needed to be completed for this project:
 
-- [ ] Open source
 - [ ] Project based config file (editable persistent configurations)
 - [ ] Allow for different manfest names (if applicable)
-- [ ] When loading via bootloader, choose different file if one doesn't exist (app_update.bin first, then zephyr.signed.bin next etc)
 - [ ] Disable auto logging to file (settings/configuration)
 - [ ] Setting common parameters in confguration
 - [ ] Reinstall dependencies if manifest differs from what's installed
