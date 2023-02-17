@@ -248,7 +248,7 @@ export async function activate(context: vscode.ExtensionContext) {
 							// Then untar
 							const cmd = `tar -xvf "${filepath}" -C "${copytopath}"`;
 							output.appendLine(cmd);
-							let res = await exec(cmd).then(value => {
+							let res = await exec(cmd, { env: config.env }).then(value => {
 								output.append(value.stdout);
 								return true;
 							}, (reason) => {
@@ -271,6 +271,14 @@ export async function activate(context: vscode.ExtensionContext) {
 						// Set path
 						let setpath = path.join(copytopath, download.suffix ?? "");
 						config.env["PATH"] = path.join(setpath, pathdivider + config.env["PATH"]);
+
+						// Save this informaiton to disk
+						context.globalState.update("zephyr.env", config);
+
+						// Then set the application environment to match
+						if (config.env["PATH"] !== undefined && config.env["PATH"] !== "") {
+							context.environmentVariableCollection.replace("PATH", config.env["PATH"]);
+						}
 
 						// Set remainin env variables
 						for (let entry of download.env ?? []) {
@@ -297,7 +305,7 @@ export async function activate(context: vscode.ExtensionContext) {
 							}
 
 							// Run the command
-							let res = await exec(cmd).then(value => {
+							let res = await exec(cmd, { env: config.env }).then(value => {
 								output.append(value.stdout);
 								return true;
 							}, (reason) => {
@@ -330,7 +338,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			progress.report({ increment: 5 });
 
 			// Check if Git exists in path
-			let res: boolean = await exec("git --version").then(value => {
+			let res: boolean = await exec("git --version", { env: config.env }).then(value => {
 				output.append(value.stdout);
 				output.append(value.stderr);
 				output.appendLine("[SETUP] git installed");
@@ -367,7 +375,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			// Otherwise, check Python install
 			let cmd = `${python} --version`;
 			output.appendLine(cmd);
-			res = await exec(cmd).then(value => {
+			res = await exec(cmd, { env: config.env }).then(value => {
 
 				if (value.stdout.includes("Python 3")) {
 					output.appendLine("[SETUP] python3 found");
@@ -413,7 +421,7 @@ export async function activate(context: vscode.ExtensionContext) {
 				// install pip (if not already)
 				cmd = `${python} -m ensurepip`;
 				output.appendLine(cmd);
-				res = await exec(cmd).then(value => {
+				res = await exec(cmd, { env: config.env }).then(value => {
 					output.append(value.stdout);
 					output.appendLine("[SETUP] pip installed");
 
@@ -439,7 +447,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			// install virtualenv
 			cmd = `${python} -m pip install virtualenv`;
 			output.appendLine(cmd);
-			await exec(cmd).then(value => {
+			await exec(cmd, { env: config.env }).then(value => {
 				output.append(value.stdout);
 				output.appendLine("[SETUP] virtualenv installed");
 				return true;
@@ -454,7 +462,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 			cmd = `${python} -m virtualenv "${pythonenv}"`;
 			output.appendLine(cmd);
-			res = await exec(cmd).then(value => {
+			res = await exec(cmd, { env: config.env }).then(value => {
 				output.append(value.stdout);
 				output.appendLine("[SETUP] virtual python environment created");
 				return true;

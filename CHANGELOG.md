@@ -2,6 +2,12 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.32]
+
+Fixing setup bug
+
+Changed:
+* Environment is not exported when installing toolchain. Leads to errors during project compilation.
 
 ### [0.1.31]
 
