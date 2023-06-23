@@ -2,10 +2,9 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.1.32",
+  "version": "0.1.33",
   "license": "Apache-2.0",
   "publisher": "circuitdojo",
-  "preview": true,
   "icon": "img/bulb.png",
   "engines": {
     "vscode": "^1.52.0",
@@ -21,6 +20,7 @@
   "activationEvents": [
     "onStartupFinished",
     "onCommand:zephyr-tools.setup",
+    "onCommand:zephyr-tools.create-project",
     "onCommand:zephyr-tools.build",
     "onCommand:zephyr-tools.build-pristine",
     "onCommand:zephyr-tools.change-board",
@@ -54,6 +54,10 @@
       {
         "command": "zephyr-tools.change-board",
         "title": "Zephyr Tools: Change Board"
+      },
+      {
+        "command": "zephyr-tools.create-project",
+        "title": "Zephyr Tools: Create Project"
       },
       {
         "command": "zephyr-tools.change-project",

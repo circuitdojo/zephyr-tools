@@ -2,6 +2,13 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.33]
+
+Create project
+
+Added:
+* Create Project command with options to start with Vanilla or NCS.
+
 ### [0.1.32]
 
 Fixing setup bug

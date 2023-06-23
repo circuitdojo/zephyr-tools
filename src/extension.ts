@@ -16,6 +16,8 @@ import * as unzip from 'node-stream-zip';
 
 import { TaskManager } from './taskmanager';
 import { FileDownload } from './download';
+import * as commands from './commands';
+import * as helper from './helper';
 
 type ManifestEnvEntry = {
 	name: string,
@@ -89,7 +91,7 @@ let baudlist = [
 let toolsdir = path.join(os.homedir(), toolsfoldername);
 
 // Project specific configuration
-interface ProjectConfig {
+export interface ProjectConfig {
 	board?: string;
 	target?: string;
 	port?: string;
@@ -97,7 +99,7 @@ interface ProjectConfig {
 }
 
 // Config for the exention
-interface GlobalConfig {
+export interface GlobalConfig {
 	isSetup: boolean,
 	manifestVersion: Number,
 	env: { [name: string]: string | undefined };
@@ -130,6 +132,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		context.environmentVariableCollection.persistent = true;
 		context.environmentVariableCollection.replace("PATH", config.env["PATH"]);
 	}
+
+	// Create new
+	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.create-project', async (dest: vscode.Uri | undefined) => { await commands.create_new(context, config, dest) }));
 
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
@@ -540,33 +545,11 @@ export async function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 
-		let dest = _dest;
-
-		// Check if undefined
-		if (dest === undefined) {
-			// Options for picker
-			const dialogOptions: vscode.OpenDialogOptions = {
-				canSelectFiles: false,
-				canSelectFolders: true,
-				title: "Select destination folder."
-			};
-
-			// Open file picker for destination directory
-			let open = await vscode.window.showOpenDialog(dialogOptions);
-			if (open === undefined) {
-				vscode.window.showErrorMessage('Provide a target folder to initialize your repo.');
-				return;
-			}
-
-			// Get fsPath
-			open[0].fsPath;
-
-			// Copy it over
-			dest = open[0];
-		}
+		// Get destination
+		let dest = await helper.get_dest(_dest);
 
 		// See if config is set first
-		if (config.isSetup) {
+		if (config.isSetup && dest != null) {
 			initRepo(config, context, dest);
 		} else {
 			vscode.window.showErrorMessage('Run `Zephyr Tools: Setup` command first.');
@@ -724,7 +707,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			await clean(config, project);
 		} else {
 			// Display an error message box to the user
-			vscode.window.showErrorMessage('Run `Zephyr Toools: Setup` command before flashing.');
+			vscode.window.showErrorMessage('Run `Zephyr Tools: Setup` command before flashing.');
 		}
 	}));
 
@@ -1029,7 +1012,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 }
 
-async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext, dest: vscode.Uri) {
+export async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext, dest: vscode.Uri) {
 	// Create output
 	if (output === undefined) {
 		output = vscode.window.createOutputChannel("Zephyr Tools");
@@ -1121,7 +1104,7 @@ async function initRepo(config: GlobalConfig, context: vscode.ExtensionContext, 
 
 			// Set branch option
 			if (branch !== undefined && branch !== "") {
-				console.log(`Bramch '${branch}'`);
+				console.log(`Branch '${branch}'`);
 
 				cmd = cmd + ` --mr ${branch}`;
 			}
@@ -1642,7 +1625,7 @@ async function changeBoard(config: GlobalConfig, context: vscode.ExtensionContex
 };
 
 
-async function update(config: GlobalConfig, project: ProjectConfig) {
+export async function update(config: GlobalConfig, project: ProjectConfig) {
 
 	// Get the active workspace root path
 	let rootPath;
