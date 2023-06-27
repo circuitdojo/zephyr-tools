@@ -7,7 +7,21 @@ manifest:
       repo-path: sdk-nrf
       remote: nrfconnect
       revision: v2.3.0
-      import: true
+      import: 
+        path-prefix: deps
+        name-blocklist:
+          - matter
+          - nrf-802154
+          - cjson
+          - openthread
+          - cmock
+          - unity
+          - cddl-gen
+          - homekit
+          - loramac-node
+          - lz4
+          - lvgl
+          - mipi-sys-t
   self:
     # This repository should be cloned to 
     path: app

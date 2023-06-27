@@ -2,6 +2,12 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.1.34]
+
+Changed:
+
+* Moving all deps into `deps` folder
+
 ### [0.1.33]
 
 Create project

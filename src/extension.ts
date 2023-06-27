@@ -1151,8 +1151,29 @@ export async function initRepo(config: GlobalConfig, context: vscode.ExtensionCo
 
 		};
 
+		// Get zephyr BASE
+		let base = "zephyr";
+
+		{
+			let exec = util.promisify(cp.exec);
+
+			// Get listofports
+			let cmd = `west list -f {path:28}`;
+			let res = await exec(cmd, { env: config.env, cwd: dest.fsPath });
+			if (res.stderr) {
+				output.append(res.stderr);
+				output.show();
+			} else {
+				res.stdout.split("\n").forEach((line: string) => {
+					if (line.includes("zephyr")) {
+						base = line.trim();
+					}
+				});
+			}
+		}
+
 		// Install python dependencies `pip install -r zephyr/requirements.txt`
-		cmd = "pip install -r zephyr/scripts/requirements.txt";
+		cmd = `pip install -r ${path.join(base, "scripts", "requirements.txt")}`;
 		exec = new vscode.ShellExecution(cmd, shellOptions);
 
 		// Task

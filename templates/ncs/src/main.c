@@ -23,6 +23,8 @@ void main(void)
 {
 	int ret;
 
+	printk("Hello World! %s\n", CONFIG_BOARD);
+
 	if (!gpio_is_ready_dt(&led))
 	{
 		return;
