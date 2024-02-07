@@ -19,22 +19,22 @@
                 {
                     "name": "ninja",
                     "filename": "ninja-win.zip",
-                    "url": "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip",
-                    "md5": "8dad6a63141d57aae277e68ef7658ca1"
+                    "url": "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-win.zip",
+                    "md5": "5c2f60f4a984a65602b6e6cb93eae367"
                 },
                 {
                     "name": "cmake",
                     "filename": "cmake-3.22.0-windows-x86_64.zip",
-                    "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-windows-x86_64.zip",
-                    "md5": "1a273903dcb295455b69af7c9c10efa2",
-                    "suffix": "cmake-3.22.0-windows-x86_64\\bin\\"
+                    "url": "https://github.com/Kitware/CMake/releases/download/v3.28.3/cmake-3.28.3-windows-x86_64.zip",
+                    "md5": "f60735981d24d6f6d327fec6ac57d371",
+                    "suffix": "cmake-3.28.3-windows-x86_64\\bin\\"
                 },
                 {
                     "name": "toolchain",
-                    "filename": "zephyr-sdk-0.15.1_windows-x86_64_minimal.zip",
-                    "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.1/zephyr-sdk-0.15.1_windows-x86_64_minimal.zip",
-                    "md5": "4c73427373995d1ac53412383a2f6610",
-                    "suffix": "zephyr-sdk-0.15.1\\arm-zephyr-eabi\\bin\\",
+                    "filename": "zephyr-sdk-0.16.5_windows-x86_64_minimal.7z",
+                    "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.5/zephyr-sdk-0.16.5_windows-x86_64_minimal.7z",
+                    "md5": "37d76b698e5ddc47b01c9faa3d781f94",
+                    "suffix": "zephyr-sdk-0.16.5\\arm-zephyr-eabi\\bin\\",
                     "env": [
                         {
                             "name": "ZEPHYR_TOOLCHAIN_VARIANT",
@@ -44,7 +44,7 @@
                         },
                         {
                             "name": "ZEPHYR_SDK_INSTALL_DIR",
-                            "suffix": "zephyr-sdk-0.15.1",
+                            "suffix": "zephyr-sdk-0.16.5",
                             "usepath": true,
                             "append": false
                         }
@@ -52,12 +52,20 @@
                 },
                 {
                     "name": "toolchain",
-                    "filename": "toolchain_windows-x86_64_arm-zephyr-eabi.zip",
-                    "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.1/toolchain_windows-x86_64_arm-zephyr-eabi.zip",
-                    "md5": "1786d58c03f3e380d683b1e5ded45131",
-                    "suffix": "zephyr-sdk-0.15.1\\arm-zephyr-eabi\\bin\\",
+                    "filename": "toolchain_windows-x86_64_arm-zephyr-eabi.7z",
+                    "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.5/toolchain_windows-x86_64_arm-zephyr-eabi.7z",
+                    "md5": "94ee641b3f8edb8e5ae4fa60783e43ab",
+                    "suffix": "zephyr-sdk-0.16.5\\arm-zephyr-eabi\\bin\\",
                     "clear_target": false,
-                    "copy_to_subfolder": "zephyr-sdk-0.15.1"
+                    "copy_to_subfolder": "zephyr-sdk-0.16.5"
+                },
+                {
+                    "name": "toolchain",
+                    "filename": "xpack-openocd-0.12.0-2-win32-x64.zip",
+                    "url": "https://github.com/xpack-dev-tools/openocd-xpack/releases/download/v0.12.0-2/xpack-openocd-0.12.0-2-win32-x64.zip",
+                    "md5": "db724ce414f8cb0e310a92add00be6a9",
+                    "suffix": "xpack-openocd-0.12.0-2\\bin\\",
+                    "clear_target": false
                 }
             ]
         }
