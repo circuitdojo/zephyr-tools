@@ -13,6 +13,8 @@ import * as os from 'os';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as unzip from 'node-stream-zip';
+import sevenBin from '7zip-bin';
+import { extractFull } from 'node-7z';
 
 import { TaskManager } from './taskmanager';
 import { FileDownload } from './download';
@@ -56,9 +58,6 @@ type Manifest = {
 	linux: ManifestEntry[];
 };
 
-// Manifest data
-const manifest: Manifest = require("../manifest/manifest.json");
-
 // Platform
 let platform: NodeJS.Platform = os.platform();
 
@@ -89,6 +88,9 @@ let baudlist = [
 
 // Important directories
 let toolsdir = path.join(os.homedir(), toolsfoldername);
+
+// Manifest data
+let manifest: Manifest = require(helper.find_file("manifest.json"));
 
 // Project specific configuration
 export interface ProjectConfig {
@@ -134,12 +136,14 @@ export async function activate(context: vscode.ExtensionContext) {
 	}
 
 	// Create new
-	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.create-project', async (dest: vscode.Uri | undefined) => { await commands.create_new(context, config, dest) }));
+	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.create-project', async (dest: vscode.Uri | undefined) => { await commands.create_new(context, config, dest); }));
 
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
 	context.subscriptions.push(vscode.commands.registerCommand('zephyr-tools.setup', async () => {
+
+		manifest = require(helper.find_file("manifest.json"));
 
 		// Reset "zephyr.env"
 		context.globalState.update("zephyr.task", undefined);
@@ -169,13 +173,15 @@ export async function activate(context: vscode.ExtensionContext) {
 			output.clear();
 			output.show();
 
+			helper.create_dir_if_not_exist(toolsdir);
+
 			// check if directory in $HOME exists
-			let exists = await fs.pathExists(toolsdir);
-			if (!exists) {
-				console.log("toolsdir not found");
-				// Otherwise create home directory
-				await fs.mkdirp(toolsdir);
-			}
+			//let exists = await fs.pathExists(toolsdir);
+			//if (!exists) {
+			//	console.log("toolsdir not found");
+			//	// Otherwise create home directory
+			//	await fs.mkdirp(toolsdir);
+			//}
 
 			// Promisified exec
 			let exec = util.promisify(cp.exec);
@@ -248,8 +254,19 @@ export async function activate(context: vscode.ExtensionContext) {
 							await zip.extract(null, copytopath);
 							await zip.close();
 
+						} else if (download.url.includes("7z")) {
+
+							// Unzip and copy 
+							output.appendLine(`[SETUP] 7z extract ${filepath} to ${copytopath}`);
+
+							const pathTo7zip = sevenBin.path7za;
+							const seven = extractFull(filepath, copytopath, {
+								$bin: pathTo7zip
+							});
+
 						} else if (download.url.includes("tar")) {
 
+							helper.create_dir_if_not_exist(copytopath);
 							// Then untar
 							const cmd = `tar -xvf "${filepath}" -C "${copytopath}"`;
 							output.appendLine(cmd);
@@ -549,7 +566,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		let dest = await helper.get_dest(_dest);
 
 		// See if config is set first
-		if (config.isSetup && dest != null) {
+		if (config.isSetup && dest !== null) {
 			initRepo(config, context, dest);
 		} else {
 			vscode.window.showErrorMessage('Run `Zephyr Tools: Setup` command first.');
@@ -1097,7 +1114,7 @@ export async function initRepo(config: GlobalConfig, context: vscode.ExtensionCo
 			let branch = await vscode.window.showInputBox(branchInputOptions);
 
 			// TODO: determine choices for west.yml
-			let manifest = "west.yml"
+			let manifest = "west.yml";
 
 			// git clone to destination
 			let cmd = `west init -m ${url} --mf ${manifest}`;
@@ -1275,7 +1292,7 @@ async function load(config: GlobalConfig, project: ProjectConfig) {
 	}
 
 	// Put device into BL mode automagically
-	if (project.board == "circuitdojo_feather_nrf9160_ns") {
+	if (project.board === "circuitdojo_feather_nrf9160_ns") {
 		let cmd = `zephyr-tools -b`;
 		let exec = new vscode.ShellExecution(cmd, options);
 
@@ -1596,7 +1613,7 @@ async function changeBoard(config: GlobalConfig, context: vscode.ExtensionContex
 	let files = await vscode.workspace.fs.readDirectory(rootPath);
 	for (const [index, [file, type]] of files.entries()) {
 
-		if (type == vscode.FileType.Directory) {
+		if (type === vscode.FileType.Directory) {
 			// Get boards
 			let boardsDir = vscode.Uri.joinPath(rootPath, `${file}/boards`);
 
