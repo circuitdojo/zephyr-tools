@@ -2,6 +2,12 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.2.0]
+
+Added:
+
+* Functionality for pulling in different versions of the Zephyr SDK (compiler, etc) 
+
 ### [0.1.34]
 
 Changed:
