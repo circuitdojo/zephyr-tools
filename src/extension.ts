@@ -32,6 +32,11 @@ type CmdEntry = {
 	usepath: boolean;
 };
 
+type ManifestToolchainEntry = {
+	name: string;
+	downloads: ManifestDownloadEntry[];
+};
+
 type ManifestDownloadEntry = {
 	name: string;
 	url: string;
@@ -46,6 +51,7 @@ type ManifestDownloadEntry = {
 
 type ManifestEntry = {
 	arch: string;
+	toolchains: ManifestToolchainEntry[];
 	downloads: ManifestDownloadEntry[];
 };
 
@@ -121,7 +127,11 @@ export async function activate(context: vscode.ExtensionContext) {
 	TaskManager.init();
 
 	// Get the configuration
-	config = context.globalState.get("zephyr.env") ?? { env: process.env, manifestVersion: 0, isSetup: false };
+	config = context.globalState.get("zephyr.env") ?? {
+		env: process.env,
+		manifestVersion: 0,
+		isSetup: false,
+	};
 
 	// Then set the application environment to match
 	if (config.env["PATH"] !== undefined && config.env["PATH"] !== "") {
@@ -210,123 +220,49 @@ export async function activate(context: vscode.ExtensionContext) {
 					for (const [index, element] of platformManifest.entries()) {
 						// Confirm it's the correct architecture
 						if (element.arch === arch) {
+							// Get each "name" entry and present as choice to user
+							let choices: string[] = [];
+							for (let entry of element.toolchains) {
+								choices.push(entry.name);
+							}
+
+							// Pick options
+							const pickOptions: vscode.QuickPickOptions = {
+								ignoreFocusOut: true,
+								placeHolder: "Which toolchain would you like to install?",
+							};
+
+							// Prompt user
+							let selection = await vscode.window.showQuickPick(choices, pickOptions);
+
+							// Check if user canceled
+							if (selection === undefined) {
+								// Show error
+								vscode.window.showErrorMessage("Zephyr Tools Setup canceled.");
+								return;
+							}
+
+							// Find the correct entry
+							let entry = element.toolchains.find(element => element.name === selection);
+
+							// Check if it exists
+							if (entry === undefined) {
+								vscode.window.showErrorMessage("Unable to find toolchain entry.");
+								return;
+							}
+
+							// Output indicating toolchain install
+							output.appendLine(`[SETUP] Installing ${entry.name} toolchain...`);
+
+							for (var download of entry.downloads) {
+								// Process download entry
+								await process_download(download, context);
+								progress.report({ increment: 5 });
+							}
+
 							for (var download of element.downloads) {
-								// Check if it already exists
-								let filepath = await FileDownload.exists(download.filename);
-
-								// Download if doesn't exist _or_ hash doesn't match
-								if (filepath === null || (await FileDownload.check(download.filename, download.md5)) === false) {
-									output.appendLine("[SETUP] downloading " + download.url);
-									filepath = await FileDownload.fetch(download.url);
-								}
-
-								// Get the path to copy the contents to..
-								let copytopath = path.join(toolsdir, download.name);
-
-								// Add additional suffix if need be
-								if (download.copy_to_subfolder) {
-									copytopath = path.join(copytopath, download.copy_to_subfolder);
-								}
-
-								// Remove copy to path
-								if (download.clear_target !== false) {
-									await fs.remove(copytopath);
-									await fs.mkdirp(copytopath);
-								}
-
-								// Unpack and place into `$HOME/.zephyrtools`
-								if (download.url.includes(".zip")) {
-									// Unzip and copy
-									output.appendLine(`[SETUP] unzip ${filepath} to ${copytopath}`);
-									const zip = new unzip.async({ file: filepath });
-									zip.on("extract", (entry, file) => {
-										// Make executable
-										fs.chmodSync(file, 0o755);
-									});
-									await zip.extract(null, copytopath);
-									await zip.close();
-								} else if (download.url.includes("tar")) {
-									// Then untar
-									const cmd = `tar -xvf "${filepath}" -C "${copytopath}"`;
-									output.appendLine(cmd);
-									let res = await exec(cmd, { env: config.env }).then(
-										value => {
-											output.append(value.stdout);
-											return true;
-										},
-										reason => {
-											output.append(reason.stdout);
-											output.append(reason.stderr);
-
-											// Error message
-											vscode.window.showErrorMessage("Error un-tar of download. Check output for more info.");
-
-											return false;
-										}
-									);
-
-									// Return if untar was unsuccessful
-									if (!res) {
-										return;
-									}
-								}
-
-								// Set path
-								let setpath = path.join(copytopath, download.suffix ?? "");
-								config.env["PATH"] = path.join(setpath, pathdivider + config.env["PATH"]);
-
-								// Save this informaiton to disk
-								context.globalState.update("zephyr.env", config);
-
-								// Then set the application environment to match
-								if (config.env["PATH"] !== undefined && config.env["PATH"] !== "") {
-									context.environmentVariableCollection.replace("PATH", config.env["PATH"]);
-								}
-
-								// Set remainin env variables
-								for (let entry of download.env ?? []) {
-									if (entry.value) {
-										config.env[entry.name] = entry.value;
-									} else if (entry.usepath && !entry.append) {
-										config.env[entry.name] = path.join(copytopath, entry.suffix ?? "");
-									} else if (entry.usepath && entry.append) {
-										config.env[entry.name] = path.join(
-											copytopath,
-											(entry.suffix ?? "") + pathdivider + config.env[entry.name] ?? ""
-										);
-									}
-
-									console.log(`env[${entry.name}]: ${config.env[entry.name]}`);
-								}
-
-								// Run any commands that are needed..
-								for (let entry of download.cmd ?? []) {
-									output.appendLine(entry.cmd);
-
-									// Prepend
-									let cmd = entry.cmd;
-									if (entry.usepath) {
-										cmd = path.join(copytopath, entry.cmd ?? "");
-									}
-
-									// Run the command
-									let res = await exec(cmd, { env: config.env }).then(
-										value => {
-											output.append(value.stdout);
-											return true;
-										},
-										reason => {
-											output.append(reason.stdout);
-											output.append(reason.stderr);
-
-											// Error message
-											vscode.window.showErrorMessage("Error for sdk command.");
-
-											return false;
-										}
-									);
-								}
-
+								// Process download entry
+								await process_download(download, context);
 								progress.report({ increment: 5 });
 							}
 
@@ -343,7 +279,9 @@ export async function activate(context: vscode.ExtensionContext) {
 					progress.report({ increment: 5 });
 
 					// Check if Git exists in path
-					let res: boolean = await exec("git --version", { env: config.env }).then(
+					let res: boolean = await exec("git --version", {
+						env: config.env,
+					}).then(
 						value => {
 							output.append(value.stdout);
 							output.append(value.stderr);
@@ -509,7 +447,9 @@ export async function activate(context: vscode.ExtensionContext) {
 					config.env["PATH"] = path.join(pythonenv, `bin${pathdivider}` + config.env["PATH"]);
 
 					// Install `west`
-					res = await exec(`${python} -m pip install west`, { env: config.env }).then(
+					res = await exec(`${python} -m pip install west`, {
+						env: config.env,
+					}).then(
 						value => {
 							output.append(value.stdout);
 							output.append(value.stderr);
@@ -1474,9 +1414,12 @@ async function getBoardlist(folder: vscode.Uri): Promise<string[]> {
 			let path = vscode.Uri.joinPath(folder, file[0]);
 			let subfolders = await vscode.workspace.fs.readDirectory(path);
 
-			for (let { index, value } of subfolders.map((value, index) => ({ index, value }))) {
+			for (let { index, value } of subfolders.map((value, index) => ({
+				index,
+				value,
+			}))) {
 				subfolders[index][0] = vscode.Uri.parse(`${file[0]}/${subfolders[index][0]}`).fsPath;
-				// console.log(subfolders[index][0]);
+				console.log(subfolders[index][0]);
 			}
 
 			files = files.concat(subfolders);
@@ -1515,7 +1458,10 @@ async function getProjectList(folder: vscode.Uri): Promise<string[]> {
 			let path = vscode.Uri.joinPath(folder, file[0]);
 			let subfolders = await vscode.workspace.fs.readDirectory(path);
 
-			for (let { index, value } of subfolders.map((value, index) => ({ index, value }))) {
+			for (let { index, value } of subfolders.map((value, index) => ({
+				index,
+				value,
+			}))) {
 				subfolders[index][0] = vscode.Uri.parse(`${file[0]}/${subfolders[index][0]}`).fsPath;
 				// console.log(subfolders[index][0]);
 			}
@@ -1529,7 +1475,9 @@ async function getProjectList(folder: vscode.Uri): Promise<string[]> {
 
 async function changeProject(config: GlobalConfig, context: vscode.ExtensionContext) {
 	// Fetch the project config
-	let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+	let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? {
+		isInit: false,
+	};
 
 	// Create & clear output
 	if (output === undefined) {
@@ -1580,7 +1528,9 @@ async function changeProject(config: GlobalConfig, context: vscode.ExtensionCont
 
 async function changeBoard(config: GlobalConfig, context: vscode.ExtensionContext) {
 	// TODO: iterative function to find all possible board options
-	let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+	let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? {
+		isInit: false,
+	};
 
 	// Get the workspace root
 	let rootPath;
@@ -1591,6 +1541,8 @@ async function changeBoard(config: GlobalConfig, context: vscode.ExtensionContex
 		rootPath = rootPaths[0].uri;
 	}
 
+	console.log("Roto path: " + rootPath.fsPath);
+
 	let boards: string[] = [];
 
 	let files = await vscode.workspace.fs.readDirectory(rootPath);
@@ -1598,6 +1550,7 @@ async function changeBoard(config: GlobalConfig, context: vscode.ExtensionContex
 		if (type == vscode.FileType.Directory) {
 			// Get boards
 			let boardsDir = vscode.Uri.joinPath(rootPath, `${file}/boards`);
+			console.log("Boards dir: " + boardsDir.fsPath);
 
 			// Only check if path exists
 			if (fs.pathExistsSync(boardsDir.fsPath)) {
@@ -1734,6 +1687,135 @@ async function build(
 	});
 
 	vscode.window.showInformationMessage(`Building for ${project.board}`);
+}
+
+async function process_download(download: ManifestDownloadEntry, context: vscode.ExtensionContext) {
+	// Promisified exec
+	let exec = util.promisify(cp.exec);
+
+	// Check if it already exists
+	let filepath = await FileDownload.exists(download.filename);
+
+	// Download if doesn't exist _or_ hash doesn't match
+	if (filepath === null || (await FileDownload.check(download.filename, download.md5)) === false) {
+		output.appendLine("[SETUP] downloading " + download.url);
+		filepath = await FileDownload.fetch(download.url);
+
+		// Check again
+		if ((await FileDownload.check(download.filename, download.md5)) === false) {
+			vscode.window.showErrorMessage("Error downloading " + download.filename + ". Check output for more info.");
+			return;
+		}
+	}
+
+	// Get the path to copy the contents to..
+	let copytopath = path.join(toolsdir, download.name);
+
+	// Add additional suffix if need be
+	if (download.copy_to_subfolder) {
+		copytopath = path.join(copytopath, download.copy_to_subfolder);
+	}
+
+	// Check if copytopath exists and create if not
+	if (!(await fs.pathExists(copytopath))) {
+		await fs.mkdirp(copytopath);
+	}
+
+	// Remove copy to path
+	if (download.clear_target !== false) {
+		await fs.remove(copytopath);
+		await fs.mkdirp(copytopath);
+	}
+
+	// Unpack and place into `$HOME/.zephyrtools`
+	if (download.url.includes(".zip")) {
+		// Unzip and copy
+		output.appendLine(`[SETUP] unzip ${filepath} to ${copytopath}`);
+		const zip = new unzip.async({ file: filepath });
+		zip.on("extract", (entry, file) => {
+			// Make executable
+			fs.chmodSync(file, 0o755);
+		});
+		await zip.extract(null, copytopath);
+		await zip.close();
+	} else if (download.url.includes("tar")) {
+		// Then untar
+		const cmd = `tar -xvf "${filepath}" -C "${copytopath}"`;
+		output.appendLine(cmd);
+		let res = await exec(cmd, { env: config.env }).then(
+			value => {
+				output.append(value.stdout);
+				return true;
+			},
+			reason => {
+				output.append(reason.stdout);
+				output.append(reason.stderr);
+
+				// Error message
+				vscode.window.showErrorMessage("Error un-tar of download. Check output for more info.");
+
+				return false;
+			}
+		);
+
+		// Return if untar was unsuccessful
+		if (!res) {
+			return;
+		}
+	}
+
+	// Set path
+	let setpath = path.join(copytopath, download.suffix ?? "");
+	config.env["PATH"] = path.join(setpath, pathdivider + config.env["PATH"]);
+
+	// Then set the application environment to match
+	if (config.env["PATH"] !== undefined && config.env["PATH"] !== "") {
+		context.environmentVariableCollection.replace("PATH", config.env["PATH"]);
+	}
+
+	// Set remaining env variables
+	for (let entry of download.env ?? []) {
+		if (entry.value) {
+			config.env[entry.name] = entry.value;
+		} else if (entry.usepath && !entry.append) {
+			config.env[entry.name] = path.join(copytopath, entry.suffix ?? "");
+		} else if (entry.usepath && entry.append) {
+			config.env[entry.name] = path.join(copytopath, (entry.suffix ?? "") + pathdivider + config.env[entry.name] ?? "");
+		}
+
+		console.log(`env[${entry.name}]: ${config.env[entry.name]}`);
+	}
+
+	// Save this informaiton to disk
+	context.globalState.update("zephyr.env", config);
+
+	// Run any commands that are needed..
+	for (let entry of download.cmd ?? []) {
+		output.appendLine(entry.cmd);
+
+		// Prepend
+		let cmd = entry.cmd;
+		if (entry.usepath) {
+			cmd = path.join(copytopath, entry.cmd ?? "");
+		}
+
+		// Run the command
+		let res = await exec(cmd, { env: config.env }).then(
+			value => {
+				output.append(value.stdout);
+				return true;
+			},
+			reason => {
+				output.append(reason.stdout);
+				output.append(reason.stderr);
+
+				// Error message
+				vscode.window.showErrorMessage("Error for sdk command.");
+
+				return false;
+			}
+		);
+	}
 }
 
 async function clean(config: GlobalConfig, project: ProjectConfig) {
