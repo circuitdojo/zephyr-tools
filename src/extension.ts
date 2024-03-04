@@ -335,7 +335,9 @@ export async function activate(context: vscode.ExtensionContext) {
                     output.appendLine("[SETUP] Then run `brew install python3`");
                     break;
                   case "linux":
-                    output.appendLine("[SETUP] refer to your distros preferred `python3` install method.");
+                    output.appendLine(
+                      "[SETUP] install `python` using `apt get install python3.10 python3.10-pip python3.10-venv`"
+                    );
                     break;
                   default:
                     break;
@@ -352,7 +354,20 @@ export async function activate(context: vscode.ExtensionContext) {
               console.error(reason);
 
               // Error message
-              vscode.window.showErrorMessage("Error getting python. Check output for more info.");
+              switch (platform) {
+                case "darwin":
+                  output.appendLine("[SETUP] use `brew` to install `python3`");
+                  output.appendLine("[SETUP] Install `brew` first: https://brew.sh");
+                  output.appendLine("[SETUP] Then run `brew install python3`");
+                  break;
+                case "linux":
+                  output.appendLine(
+                    "[SETUP] install `python` using `apt get install python3.10 python3.10-pip python3.10-venv`"
+                  );
+                  break;
+                default:
+                  break;
+              }
               return false;
             }
           );
@@ -364,57 +379,78 @@ export async function activate(context: vscode.ExtensionContext) {
 
           progress.report({ increment: 5 });
 
-          // Note: linux does not have ensurepip
-          if (platform !== "linux") {
-            // install pip (if not already)
-            cmd = `${python} -m ensurepip`;
-            output.appendLine(cmd);
-            res = await exec(cmd, { env: config.env }).then(
-              value => {
-                output.append(value.stdout);
-                output.appendLine("[SETUP] pip installed");
-
-                return true;
-              },
-              reason => {
-                output.appendLine("[SETUP] unable to install pip");
-                output.append(reason.stdout);
-                output.append(reason.stderr);
-
-                // Error message
-                vscode.window.showErrorMessage("Error installing pip. Check output for more info.");
-
-                return false;
-              }
-            );
-
-            // Return if error
-            if (!res) {
-              return;
-            }
-          }
-          progress.report({ increment: 5 });
-
-          // install virtualenv
-          cmd = `${python} -m pip install virtualenv`;
+          // Check for `pip`
+          cmd = `${python} -m pip --version`;
           output.appendLine(cmd);
-          await exec(cmd, { env: config.env }).then(
+          res = await exec(cmd, { env: config.env }).then(
             value => {
               output.append(value.stdout);
-              output.appendLine("[SETUP] virtualenv installed");
+              output.append(value.stderr);
+              output.appendLine("[SETUP] pip installed");
               return true;
             },
             reason => {
-              console.log(JSON.stringify(reason));
+              output.append(reason.stderr);
+              console.error(reason);
+
+              // Error message
+
+              // Error message
+              switch (platform) {
+                case "linux":
+                  output.appendLine("[SETUP] please install `python3.10-pip` package (or newer)");
+                  break;
+                default:
+                  output.appendLine("[SETUP] please install `python3` with `pip` support");
+                  break;
+              }
+              return false;
             }
           );
+
+          // Return if error
+          if (!res) {
+            return;
+          }
 
           progress.report({ increment: 5 });
 
           // create virtualenv within `$HOME/.zephyrtools`
           let pythonenv = path.join(toolsdir, "env");
 
-          cmd = `${python} -m virtualenv "${pythonenv}"`;
+          // Check if venv is available
+          cmd = `${python} -m venv --help`;
+          output.appendLine(cmd);
+          res = await exec(cmd, { env: config.env }).then(
+            value => {
+              output.appendLine("[SETUP] python3 venv OK");
+              return true;
+            },
+            reason => {
+              output.append(reason.stderr);
+              console.error(reason);
+
+              // Error message
+              switch (platform) {
+                case "linux":
+                  output.appendLine("[SETUP] please install `python3.10-venv` package (or newer)");
+                  break;
+                default:
+                  output.appendLine("[SETUP] please install `python3` with `venv` support");
+                  break;
+              }
+
+              return false;
+            }
+          );
+
+          // Return if error
+          if (!res) {
+            return;
+          }
+
+          // Then create the virtualenv
+          cmd = `${python} -m venv "${pythonenv}"`;
           output.appendLine(cmd);
           res = await exec(cmd, { env: config.env }).then(
             value => {
@@ -424,6 +460,7 @@ export async function activate(context: vscode.ExtensionContext) {
             },
             reason => {
               output.appendLine("[SETUP] unable to setup virtualenv");
+              console.error(reason);
 
               // Error message
               vscode.window.showErrorMessage("Error installing virtualenv. Check output for more info.");
