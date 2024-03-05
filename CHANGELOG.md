@@ -2,6 +2,15 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.2.3]
+
+Changed:
+
+- Fixed manifest entries for Windows
+- Added 7z support
+- Updating pkg dependencies
+- `process_download` now returns to avoid continuing if error
+
 ### [0.2.2]
 
 Changed:

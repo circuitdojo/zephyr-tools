@@ -13,6 +13,8 @@ import * as os from "os";
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as unzip from "node-stream-zip";
+import * as sevenzip from "7zip-bin";
+import * as node7zip from "node-7z";
 
 import { TaskManager } from "./taskmanager";
 import { FileDownload } from "./download";
@@ -253,7 +255,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
               for (var download of element.downloads) {
                 // Process download entry
-                await process_download(download, context);
+                let res = await process_download(download, context);
+                if (!res) {
+                  vscode.window.showErrorMessage("Error downloading files. Check output for more info.");
+                  return;
+                }
                 progress.report({ increment: 5 });
               }
 
@@ -262,7 +268,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
               for (var download of entry.downloads) {
                 // Process download entry
-                await process_download(download, context);
+                let res = await process_download(download, context);
+                if (!res) {
+                  vscode.window.showErrorMessage("Error downloading toolchain. Check output for more info.");
+                  return;
+                }
                 progress.report({ increment: 5 });
               }
 
@@ -1744,7 +1754,7 @@ async function process_download(download: ManifestDownloadEntry, context: vscode
     // Check again
     if ((await FileDownload.check(download.filename, download.md5)) === false) {
       vscode.window.showErrorMessage("Error downloading " + download.filename + ". Checksum mismatch.");
-      return;
+      return false;
     }
   }
 
@@ -1800,8 +1810,16 @@ async function process_download(download: ManifestDownloadEntry, context: vscode
 
     // Return if untar was unsuccessful
     if (!res) {
-      return;
+      return false;
     }
+  } else if (download.url.includes("7z")) {
+    // Unzip and copy
+    output.appendLine(`[SETUP] 7z extract ${filepath} to ${copytopath}`);
+
+    const pathTo7zip = sevenzip.path7za;
+    const seven = node7zip.extractFull(filepath, copytopath, {
+      $bin: pathTo7zip,
+    });
   }
 
   // Set path
@@ -1855,7 +1873,13 @@ async function process_download(download: ManifestDownloadEntry, context: vscode
         return false;
       }
     );
+
+    if (!res) {
+      return false;
+    }
   }
+
+  return true;
 }
 
 async function clean(config: GlobalConfig, project: ProjectConfig) {
