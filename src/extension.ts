@@ -251,16 +251,16 @@ export async function activate(context: vscode.ExtensionContext) {
                 return;
               }
 
-              // Output indicating toolchain install
-              output.appendLine(`[SETUP] Installing ${entry.name} toolchain...`);
-
-              for (var download of entry.downloads) {
+              for (var download of element.downloads) {
                 // Process download entry
                 await process_download(download, context);
                 progress.report({ increment: 5 });
               }
 
-              for (var download of element.downloads) {
+              // Output indicating toolchain install
+              output.appendLine(`[SETUP] Installing ${entry.name} toolchain...`);
+
+              for (var download of entry.downloads) {
                 // Process download entry
                 await process_download(download, context);
                 progress.report({ increment: 5 });
@@ -1743,7 +1743,7 @@ async function process_download(download: ManifestDownloadEntry, context: vscode
 
     // Check again
     if ((await FileDownload.check(download.filename, download.md5)) === false) {
-      vscode.window.showErrorMessage("Error downloading " + download.filename + ". Check output for more info.");
+      vscode.window.showErrorMessage("Error downloading " + download.filename + ". Checksum mismatch.");
       return;
     }
   }

@@ -2,6 +2,13 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.2.2]
+
+Changed:
+
+- Updated MD5 hashes for Mac downloads
+- Fixed issue of toolchain setup requiring cmake before cmake is installed
+
 ### [0.2.1]
 
 Changed:

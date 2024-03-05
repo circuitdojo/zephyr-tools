@@ -112,7 +112,7 @@
                     "name": "zephyr-tools",
                     "filename": "zephyr-tools-0.1.7-x86_64-apple-darwin.tar.gz",
                     "url": "https://github.com/circuitdojo/zephyr-tools-cli/releases/download/0.1.7/zephyr-tools-0.1.7-x86_64-apple-darwin.tar.gz",
-                    "md5": "cc6008e13fc6e51cee3aa2f6afcb9087"
+                    "md5": "a2eaad10e8f4e29708a9bfe4193a61ed"
                 },
                 {
                     "name": "newtmgr",
@@ -139,9 +139,10 @@
                     "name": "zephyr-sdk-0.16.4 (latest)",
                     "downloads": [
                         {
+                            "name": "toolchain",
                             "filename": "zephyr-sdk-0.16.4_macos-x86_64_minimal.tar.xz",
                             "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.4/zephyr-sdk-0.16.4_macos-x86_64_minimal.tar.xz",
-                            "md5": "2e6900c9ea1d03fbf67cd784e18f53bf",
+                            "md5": "4771443abfc72c1442a2cdf01034ab95",
                             "suffix": "zephyr-sdk-0.16.4/arm-zephyr-eabi/bin/",
                             "env": [
                                 {
@@ -170,6 +171,7 @@
                     "name": "zephyr-sdk-0.15.1",
                     "downloads": [
                         {
+                            "name": "toolchain",
                             "filename": "zephyr-sdk-0.15.1_macos-x86_64_minimal.tar.gz",
                             "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.1/zephyr-sdk-0.15.1_macos-x86_64_minimal.tar.gz",
                             "md5": "2e6900c9ea1d03fbf67cd784e18f53bf",
@@ -206,7 +208,7 @@
                     "name": "zephyr-tools",
                     "filename": "zephyr-tools-0.1.7-aarch64-apple-darwin.tar.gz",
                     "url": "https://github.com/circuitdojo/zephyr-tools-cli/releases/download/0.1.7/zephyr-tools-0.1.7-aarch64-apple-darwin.tar.gz",
-                    "md5": "9505f60901af7781f95dfa36fedb9fcd"
+                    "md5": "8649a82eb65f83d90b937d3065764bbc"
                 },
                 {
                     "name": "newtmgr",
@@ -227,9 +229,10 @@
                     "name": "zephyr-sdk-0.16.4 (latest)",
                     "downloads": [
                         {
+                            "name": "toolchain",
                             "filename": "zephyr-sdk-0.16.4_macos-aarch64_minimal.tar.xz",
                             "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.4/zephyr-sdk-0.16.4_macos-aarch64_minimal.tar.xz",
-                            "md5": "6b0d6e08ad5753a29d96df4d6ccfed72",
+                            "md5": "4aa2aa3b8313e04dd93a8bbee4b31754",
                             "suffix": "zephyr-sdk-0.16.4/arm-zephyr-eabi/bin/",
                             "env": [
                                 {
@@ -258,6 +261,7 @@
                     "name": "zephyr-sdk-0.15.1",
                     "downloads": [
                         {
+                            "name": "toolchain",
                             "filename": "zephyr-sdk-0.15.1_macos-aarch64_minimal.tar.gz",
                             "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.1/zephyr-sdk-0.15.1_macos-aarch64_minimal.tar.gz",
                             "md5": "6b0d6e08ad5753a29d96df4d6ccfed72",
