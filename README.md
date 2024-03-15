@@ -48,7 +48,7 @@ Here are some of the tasks needed to be completed for this project:
 - [ ] Disable auto logging to file (settings/configuration)
 - [ ] Setting common parameters in confguration
 - [ ] Reinstall dependencies if manifest differs from what's installed
-- [ ] Creating a new project from scratch/template
+- [x] Creating a new project from scratch/template
 - [ ] CI/CD
 - [ ] Using probe-rs for programming (cross platform)
 - [ ] Cache boards for change boards

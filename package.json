@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "license": "Apache-2.0",
   "publisher": "circuitdojo",
   "icon": "img/bulb.png",
@@ -34,7 +34,8 @@
     "onCommand:zephyr-tools.load-and-monitor",
     "onCommand:zephyr-tools.init-repo",
     "onCommand:zephyr-tools.clean",
-    "onCommand:zephyr-tools.update"
+    "onCommand:zephyr-tools.update",
+    "onCommand:zephyr-tools.change-runner"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -102,6 +103,10 @@
       {
         "command": "zephyr-tools.update",
         "title": "Zephyr Tools: Update Dependencies"
+      },
+      {
+        "command": "zephyr-tools.change-runner",
+        "title": "Zephyr Tools: Change Runner"
       }
     ]
   },

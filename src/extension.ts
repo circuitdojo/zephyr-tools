@@ -101,6 +101,8 @@ export interface ProjectConfig {
   target?: string;
   port?: string;
   isInit: boolean;
+  runner?: string;
+  runnerParams?: string;
 }
 
 // Config for the exention
@@ -947,6 +949,28 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // Command for changing runner and params
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.change-runner", async () => {
+      // Fetch the project config
+      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+
+      // Check if manifest is good
+      if (config.manifestVersion !== manifest.version) {
+        vscode.window.showErrorMessage("An update is required. Run `Zephyr Tools: Setup` command first.");
+        return;
+      }
+
+      // See if config is set first
+      if (config.isSetup) {
+        changeRunner(config, context);
+      } else {
+        // Display an error message box to the user
+        vscode.window.showErrorMessage("Run `Zephyr Toools: Setup` command first.");
+      }
+    })
+  );
+
   // Command for setting up `newtmgr/mcumgr`
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.setup-newtmgr", async () => {
@@ -1391,9 +1415,6 @@ async function monitor(config: GlobalConfig, project: ProjectConfig) {
 
 // TODO: select programmer ID if there are multiple..
 async function flash(config: GlobalConfig, project: ProjectConfig) {
-  // Cancel running tasks
-  await TaskManager.cancel();
-
   // Options for SehllExecution
   let options: vscode.ShellExecutionOptions = {
     env: <{ [key: string]: string }>config.env,
@@ -1402,30 +1423,30 @@ async function flash(config: GlobalConfig, project: ProjectConfig) {
 
   // Tasks
   let taskName = "Zephyr Tools: Flash";
+  let cmd = `west flash`;
 
-  // Enable python env
-  // TODO: determine what command to use
-  let cmd = `west flash -r nrfjprog --erase --softreset`;
+  // Add runner if it exists
+  if (project.runner) {
+    cmd += ` -r ${project.runner} ${project.runnerParams ?? ""}`;
+  }
+
+  console.log("command: " + cmd);
+
   let exec = new vscode.ShellExecution(cmd, options);
 
   // Task
   let task = new vscode.Task(
-    { type: "zephyr-tools", command: taskName },
+    { type: "zephyr-tools", command: taskName, isBackground: true },
     vscode.TaskScope.Workspace,
     taskName,
     "zephyr-tools",
     exec
   );
 
-  // Start execution
-  await TaskManager.push(task, {
-    ignoreError: false,
-    lastTask: true,
-    errorMessage: "Flash error! Did you init your project?",
-    successMessage: "Flash complete!",
-  });
-
   vscode.window.showInformationMessage(`Flashing for ${project.board}`);
+
+  // Start task here
+  await vscode.tasks.executeTask(task);
 }
 
 function getRootPath(): vscode.Uri | undefined {
@@ -1620,6 +1641,61 @@ async function changeBoard(config: GlobalConfig, context: vscode.ExtensionContex
   }
 }
 
+async function changeRunner(config: GlobalConfig, context: vscode.ExtensionContext) {
+  // TODO: iterative function to find all possible board options
+  let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? {
+    isInit: false,
+  };
+
+  // Get the workspace root
+  let rootPath;
+  let rootPaths = vscode.workspace.workspaceFolders;
+  if (rootPaths === undefined) {
+    return;
+  } else {
+    rootPath = rootPaths[0].uri;
+  }
+
+  console.log("Roto path: " + rootPath.fsPath);
+
+  // Get runners
+  let runners: string[] = ["default", "jlink", "nrfjprog", "openocd", "pyocd", "qemu", "stlink"];
+  let args = "";
+
+  // Prompt which board to use
+  const result = await vscode.window.showQuickPick(runners, {
+    placeHolder: "Pick your runner..",
+    ignoreFocusOut: true,
+  });
+
+  let argsResult = await vscode.window.showInputBox({
+    placeHolder: "Enter runner args..",
+    ignoreFocusOut: true,
+  });
+
+  if (result) {
+    // Check to make sure args are not undefined
+    if (argsResult) {
+      args = " with args: " + argsResult;
+
+      // Set runner args
+      project.runnerParams = argsResult;
+    } else {
+      project.runnerParams = undefined;
+    }
+
+    console.log("Changing runner to " + result + args);
+    vscode.window.showInformationMessage(`Runner changed to ${result}${args}`);
+
+    if (result === "default") {
+      project.runner = undefined;
+    } else {
+      project.runner = result;
+    }
+    await context.workspaceState.update("zephyr.project", project);
+  }
+}
+
 export async function update(config: GlobalConfig, project: ProjectConfig) {
   // Get the active workspace root path
   let rootPath;
@@ -1663,9 +1739,6 @@ async function build(
   pristine: boolean,
   context: vscode.ExtensionContext
 ) {
-  // Cancel running tasks
-  await TaskManager.cancel();
-
   // Return if env is not set
   if (config.env === undefined) {
     console.log("Env is undefined!");
@@ -1728,15 +1801,10 @@ async function build(
     exec
   );
 
-  // Start execution
-  await TaskManager.push(task, {
-    ignoreError: false,
-    lastTask: true,
-    errorMessage: "Build error! Did you init your project?",
-    successMessage: "Build complete!",
-  });
-
   vscode.window.showInformationMessage(`Building for ${project.board}`);
+
+  // Start execution
+  await vscode.tasks.executeTask(task);
 }
 
 async function process_download(download: ManifestDownloadEntry, context: vscode.ExtensionContext) {
