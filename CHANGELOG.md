@@ -2,6 +2,16 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.2.4]
+
+Added:
+
+- Can configure `west` runner with `Zephyr Tools: Change Runner` including extra params for power users
+
+Changed:
+
+- Now does not cancel running tasks for `Zephyr Tools: Build` and `Flash` commands. (Useful for keeping `Serial Monitor` alive)
+
 ### [0.2.3]
 
 Changed:
