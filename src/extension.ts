@@ -98,6 +98,7 @@ let toolsdir = path.join(os.homedir(), toolsfoldername);
 // Project specific configuration
 export interface ProjectConfig {
   board?: string;
+  board_root_dir?: string;
   target?: string;
   port?: string;
   isInit: boolean;
@@ -1610,35 +1611,61 @@ async function changeBoard(config: GlobalConfig, context: vscode.ExtensionContex
   }
 
   console.log("Roto path: " + rootPath.fsPath);
-
-  let boards: string[] = [];
-
   let files = await vscode.workspace.fs.readDirectory(rootPath);
-  for (const [index, [file, type]] of files.entries()) {
-    if (type == vscode.FileType.Directory) {
-      // Get boards
-      let boardsDir = vscode.Uri.joinPath(rootPath, `${file}/boards`);
-      console.log("Boards dir: " + boardsDir.fsPath);
+  
+  // Looks for default board locations
+  let board_directories: string[] = [];
 
-      // Only check if path exists
-      if (fs.pathExistsSync(boardsDir.fsPath)) {
-        boards = boards.concat(await getBoardlist(boardsDir));
-      }
+  // Look in root
+  let boardsDir = vscode.Uri.joinPath(rootPath, `boards`);
+  if (fs.pathExistsSync(boardsDir.fsPath)) {
+    board_directories = board_directories.concat(boardsDir.fsPath);
+  }
+
+  // Look in project
+  if (project.target) {
+    let boardDir = path.join(project.target.toString(), "boards");
+    if (fs.pathExistsSync(boardDir)) {
+      board_directories = board_directories.concat(boardDir);
     }
   }
 
-  // Prompt which board to use
-  const result = await vscode.window.showQuickPick(boards, {
-    placeHolder: "Pick your board..",
+  // Look in Zephyr folder
+  for (const [index, [file, type]] of files.entries()) {
+    if (type == vscode.FileType.Directory) {
+      let zephyr_board_dir = vscode.Uri.joinPath(rootPath, `${file}/zephyr/boards`);
+      if (fs.pathExistsSync(zephyr_board_dir.fsPath)) {
+        board_directories = board_directories.concat(zephyr_board_dir.fsPath);
+      }
+    }
+  }
+  console.log("Boards dir: " + board_directories);
+
+    // Prompt which board to use
+  const board_dir_result = await vscode.window.showQuickPick(board_directories, {
+    placeHolder: "Pick your board directory..",
     ignoreFocusOut: true,
   });
 
-  if (result) {
-    console.log("Changing board to " + result);
-    vscode.window.showInformationMessage(`Board changed to ${result}`);
-    project.board = result;
-    await context.workspaceState.update("zephyr.project", project);
-  }
+  let boards: string[] = [];
+
+  if (board_dir_result) {
+    console.log("Changing board dir to " + board_dir_result);
+    project.board_root_dir = path.parse(board_dir_result).dir;
+    boards = boards.concat(await getBoardlist(vscode.Uri.file(board_dir_result)));
+      // Prompt which board to use
+      const result = await vscode.window.showQuickPick(boards, {
+        placeHolder: "Pick your board..",
+        ignoreFocusOut: true,
+      });
+
+      if (result) {
+        console.log("Changing board to " + result);
+        vscode.window.showInformationMessage(`Board changed to ${result}`);
+        project.board = result;
+        await context.workspaceState.update("zephyr.project", project);
+      }
+  } 
 }
 
 async function changeRunner(config: GlobalConfig, context: vscode.ExtensionContext) {
@@ -1789,7 +1816,7 @@ async function build(
   let taskName = "Zephyr Tools: Build";
 
   // Enable python env
-  let cmd = `west build -b ${project.board}${pristine ? " -p" : ""}`;
+  let cmd = `west build -b ${project.board}${pristine ? " -p" : ""} -- -DBOARD_ROOT='${project.board_root_dir}'  `;
   let exec = new vscode.ShellExecution(cmd, options);
 
   // Task
