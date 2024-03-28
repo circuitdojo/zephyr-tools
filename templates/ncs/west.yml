@@ -7,8 +7,7 @@ manifest:
       repo-path: sdk-nrf
       remote: nrfconnect
       revision: v2.3.0
-      import: 
-        path-prefix: deps
+      import:
         name-blocklist:
           - matter
           - nrf-802154
@@ -23,5 +22,5 @@ manifest:
           - lvgl
           - mipi-sys-t
   self:
-    # This repository should be cloned to 
+    # This repository should be cloned to
     path: app
