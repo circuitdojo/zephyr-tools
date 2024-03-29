@@ -1612,7 +1612,7 @@ async function changeBoard(config: GlobalConfig, context: vscode.ExtensionContex
 
   console.log("Roto path: " + rootPath.fsPath);
   let files = await vscode.workspace.fs.readDirectory(rootPath);
-  
+
   // Looks for default board locations
   let board_directories: string[] = [];
 
@@ -1641,7 +1641,7 @@ async function changeBoard(config: GlobalConfig, context: vscode.ExtensionContex
   }
   console.log("Boards dir: " + board_directories);
 
-    // Prompt which board to use
+  // Prompt which board directory to use
   const board_dir_result = await vscode.window.showQuickPick(board_directories, {
     placeHolder: "Pick your board directory..",
     ignoreFocusOut: true,
@@ -1653,19 +1653,19 @@ async function changeBoard(config: GlobalConfig, context: vscode.ExtensionContex
     console.log("Changing board dir to " + board_dir_result);
     project.board_root_dir = path.parse(board_dir_result).dir;
     boards = boards.concat(await getBoardlist(vscode.Uri.file(board_dir_result)));
-      // Prompt which board to use
-      const result = await vscode.window.showQuickPick(boards, {
-        placeHolder: "Pick your board..",
-        ignoreFocusOut: true,
-      });
+    // Prompt which board to use
+    const result = await vscode.window.showQuickPick(boards, {
+      placeHolder: "Pick your board..",
+      ignoreFocusOut: true,
+    });
 
-      if (result) {
-        console.log("Changing board to " + result);
-        vscode.window.showInformationMessage(`Board changed to ${result}`);
-        project.board = result;
-        await context.workspaceState.update("zephyr.project", project);
-      }
-  } 
+    if (result) {
+      console.log("Changing board to " + result);
+      vscode.window.showInformationMessage(`Board changed to ${result}`);
+      project.board = result;
+      await context.workspaceState.update("zephyr.project", project);
+    }
+  }
 }
 
 async function changeRunner(config: GlobalConfig, context: vscode.ExtensionContext) {
@@ -2002,4 +2002,4 @@ async function clean(config: GlobalConfig, project: ProjectConfig) {
 }
 
 // this method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }
