@@ -199,8 +199,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
           // Define what manifest to use
           let platformManifest: ManifestEntry[] | undefined;
-          let platform_name : String | undefined;
-          let arch_name : String | undefined;
+          let platform_name: String | undefined;
+          let arch_name: String | undefined;
           switch (platform) {
             case "darwin":
               platformManifest = manifest.darwin;
@@ -246,7 +246,7 @@ export async function activate(context: vscode.ExtensionContext) {
           let toolchain_md5_path = context.asAbsolutePath("manifest/sdk_md5");
           let toolchain_md5_files = await vscode.workspace.fs.readDirectory(vscode.Uri.file(toolchain_md5_path));
           for (const [index, [filename, type]] of toolchain_md5_files.entries()) {
-            if (path.parse(filename).ext === ".sum"){
+            if (path.parse(filename).ext === ".sum") {
               toolchain_version_list.push(path.parse(filename).name);
             }
           }
@@ -263,7 +263,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
           let selected_toolchain_file = context.asAbsolutePath("manifest/sdk_md5/" + toolchain_selection + ".sum");
 
-          
+
           // Set up downloader path
           FileDownload.init(path.join(toolsdir, "downloads"));
 
@@ -287,74 +287,74 @@ export async function activate(context: vscode.ExtensionContext) {
                 vscode.window.showErrorMessage("Unsupported architecture for Zephyr Tools!");
                 return;
               }
-            }  
+            }
           }
 
-          
-          let toolchain_file_raw_text = fs.readFileSync(selected_toolchain_file,'utf8');
-          let toolchain_minimal_download_entry :ManifestDownloadEntry | undefined;
-          let toolchain_arm_download_entry :ManifestDownloadEntry | undefined;
+
+          let toolchain_file_raw_text = fs.readFileSync(selected_toolchain_file, 'utf8');
+          let toolchain_minimal_download_entry: ManifestDownloadEntry | undefined;
+          let toolchain_arm_download_entry: ManifestDownloadEntry | undefined;
 
           for (const line of toolchain_file_raw_text.trim().split('\n')) {
-              let s = line.trim().split(/[\s\s]+/g);
-              let md5 = s[0];
-              let file_name = s[1]
-              let parsed_file_name = path.parse(file_name)
-              if (parsed_file_name.ext === ".xz"){
-                parsed_file_name = path.parse(parsed_file_name.name)
-              }
+            let s = line.trim().split(/[\s\s]+/g);
+            let md5 = s[0];
+            let file_name = s[1]
+            let parsed_file_name = path.parse(file_name)
+            if (parsed_file_name.ext === ".xz") {
+              parsed_file_name = path.parse(parsed_file_name.name)
+            }
 
-              if (parsed_file_name.name === "zephyr-sdk-" + toolchain_selection + "_"+ platform_name +"-" +arch_name + "_minimal"){
-                toolchain_minimal_download_entry = {
-                  "name": "toolchain",
-                  "filename": file_name,
-                  "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v" + toolchain_selection + "/" + file_name,
-                  "md5": md5,
-                  "suffix": "zephyr-sdk-"+ toolchain_selection +"/arm-zephyr-eabi/bin/",
-                  "env": [
-                    {
-                      "name": "ZEPHYR_TOOLCHAIN_VARIANT",
-                      "value": "zephyr",
-                      "usepath": false,
-                      "append": false
-                    },
-                    {
-                      "name": "ZEPHYR_SDK_INSTALL_DIR",
-                      "suffix": "zephyr-sdk-"+ toolchain_selection,
-                      "usepath": true,
-                      "append": false
-                    }
-                  ],
-                };
-                if (platform_name === "macos"){
-                  toolchain_minimal_download_entry.cmd =  [{
-                    "cmd": "zephyr-sdk-"+ toolchain_selection + "/setup.sh -t arm-zephyr-eabi",
-                    "usepath": true
-                  }];
-                }  
-              } else if (parsed_file_name.name === "toolchain_" + platform_name +"-" +arch_name + "_arm-zephyr-eabi"){
-                toolchain_arm_download_entry = {
-                  "name": "toolchain",
-                  "filename": file_name,
-                  "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v" + toolchain_selection + "/" + file_name,
-                  "md5": md5,
-                  "suffix": "zephyr-sdk-"+ toolchain_selection +"/arm-zephyr-eabi/bin/",
-                  "clear_target": false,
-                  "copy_to_subfolder": "zephyr-sdk-"+ toolchain_selection
-                };
+            if (parsed_file_name.name === "zephyr-sdk-" + toolchain_selection + "_" + platform_name + "-" + arch_name + "_minimal") {
+              toolchain_minimal_download_entry = {
+                "name": "toolchain",
+                "filename": file_name,
+                "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v" + toolchain_selection + "/" + file_name,
+                "md5": md5,
+                "suffix": "zephyr-sdk-" + toolchain_selection + "/arm-zephyr-eabi/bin/",
+                "env": [
+                  {
+                    "name": "ZEPHYR_TOOLCHAIN_VARIANT",
+                    "value": "zephyr",
+                    "usepath": false,
+                    "append": false
+                  },
+                  {
+                    "name": "ZEPHYR_SDK_INSTALL_DIR",
+                    "suffix": "zephyr-sdk-" + toolchain_selection,
+                    "usepath": true,
+                    "append": false
+                  }
+                ],
+              };
+              if (platform_name === "macos") {
+                toolchain_minimal_download_entry.cmd = [{
+                  "cmd": "zephyr-sdk-" + toolchain_selection + "/setup.sh -t arm-zephyr-eabi",
+                  "usepath": true
+                }];
               }
+            } else if (parsed_file_name.name === "toolchain_" + platform_name + "-" + arch_name + "_arm-zephyr-eabi") {
+              toolchain_arm_download_entry = {
+                "name": "toolchain",
+                "filename": file_name,
+                "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v" + toolchain_selection + "/" + file_name,
+                "md5": md5,
+                "suffix": "zephyr-sdk-" + toolchain_selection + "/arm-zephyr-eabi/bin/",
+                "clear_target": false,
+                "copy_to_subfolder": "zephyr-sdk-" + toolchain_selection
+              };
+            }
           }
 
-          if (toolchain_arm_download_entry === undefined || toolchain_minimal_download_entry === undefined){
+          if (toolchain_arm_download_entry === undefined || toolchain_minimal_download_entry === undefined) {
             vscode.window.showErrorMessage("Error finding appropriate toolchain file");
             return;
           }
 
           // Output indicating toolchain install
           output.appendLine(`[SETUP] Installing zephyr-sdk-${toolchain_selection} toolchain...`);
-          
+
           // Download minimal sdk file
-          let res : boolean = await process_download(toolchain_minimal_download_entry, context);
+          let res: boolean = await process_download(toolchain_minimal_download_entry, context);
           if (!res) {
             vscode.window.showErrorMessage("Error downloading minimal toolchain file. Check output for more info.");
             return;
@@ -370,7 +370,7 @@ export async function activate(context: vscode.ExtensionContext) {
           progress.report({ increment: 10 });
 
           // Check if Git exists in path
-          res= await exec("git --version", {
+          res = await exec("git --version", {
             env: config.env,
           }).then(
             value => {
@@ -2054,4 +2054,4 @@ async function clean(config: GlobalConfig, project: ProjectConfig) {
 }
 
 // this method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }
