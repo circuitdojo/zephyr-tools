@@ -1613,26 +1613,23 @@ async function changeBoard(config: GlobalConfig, context: vscode.ExtensionContex
   console.log("Roto path: " + rootPath.fsPath);
   let files = await vscode.workspace.fs.readDirectory(rootPath);
 
-  // Looks for default board locations
+  // Looks for board directories
   let board_directories: string[] = [];
 
   // Look in root
-  let boardsDir = vscode.Uri.joinPath(rootPath, `boards`);
-  if (fs.pathExistsSync(boardsDir.fsPath)) {
-    board_directories = board_directories.concat(boardsDir.fsPath);
+  let board_dir = vscode.Uri.joinPath(rootPath, `boards`);
+  if (fs.pathExistsSync(board_dir.fsPath)) {
+    board_directories = board_directories.concat(board_dir.fsPath);
   }
 
-  // Look in project
-  if (project.target) {
-    let boardDir = path.join(project.target.toString(), "boards");
-    if (fs.pathExistsSync(boardDir)) {
-      board_directories = board_directories.concat(boardDir);
-    }
-  }
-
-  // Look in Zephyr folder
+  // Look in folders in root and Zephyr folder
   for (const [index, [file, type]] of files.entries()) {
-    if (type == vscode.FileType.Directory) {
+    if (type === vscode.FileType.Directory) {
+      let board_dir = vscode.Uri.joinPath(rootPath, `${file}/boards`);
+      if (fs.pathExistsSync(board_dir.fsPath)) {
+        board_directories = board_directories.concat(board_dir.fsPath);
+      }
+
       let zephyr_board_dir = vscode.Uri.joinPath(rootPath, `${file}/zephyr/boards`);
       if (fs.pathExistsSync(zephyr_board_dir.fsPath)) {
         board_directories = board_directories.concat(zephyr_board_dir.fsPath);
