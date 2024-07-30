@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "license": "Apache-2.0",
   "publisher": "circuitdojo",
   "icon": "img/bulb.png",
@@ -35,7 +35,8 @@
     "onCommand:zephyr-tools.init-repo",
     "onCommand:zephyr-tools.clean",
     "onCommand:zephyr-tools.update",
-    "onCommand:zephyr-tools.change-runner"
+    "onCommand:zephyr-tools.change-runner",
+    "onCommand:zephyr-tools.change-sysbuild"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -107,6 +108,10 @@
       {
         "command": "zephyr-tools.change-runner",
         "title": "Zephyr Tools: Change Runner"
+      },
+      {
+        "command": "zephyr-tools.change-sysbuild",
+        "title": "Zephyr Tools: Change Sysbuild Enable"
       }
     ]
   },
@@ -138,7 +143,8 @@
     "fs-extra": "^10.0.0",
     "node-7z": "^3.0.0",
     "node-stream-zip": "^1.15.0",
-    "typed-rest-client": "^1.8.6"
+    "typed-rest-client": "^1.8.6",
+    "yaml": "^2.5.0"
   },
   "extensionPack": [
     "ms-vscode.cpptools",

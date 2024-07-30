@@ -2,11 +2,13 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
-### [0.2.4]
+### [0.3.0]
 
 Added:
 
 - Can configure `west` runner with `Zephyr Tools: Change Runner` including extra params for power users
+- Can enable and disable use of `--sysbuild` flag for `west build`
+- Board search is now more efficent. Also compatible with HWMv2
 
 Changed:
 

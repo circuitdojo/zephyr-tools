@@ -15,6 +15,7 @@ import * as path from "path";
 import * as unzip from "node-stream-zip";
 import * as sevenzip from "7zip-bin";
 import * as node7zip from "node-7z";
+import * as yaml from "yaml";
 
 import { TaskManager } from "./taskmanager";
 import { FileDownload } from "./download";
@@ -103,6 +104,7 @@ export interface ProjectConfig {
   isInit: boolean;
   runner?: string;
   runnerParams?: string;
+  sysbuild?: boolean;
 }
 
 // Config for the exention
@@ -949,6 +951,28 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // Command for changing whether or not to use sysbuild
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.change-sysbuild", async () => {
+      // Fetch the project config
+      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+
+      // Check if manifest is good
+      if (config.manifestVersion !== manifest.version) {
+        vscode.window.showErrorMessage("An update is required. Run `Zephyr Tools: Setup` command first.");
+        return;
+      }
+
+      // See if config is set first
+      if (config.isSetup) {
+        changeSysBuild(config, context);
+      } else {
+        // Display an error message box to the user
+        vscode.window.showErrorMessage("Run `Zephyr Toools: Setup` command first.");
+      }
+    })
+  );
+
   // Command for changing runner and params
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.change-runner", async () => {
@@ -1423,7 +1447,7 @@ async function flash(config: GlobalConfig, project: ProjectConfig) {
 
   // Tasks
   let taskName = "Zephyr Tools: Flash";
-  let cmd = `west flash`;
+  let cmd = `west flash -d build/${project.board}/`;
 
   // Add runner if it exists
   if (project.runner) {
@@ -1461,40 +1485,105 @@ function getRootPath(): vscode.Uri | undefined {
   return rootPath;
 }
 
-async function getBoardlist(folder: vscode.Uri): Promise<string[]> {
-  let files = await vscode.workspace.fs.readDirectory(folder);
+async function parseBoardYaml(file: string): Promise<string[]> {
+  // Result
   let boards: string[] = [];
 
-  while (true) {
-    let file = files.pop();
+  let contents = await vscode.workspace.openTextDocument(file).then(document => {
+    return document.getText();
+  });
 
-    // Stop looping once done.
-    if (file === undefined) {
-      break;
+  let parsed = yaml.parse(contents);
+  let parsed_boards = [];
+
+  // if contents.boards exist then iterate
+  if (parsed.boards !== undefined) {
+    parsed_boards = parsed.boards;
+  } else {
+    parsed_boards.push(parsed.board);
+  }
+
+  for (let board of parsed_boards) {
+    // Check if socs has one entry
+    if (board.socs.length == 0) {
+      continue;
     }
 
-    if (file[0].includes(".yaml")) {
-      let parsed = path.parse(file[0]);
-      boards.push(parsed.name);
-    } else if (file[0].includes("build") || file[0].includes(".git")) {
-      // Don't do anything
-    } else if (file[1] === vscode.FileType.Directory) {
-      let path = vscode.Uri.joinPath(folder, file[0]);
-      let subfolders = await vscode.workspace.fs.readDirectory(path);
+    let soc = board.socs[0];
 
-      for (let { index, value } of subfolders.map((value, index) => ({
-        index,
-        value,
-      }))) {
-        subfolders[index][0] = vscode.Uri.parse(`${file[0]}/${subfolders[index][0]}`).fsPath;
-        console.log(subfolders[index][0]);
+    // Add board to list
+    boards.push(`${board.name}/${soc.name}`);
+
+    // Add all variants
+    if (soc.variants !== undefined) {
+      for (let variant of soc.variants) {
+        boards.push(`${board.name}/${soc.name}/${variant.name}`);
       }
+    }
 
-      files = files.concat(subfolders);
+    // iterate all revisions if revision exists
+    if (board.revision !== undefined && board.revision.revisions !== undefined) {
+      for (let revision of board.revision.revisions) {
+        // Check if default and continue
+        if (board.revision.default === revision.name) {
+          continue;
+        }
+
+        // Add board to list
+        boards.push(`${board.name}@${revision.name}/${soc.name}`);
+
+        // Add all variants
+        if (soc.variants !== undefined) {
+          for (let variant of soc.variants) {
+            boards.push(`${board.name}@${revision.name}/${soc.name}/${variant.name}`);
+          }
+        }
+      }
     }
   }
 
   return boards;
+}
+
+async function getBoardList(folder: vscode.Uri): Promise<string[]> {
+  const result: string[] = [];
+  const foldersToIgnore = ["build", ".git", "bindings"];
+
+  const folderQueue: string[] = [folder.fsPath];
+
+  while (folderQueue.length > 0) {
+    const currentFolder = folderQueue.shift() as string;
+
+    // Check if board.yml exists in currentFolder
+    let board_yaml_path = path.join(currentFolder, "board.yml");
+    if (fs.existsSync(board_yaml_path)) {
+      let boards = await parseBoardYaml(board_yaml_path);
+      result.push(...boards);
+      continue;
+    }
+
+    // If board.yml isn't found we'll have to do a deeper search
+    const entries = fs.readdirSync(currentFolder, { withFileTypes: true });
+
+    // Iterate over all entries
+    for (const entry of entries) {
+      if (entry.isDirectory() && !foldersToIgnore.includes(entry.name)) {
+        folderQueue.push(path.join(currentFolder, entry.name));
+      } else if (entry.isFile()) {
+        if (entry.name.endsWith(".yaml")) {
+          const filePath = path.join(currentFolder, entry.name);
+
+          // Remove .yaml from name
+          let name = path.parse(filePath).name;
+
+          // Add name to result
+          result.push(name);
+        }
+      }
+    }
+  }
+
+  return result;
 }
 
 async function getProjectList(folder: vscode.Uri): Promise<string[]> {
@@ -1609,20 +1698,23 @@ async function changeBoard(config: GlobalConfig, context: vscode.ExtensionContex
     rootPath = rootPaths[0].uri;
   }
 
-  console.log("Roto path: " + rootPath.fsPath);
-
   let boards: string[] = [];
 
   let files = await vscode.workspace.fs.readDirectory(rootPath);
   for (const [index, [file, type]] of files.entries()) {
     if (type == vscode.FileType.Directory) {
+      // Ignore folders that begin with .
+      if (file.startsWith(".")) {
+        continue;
+      }
+
       // Get boards
       let boardsDir = vscode.Uri.joinPath(rootPath, `${file}/boards`);
-      console.log("Boards dir: " + boardsDir.fsPath);
 
       // Only check if path exists
       if (fs.pathExistsSync(boardsDir.fsPath)) {
-        boards = boards.concat(await getBoardlist(boardsDir));
+        console.log("Searching boards dir: " + boardsDir.fsPath);
+        boards = boards.concat(await getBoardList(boardsDir));
       }
     }
   }
@@ -1637,6 +1729,37 @@ async function changeBoard(config: GlobalConfig, context: vscode.ExtensionContex
     console.log("Changing board to " + result);
     vscode.window.showInformationMessage(`Board changed to ${result}`);
     project.board = result;
+    await context.workspaceState.update("zephyr.project", project);
+  }
+}
+
+async function changeSysBuild(config: GlobalConfig, context: vscode.ExtensionContext) {
+  // TODO: iterative function to find all possible board options
+  let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? {
+    isInit: false,
+  };
+
+  // Get the workspace root
+  let rootPath;
+  let rootPaths = vscode.workspace.workspaceFolders;
+  if (rootPaths === undefined) {
+    return;
+  } else {
+    rootPath = rootPaths[0].uri;
+  }
+
+  // Yes to enable, no to disable popup
+  const result = await vscode.window.showQuickPick(["Yes", "No"], {
+    placeHolder: "Enable sysbuild?",
+    ignoreFocusOut: true,
+  });
+
+  if (result) {
+    if (result === "Yes") {
+      project.sysbuild = true;
+    } else {
+      project.sysbuild = false;
+    }
     await context.workspaceState.update("zephyr.project", project);
   }
 }
@@ -1776,9 +1899,6 @@ async function build(
     rootPath = rootPaths[0].uri;
   }
 
-  // Print the environment
-  console.log("Env: " + JSON.stringify(config.env));
-
   // Options for SehllExecution
   let options: vscode.ShellExecutionOptions = {
     env: <{ [key: string]: string }>config.env,
@@ -1789,7 +1909,9 @@ async function build(
   let taskName = "Zephyr Tools: Build";
 
   // Enable python env
-  let cmd = `west build -b ${project.board}${pristine ? " -p" : ""}`;
+  let cmd = `west build -b ${project.board}${pristine ? " -p" : ""} -d build/${project.board}/${
+    project.sysbuild ? " --sysbuild" : ""
+  }`;
   let exec = new vscode.ShellExecution(cmd, options);
 
   // Task
