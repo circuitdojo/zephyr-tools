@@ -2,6 +2,12 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.3.1]
+
+Changed:
+
+- Updated `mocha` testing framework
+
 ### [0.3.0]
 
 Added:
