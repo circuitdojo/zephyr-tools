@@ -38,7 +38,7 @@
     "onCommand:zephyr-tools.change-runner",
     "onCommand:zephyr-tools.change-sysbuild"
   ],
-  "main": "./out/extension.js",
+  "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
@@ -121,7 +121,9 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "test": "node ./out/test/runTest.js",
+    "check-types": "tsc --noEmit",
+    "package": "npm run check-types && node esbuild.js --production"
   },
   "devDependencies": {
     "@types/fs-extra": "^8.0.1",
@@ -132,6 +134,7 @@
     "@types/vscode": "^1.52.0",
     "@typescript-eslint/eslint-plugin": "^4.9.0",
     "@typescript-eslint/parser": "^4.9.0",
+    "esbuild": "^0.23.0",
     "eslint": "^7.15.0",
     "glob": "^7.1.6",
     "mocha": "^8.1.3",
