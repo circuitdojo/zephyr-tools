@@ -2,6 +2,13 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.3.2]
+
+Changed:
+
+- Autodetecting available runners
+- Fixing path generation in Windows
+
 ### [0.3.1]
 
 Changed:

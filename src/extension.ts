@@ -1447,7 +1447,10 @@ async function flash(config: GlobalConfig, project: ProjectConfig) {
 
   // Tasks
   let taskName = "Zephyr Tools: Flash";
-  let cmd = `west flash -d build/${project.board}/`;
+
+  // Generate universal build path that works on windows & *nix
+  let buildPath = path.join("build", project.board?.split("/")[0] ?? "");
+  let cmd = `west flash -d ${buildPath}`;
 
   // Add runner if it exists
   if (project.runner) {
@@ -1779,11 +1782,29 @@ async function changeRunner(config: GlobalConfig, context: vscode.ExtensionConte
     rootPath = rootPaths[0].uri;
   }
 
-  console.log("Roto path: " + rootPath.fsPath);
+  let runners: string[] = ["default"];
 
-  // Get runners
-  let runners: string[] = ["default", "jlink", "nrfjprog", "openocd", "pyocd", "qemu", "stlink"];
+  // Get runners from $rootPath/zephyr/scripts/west_commands/runners
+  const runnersDir = path.join(rootPath.fsPath, "zephyr", "scripts", "west_commands", "runners");
+
+  try {
+    const files = fs.readdirSync(runnersDir);
+    const r = files.filter(file => file.endsWith(".py") && file !== "__init__.py").map(file => file.replace(".py", ""));
+    console.log(r);
+
+    runners.push(...r);
+    vscode.window.showInformationMessage(`Runners: ${runners.join(", ")}`);
+  } catch (err) {
+    if (err instanceof Error) {
+      vscode.window.showErrorMessage(`Error reading runners directory: ${err.message}`);
+    } else {
+      vscode.window.showErrorMessage("An unknown error occurred while reading the runners directory.");
+    }
+  }
+
   let args = "";
+
+  console.log("Runners: " + runners);
 
   // Prompt which board to use
   const result = await vscode.window.showQuickPick(runners, {
@@ -1908,8 +1929,11 @@ async function build(
   // Tasks
   let taskName = "Zephyr Tools: Build";
 
+  // Generate universal build path that works on windows & *nix
+  let buildPath = path.join("build", project.board?.split("/")[0] ?? "");
+
   // Enable python env
-  let cmd = `west build -b ${project.board}${pristine ? " -p" : ""} -d build/${project.board}/${
+  let cmd = `west build -b ${project.board}${pristine ? " -p" : ""} -d ${buildPath}${
     project.sysbuild ? " --sysbuild" : ""
   }`;
   let exec = new vscode.ShellExecution(cmd, options);
