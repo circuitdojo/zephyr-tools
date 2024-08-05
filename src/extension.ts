@@ -1307,30 +1307,70 @@ async function load(config: GlobalConfig, project: ProjectConfig) {
   // Tasks
   let taskName = "Zephyr Tools: Load";
 
-  // Check if update file exists
-  let files = ["app_update.bin", "zephyr.signed.bin"];
-  let index = 0;
-  let found = false;
+  // Get reduced device name
+  let boardName = project.board?.split("/")[0] ?? "";
+  console.log("boardName: " + boardName);
 
-  for (var file of files) {
-    // Check if app_update.bin exists. If not, warn them about building and that bootloader is enabled
-    let exists = await fs.pathExists(path.join(project.target ?? "", "build", "zephyr", file));
-    if (exists) {
-      found = true;
-      break;
+  // Track if we foudn a file
+  let target = "";
+
+  // Check if build/boardName/dfu_application.zip_manifest.json exists
+  let manifest = path.join(project.target ?? "", "build", boardName, "dfu_application.zip_manifest.json");
+  let exists = await fs.pathExists(manifest);
+
+  if (exists) {
+    // Make sure zip file exists
+    const dfu_zip = path.join(project.target ?? "", "build", boardName, "dfu_application.zip");
+    const dfu_zip_exists = await fs.pathExists(manifest);
+
+    // Doesn't exist error
+    if (!dfu_zip_exists) {
+      vscode.window.showWarningMessage(dfu_zip + " not found!");
+      return;
     }
 
-    index++;
+    // Unzip dfu_application.zip
+    const zip = new unzip.async({ file: dfu_zip });
+    await zip.extract(null, path.join(project.target ?? "", "build", boardName));
+    await zip.close();
+
+    // Read the contents of the JSON file
+    const content = fs.readFileSync(manifest).toString();
+    const parsed = JSON.parse(content);
+
+    // Get entry
+    if (parsed.name === undefined) {
+      vscode.window.showWarningMessage("Invalid manifest format.");
+      return;
+    }
+
+    // Provide target
+    target = path.join(project.target ?? "", "build", boardName, parsed.name + ".bin");
+  } else {
+    // Check if update file exists
+    let files = ["app_update.bin", "zephyr.signed.bin"];
+
+    for (var file of files) {
+      // Get target path
+      let targetPath = path.join(project.target ?? "", "build", boardName, "zephyr", file);
+
+      // Check if app_update.bin exists. If not, warn them about building and that bootloader is enabled
+      let exists = await fs.pathExists(targetPath);
+      if (exists) {
+        target = targetPath;
+        break;
+      }
+    }
   }
 
   // Don't proceed if nothing found..
-  if (!found) {
+  if (target === "") {
     vscode.window.showWarningMessage("Binary not found. Build project before loading.");
     return;
   }
 
   // Put device into BL mode automagically
-  if (project.board == "circuitdojo_feather_nrf9160_ns") {
+  if (boardName.includes("circuitdojo_feather_nrf9160")) {
     let cmd = `zephyr-tools -b`;
     let exec = new vscode.ShellExecution(cmd, options);
 
@@ -1353,12 +1393,7 @@ async function load(config: GlobalConfig, project: ProjectConfig) {
   }
 
   // Upload image
-  let cmd = `newtmgr -c vscode-zephyr-tools image upload ${path.join(
-    project.target ?? "",
-    "build",
-    "zephyr",
-    files[index]
-  )} -r 3 -t 0.25`;
+  let cmd = `newtmgr -c vscode-zephyr-tools image upload ${target} -r 3 -t 0.25`;
   let exec = new vscode.ShellExecution(cmd, options);
 
   // Task

@@ -2,6 +2,12 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.3.3]
+
+Changed:
+
+- Handling of new dfu_application.zip output when running "Load via Bootloader" command
+
 ### [0.3.2]
 
 Changed:

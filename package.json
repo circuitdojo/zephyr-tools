@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "license": "Apache-2.0",
   "publisher": "circuitdojo",
   "icon": "img/bulb.png",
