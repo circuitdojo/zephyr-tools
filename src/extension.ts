@@ -127,6 +127,47 @@ let output: vscode.OutputChannel;
 let config: GlobalConfig;
 
 // this method is called when your extension is activated
+// Function to find a suitable Python 3.10+ version
+async function findSuitablePython(output: vscode.OutputChannel): Promise<string | null> {
+  const util = require("util");
+  const cp = require("child_process");
+  const exec = util.promisify(cp.exec);
+
+  // List of Python executables to try, in order of preference
+  const pythonCandidates = platform === "win32" ? ["python", "python3", "py"] : ["python3", "python"];
+
+  for (const pythonCmd of pythonCandidates) {
+    try {
+      output.appendLine(`[SETUP] Checking ${pythonCmd}...`);
+      const result = await exec(`${pythonCmd} --version`);
+      const versionOutput = result.stdout || result.stderr;
+      const versionMatch = versionOutput.match(/Python (\d+)\.(\d+)\.(\d+)/);
+
+      if (versionMatch) {
+        const major = parseInt(versionMatch[1]);
+        const minor = parseInt(versionMatch[2]);
+        const version = `${major}.${minor}`;
+
+        output.appendLine(`[SETUP] Found ${pythonCmd}: Python ${version}`);
+
+        // Check if version is 3.10 or higher (including future major versions)
+        if ((major === 3 && minor >= 10) || major > 3) {
+          output.appendLine(`[SETUP] Python ${version} meets requirements (>= 3.10)`);
+          return pythonCmd;
+        } else {
+          output.appendLine(`[SETUP] Python ${version} is too old (requires >= 3.10)`);
+        }
+      }
+    } catch (error) {
+      // Python executable not found or failed to run, continue to next candidate
+      output.appendLine(`[SETUP] ${pythonCmd} not found or failed to execute`);
+    }
+  }
+
+  output.appendLine("[SETUP] No suitable Python 3.10+ version found");
+  return null;
+}
+
 // your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
   // Init task manager
@@ -139,17 +180,40 @@ export async function activate(context: vscode.ExtensionContext) {
     isSetup: false,
   };
 
-  // Then set the application environment to match
-  if (config.env["PATH"] !== undefined && config.env["PATH"] !== "") {
-    context.environmentVariableCollection.persistent = true;
-    context.environmentVariableCollection.replace("PATH", config.env["PATH"]);
+  // Set up environment variable collection
+  context.environmentVariableCollection.persistent = true;
+
+  // If we have a previous setup, restore the PATH modifications
+  if (config.isSetup && config.env["PATH"] !== undefined) {
+    // Extract the added paths by comparing with current system PATH
+    const systemPath = process.env["PATH"] || "";
+    const configPath = config.env["PATH"];
+
+    // If the config PATH is different from system PATH, extract the added paths
+    if (configPath !== systemPath && configPath.length > systemPath.length) {
+      // The config PATH should contain the system PATH at the end
+      const pathDividerIndex = configPath.lastIndexOf(systemPath);
+      if (pathDividerIndex > 0) {
+        const addedPaths = configPath.substring(0, pathDividerIndex);
+        // Remove trailing path divider if present
+        const cleanAddedPaths = addedPaths.endsWith(pathdivider)
+          ? addedPaths.substring(0, addedPaths.length - pathdivider.length)
+          : addedPaths;
+
+        // Split by path divider and add each path (in reverse order to maintain precedence)
+        const individualPaths = cleanAddedPaths.split(pathdivider).filter(p => p.trim());
+        for (const pathToAdd of individualPaths.reverse()) {
+          context.environmentVariableCollection.prepend("PATH", pathToAdd + pathdivider);
+        }
+      }
+    }
   }
 
   // Create new
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.create-project", async (dest: vscode.Uri | undefined) => {
       await commands.create_new(context, config, dest);
-    })
+    }),
   );
 
   // The command has been defined in the package.json file
@@ -163,6 +227,68 @@ export async function activate(context: vscode.ExtensionContext) {
       config.isSetup = false;
       config.env = {};
       config.env["PATH"] = process.env["PATH"];
+      // Clear any existing PATH modifications
+      context.environmentVariableCollection.clear();
+
+      // Define what manifest to use
+      let platformManifest: ManifestEntry[] | undefined;
+      switch (platform) {
+        case "darwin":
+          platformManifest = manifest.darwin;
+          break;
+        case "linux":
+          platformManifest = manifest.linux;
+          break;
+        case "win32":
+          platformManifest = manifest.win32;
+          break;
+      }
+
+      // Skip out if not found
+      if (platformManifest === undefined) {
+        vscode.window.showErrorMessage("Unsupported platform for Zephyr Tools!");
+        return;
+      }
+
+      // Pre-select toolchain before showing progress
+      let selectedEntry: ManifestToolchainEntry | undefined;
+      for (const [index, element] of platformManifest.entries()) {
+        // Confirm it's the correct architecture
+        if (element.arch === arch) {
+          // Get each "name" entry and present as choice to user
+          let choices: string[] = [];
+          for (let entry of element.toolchains) {
+            choices.push(entry.name);
+          }
+
+          // Pick options
+          const pickOptions: vscode.QuickPickOptions = {
+            ignoreFocusOut: true,
+            placeHolder: "Which toolchain would you like to install?",
+          };
+
+          // Prompt user
+          let selection = await vscode.window.showQuickPick(choices, pickOptions);
+
+          // Check if user canceled
+          if (selection === undefined) {
+            // Show error
+            vscode.window.showErrorMessage("Zephyr Tools Setup canceled.");
+            return;
+          }
+
+          // Find the correct entry
+          selectedEntry = element.toolchains.find(element => element.name === selection);
+
+          // Check if it exists
+          if (selectedEntry === undefined) {
+            vscode.window.showErrorMessage("Unable to find toolchain entry.");
+            return;
+          }
+
+          break;
+        }
+      }
 
       // Show setup progress..
       await vscode.window.withProgress(
@@ -199,26 +325,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
           progress.report({ increment: 5 });
 
-          // Define what manifest to use
-          let platformManifest: ManifestEntry[] | undefined;
-          switch (platform) {
-            case "darwin":
-              platformManifest = manifest.darwin;
-              break;
-            case "linux":
-              platformManifest = manifest.linux;
-              break;
-            case "win32":
-              platformManifest = manifest.win32;
-              break;
-          }
-
-          // Skip out if not found
-          if (platformManifest === undefined) {
-            vscode.window.showErrorMessage("Unsupported platform for Zephyr Tools!");
-            return;
-          }
-
           // Set up downloader path
           FileDownload.init(path.join(toolsdir, "downloads"));
 
@@ -226,58 +332,32 @@ export async function activate(context: vscode.ExtensionContext) {
           for (const [index, element] of platformManifest.entries()) {
             // Confirm it's the correct architecture
             if (element.arch === arch) {
-              // Get each "name" entry and present as choice to user
-              let choices: string[] = [];
-              for (let entry of element.toolchains) {
-                choices.push(entry.name);
-              }
-
-              // Pick options
-              const pickOptions: vscode.QuickPickOptions = {
-                ignoreFocusOut: true,
-                placeHolder: "Which toolchain would you like to install?",
-              };
-
-              // Prompt user
-              let selection = await vscode.window.showQuickPick(choices, pickOptions);
-
-              // Check if user canceled
-              if (selection === undefined) {
-                // Show error
-                vscode.window.showErrorMessage("Zephyr Tools Setup canceled.");
-                return;
-              }
-
-              // Find the correct entry
-              let entry = element.toolchains.find(element => element.name === selection);
-
-              // Check if it exists
-              if (entry === undefined) {
-                vscode.window.showErrorMessage("Unable to find toolchain entry.");
-                return;
-              }
+              // Use the pre-selected toolchain
+              let entry = selectedEntry;
 
               for (var download of element.downloads) {
-                // Process download entry
-                let res = await process_download(download, context);
+                // Process download entry with enhanced error handling
+                progress.report({ increment: 2, message: `Processing ${download.name}...` });
+                let res = await process_download_with_validation(download, context);
                 if (!res) {
-                  vscode.window.showErrorMessage("Error downloading files. Check output for more info.");
+                  output.appendLine(`[SETUP] ABORTING: Failed to process dependency ${download.name}`);
                   return;
                 }
-                progress.report({ increment: 5 });
+                progress.report({ increment: 3, message: `Completed ${download.name}` });
               }
 
               // Output indicating toolchain install
-              output.appendLine(`[SETUP] Installing ${entry.name} toolchain...`);
+              output.appendLine(`[SETUP] Installing ${entry!.name} toolchain...`);
 
-              for (var download of entry.downloads) {
-                // Process download entry
-                let res = await process_download(download, context);
+              for (var download of entry!.downloads) {
+                // Process toolchain download entry with enhanced error handling
+                progress.report({ increment: 2, message: `Processing toolchain ${download.name}...` });
+                let res = await process_download_with_validation(download, context);
                 if (!res) {
-                  vscode.window.showErrorMessage("Error downloading toolchain. Check output for more info.");
+                  output.appendLine(`[SETUP] ABORTING: Failed to process toolchain ${download.name}`);
                   return;
                 }
-                progress.report({ increment: 5 });
+                progress.report({ increment: 3, message: `Completed ${download.name}` });
               }
 
               break;
@@ -322,7 +402,7 @@ export async function activate(context: vscode.ExtensionContext) {
               // Error message
               vscode.window.showErrorMessage("Unable to continue. Git not installed. Check output for more info.");
               return false;
-            }
+            },
           );
 
           // Return if error
@@ -332,7 +412,33 @@ export async function activate(context: vscode.ExtensionContext) {
 
           progress.report({ increment: 5 });
 
-          // Otherwise, check Python install
+          // Find a suitable Python 3.10+ version
+          let suitablePython = await findSuitablePython(output);
+          if (!suitablePython) {
+            switch (platform) {
+              case "linux":
+                output.appendLine(
+                  "[SETUP] install `python` using `apt get install python3.10 python3.10-pip python3.10-venv` or newer",
+                );
+                break;
+              case "win32":
+                output.appendLine("[SETUP] install Python 3.10+ from python.org");
+                break;
+              case "darwin":
+                output.appendLine("[SETUP] install Python 3.10+ using homebrew: `brew install python@3.10`");
+                break;
+            }
+            vscode.window.showErrorMessage(
+              "Python 3.10+ is required for Zephyr development. Check output for details.",
+            );
+            return;
+          }
+
+          // Use the suitable Python version
+          python = suitablePython;
+          output.appendLine(`[SETUP] Using Python: ${python}`);
+
+          // Check Python install
           let cmd = `${python} --version`;
           output.appendLine(cmd);
           res = await exec(cmd, { env: config.env }).then(
@@ -350,7 +456,7 @@ export async function activate(context: vscode.ExtensionContext) {
                     break;
                   case "linux":
                     output.appendLine(
-                      "[SETUP] install `python` using `apt get install python3.10 python3.10-pip python3.10-venv`"
+                      "[SETUP] install `python` using `apt get install python3.10 python3.10-pip python3.10-venv`",
                     );
                     break;
                   default:
@@ -376,14 +482,14 @@ export async function activate(context: vscode.ExtensionContext) {
                   break;
                 case "linux":
                   output.appendLine(
-                    "[SETUP] install `python` using `apt get install python3.10 python3.10-pip python3.10-venv`"
+                    "[SETUP] install `python` using `apt get install python3.10 python3.10-pip python3.10-venv`",
                   );
                   break;
                 default:
                   break;
               }
               return false;
-            }
+            },
           );
 
           // Return if error
@@ -419,7 +525,7 @@ export async function activate(context: vscode.ExtensionContext) {
                   break;
               }
               return false;
-            }
+            },
           );
 
           // Return if error
@@ -455,7 +561,7 @@ export async function activate(context: vscode.ExtensionContext) {
               }
 
               return false;
-            }
+            },
           );
 
           // Return if error
@@ -479,7 +585,7 @@ export async function activate(context: vscode.ExtensionContext) {
               // Error message
               vscode.window.showErrorMessage("Error installing virtualenv. Check output for more info.");
               return false;
-            }
+            },
           );
 
           // Return if error
@@ -496,6 +602,10 @@ export async function activate(context: vscode.ExtensionContext) {
           // Add env/bin to path
           config.env["PATH"] = path.join(pythonenv, `Scripts${pathdivider}` + config.env["PATH"]);
           config.env["PATH"] = path.join(pythonenv, `bin${pathdivider}` + config.env["PATH"]);
+
+          // Add Python paths to VS Code environment
+          context.environmentVariableCollection.prepend("PATH", path.join(pythonenv, "Scripts") + pathdivider);
+          context.environmentVariableCollection.prepend("PATH", path.join(pythonenv, "bin") + pathdivider);
 
           // Install `west`
           res = await exec(`${python} -m pip install west`, {
@@ -514,7 +624,7 @@ export async function activate(context: vscode.ExtensionContext) {
               // Error message
               vscode.window.showErrorMessage("Error installing west. Check output for more info.");
               return false;
-            }
+            },
           );
 
           // Return if error
@@ -533,17 +643,14 @@ export async function activate(context: vscode.ExtensionContext) {
           // Save this informaiton to disk
           context.globalState.update("zephyr.env", config);
 
-          // TODO: Then set the application environment to match
-          if (config.env["PATH"] !== undefined && config.env["PATH"] !== "") {
-            context.environmentVariableCollection.replace("PATH", config.env["PATH"]);
-          }
+          // Environment is already set up via prepend operations above
 
           progress.report({ increment: 100 });
 
           vscode.window.showInformationMessage(`Zephyr Tools setup complete!`);
-        }
+        },
       );
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -564,7 +671,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
         return;
       }
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -582,7 +689,7 @@ export async function activate(context: vscode.ExtensionContext) {
         // Display an error message box to the user
         vscode.window.showErrorMessage("Run `Zephyr Toools: Setup` command first.");
       }
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -600,7 +707,7 @@ export async function activate(context: vscode.ExtensionContext) {
         // Display an error message box to the user
         vscode.window.showErrorMessage("Run `Zephyr Toools: Setup` command first.");
       }
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -626,7 +733,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
       // Message output
       vscode.window.showInformationMessage(`Serial monitor set to use ${project.port}`);
-    })
+    }),
   );
 
   // Does a pristine zephyr build
@@ -649,7 +756,7 @@ export async function activate(context: vscode.ExtensionContext) {
         // Display an error message box to the user
         vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
       }
-    })
+    }),
   );
 
   // Utilizes build cache (if it exists) and builds
@@ -672,7 +779,7 @@ export async function activate(context: vscode.ExtensionContext) {
       } else {
         vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
       }
-    })
+    }),
   );
 
   // Flashes Zephyr project to board
@@ -694,7 +801,7 @@ export async function activate(context: vscode.ExtensionContext) {
         // Display an error message box to the user
         vscode.window.showErrorMessage("Run `Zephyr Toools: Setup` command before flashing.");
       }
-    })
+    }),
   );
 
   // Cleans the project by removing the `build` folder
@@ -716,7 +823,7 @@ export async function activate(context: vscode.ExtensionContext) {
         // Display an error message box to the user
         vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command before flashing.");
       }
-    })
+    }),
   );
 
   // Update dependencies
@@ -738,7 +845,7 @@ export async function activate(context: vscode.ExtensionContext) {
         // Display an error message box to the user
         vscode.window.showErrorMessage("Run `Zephyr Toools: Setup` command before flashing.");
       }
-    })
+    }),
   );
 
   // TODO: command for loading via `newtmgr/mcumgr`
@@ -799,7 +906,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
       // Otherwise load with app_update.bin
       await load(config, project);
-    })
+    }),
   );
 
   // TODO: command for loading via `newtmgr/mcumgr`
@@ -875,7 +982,7 @@ export async function activate(context: vscode.ExtensionContext) {
       }
 
       await monitor(config, project);
-    })
+    }),
   );
 
   // Update dependencies
@@ -911,7 +1018,7 @@ export async function activate(context: vscode.ExtensionContext) {
       }
 
       await monitor(config, project);
-    })
+    }),
   );
 
   // Command for flashing and monitoring
@@ -948,7 +1055,7 @@ export async function activate(context: vscode.ExtensionContext) {
         // Display an error message box to the user
         vscode.window.showErrorMessage("Run `Zephyr Toools: Setup` command before flashing.");
       }
-    })
+    }),
   );
 
   // Command for changing whether or not to use sysbuild
@@ -970,7 +1077,7 @@ export async function activate(context: vscode.ExtensionContext) {
         // Display an error message box to the user
         vscode.window.showErrorMessage("Run `Zephyr Toools: Setup` command first.");
       }
-    })
+    }),
   );
 
   // Command for changing runner and params
@@ -992,7 +1099,7 @@ export async function activate(context: vscode.ExtensionContext) {
         // Display an error message box to the user
         vscode.window.showErrorMessage("Run `Zephyr Toools: Setup` command first.");
       }
-    })
+    }),
   );
 
   // Command for setting up `newtmgr/mcumgr`
@@ -1044,7 +1151,7 @@ export async function activate(context: vscode.ExtensionContext) {
       }
 
       vscode.window.showInformationMessage("Newtmgr successfully configured.");
-    })
+    }),
   );
 
   // Check if there's a task to run
@@ -1158,7 +1265,7 @@ export async function initRepo(config: GlobalConfig, context: vscode.ExtensionCo
         vscode.TaskScope.Workspace,
         taskName,
         "zephyr-tools",
-        exec
+        exec,
       );
 
       // Start execution
@@ -1175,60 +1282,74 @@ export async function initRepo(config: GlobalConfig, context: vscode.ExtensionCo
       vscode.TaskScope.Workspace,
       taskName,
       "zephyr-tools",
-      exec
+      exec,
     );
 
-    // Start execution
-    await TaskManager.push(task, { ignoreError: false, lastTask: false });
+    // Callback to run after west update completes
+    let westUpdateCallback = async (data: any) => {
+      output.appendLine(`[INIT] West update completed, determining zephyr base path...`);
 
-    // Generic callback
-    let done = async (data: any) => {
-      // Set the isInit flag
-      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
-      project.isInit = true;
-      await context.workspaceState.update("zephyr.project", project);
+      // Get zephyr BASE
+      let base = "zephyr";
+
+      {
+        let exec = util.promisify(cp.exec);
+
+        // Get listofports
+        let cmd = `west list -f {path:28}`;
+        output.appendLine(`[INIT] Running: ${cmd}`);
+        let res = await exec(cmd, { env: config.env, cwd: dest.fsPath });
+        if (res.stderr) {
+          output.append(res.stderr);
+          output.show();
+        } else {
+          res.stdout.split("\n").forEach((line: string) => {
+            if (line.includes("zephyr")) {
+              base = line.trim();
+            }
+          });
+        }
+        output.appendLine(`[INIT] Determined zephyr base path: ${base}`);
+      }
+
+      // Install python dependencies `pip install -r zephyr/requirements.txt`
+      let cmd = `pip install -r ${path.join(base, "scripts", "requirements.txt")}`;
+      output.appendLine(`[INIT] Starting pip install: ${cmd}`);
+      let exec = new vscode.ShellExecution(cmd, shellOptions);
+
+      // Task
+      let task = new vscode.Task(
+        { type: "zephyr-tools", command: taskName },
+        vscode.TaskScope.Workspace,
+        taskName,
+        "zephyr-tools",
+        exec,
+      );
+
+      // Final callback after pip install completes
+      let done = async (data: any) => {
+        // Set the isInit flag
+        let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+        project.isInit = true;
+        await context.workspaceState.update("zephyr.project", project);
+      };
+
+      // Start execution
+      await TaskManager.push(task, {
+        ignoreError: false,
+        lastTask: true,
+        successMessage: "Init complete!",
+        callback: done,
+        callbackData: { dest: dest },
+      });
     };
 
-    // Get zephyr BASE
-    let base = "zephyr";
-
-    {
-      let exec = util.promisify(cp.exec);
-
-      // Get listofports
-      let cmd = `west list -f {path:28}`;
-      let res = await exec(cmd, { env: config.env, cwd: dest.fsPath });
-      if (res.stderr) {
-        output.append(res.stderr);
-        output.show();
-      } else {
-        res.stdout.split("\n").forEach((line: string) => {
-          if (line.includes("zephyr")) {
-            base = line.trim();
-          }
-        });
-      }
-    }
-
-    // Install python dependencies `pip install -r zephyr/requirements.txt`
-    cmd = `pip install -r ${path.join(base, "scripts", "requirements.txt")}`;
-    exec = new vscode.ShellExecution(cmd, shellOptions);
-
-    // Task
-    task = new vscode.Task(
-      { type: "zephyr-tools", command: taskName },
-      vscode.TaskScope.Workspace,
-      taskName,
-      "zephyr-tools",
-      exec
-    );
-
-    // Start execution
+    // Start execution - west update with callback to run pip install after completion
+    output.appendLine(`[INIT] Starting west update...`);
     await TaskManager.push(task, {
       ignoreError: false,
-      lastTask: true,
-      successMessage: "Init complete!",
-      callback: done,
+      lastTask: false,
+      callback: westUpdateCallback,
       callbackData: { dest: dest },
     });
   } catch (error) {
@@ -1380,7 +1501,7 @@ async function load(config: GlobalConfig, project: ProjectConfig) {
       vscode.TaskScope.Workspace,
       taskName,
       "zephyr-tools",
-      exec
+      exec,
     );
 
     // Start execution
@@ -1402,7 +1523,7 @@ async function load(config: GlobalConfig, project: ProjectConfig) {
     vscode.TaskScope.Workspace,
     taskName,
     "zephyr-tools",
-    exec
+    exec,
   );
 
   // Start execution
@@ -1426,7 +1547,7 @@ async function load(config: GlobalConfig, project: ProjectConfig) {
     vscode.TaskScope.Workspace,
     taskName,
     "zephyr-tools",
-    exec
+    exec,
   );
 
   // Start execution
@@ -1461,7 +1582,7 @@ async function monitor(config: GlobalConfig, project: ProjectConfig) {
     vscode.TaskScope.Workspace,
     taskName,
     "zephyr-tools",
-    exec
+    exec,
   );
 
   // Start execution
@@ -1502,7 +1623,7 @@ async function flash(config: GlobalConfig, project: ProjectConfig) {
     vscode.TaskScope.Workspace,
     taskName,
     "zephyr-tools",
-    exec
+    exec,
   );
 
   vscode.window.showInformationMessage(`Flashing for ${project.board}`);
@@ -1904,7 +2025,7 @@ export async function update(config: GlobalConfig, project: ProjectConfig) {
     vscode.TaskScope.Workspace,
     taskName,
     "zephyr-tools",
-    exec
+    exec,
   );
 
   await vscode.tasks.executeTask(task);
@@ -1916,7 +2037,7 @@ async function build(
   config: GlobalConfig,
   project: ProjectConfig,
   pristine: boolean,
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
 ) {
   // Return if env is not set
   if (config.env === undefined) {
@@ -1979,7 +2100,7 @@ async function build(
     vscode.TaskScope.Workspace,
     taskName,
     "zephyr-tools",
-    exec
+    exec,
   );
 
   vscode.window.showInformationMessage(`Building for ${project.board}`);
@@ -1988,17 +2109,65 @@ async function build(
   await vscode.tasks.executeTask(task);
 }
 
+async function validateExtraction(copytopath: string, extractionType: string): Promise<boolean> {
+  try {
+    if (!(await fs.pathExists(copytopath))) {
+      output.appendLine(`[SETUP] ${extractionType} extraction validation failed: ${copytopath} does not exist`);
+      return false;
+    }
+
+    const extractedFiles = await fs.readdir(copytopath);
+    if (extractedFiles.length === 0) {
+      output.appendLine(`[SETUP] ${extractionType} extraction validation failed: No files extracted to ${copytopath}`);
+      return false;
+    }
+
+    output.appendLine(`[SETUP] ${extractionType} extraction validated: ${extractedFiles.length} items extracted`);
+    return true;
+  } catch (error) {
+    output.appendLine(`[SETUP] ${extractionType} extraction validation error: ${error}`);
+    return false;
+  }
+}
+
+async function process_download_with_validation(
+  download: ManifestDownloadEntry,
+  context: vscode.ExtensionContext,
+): Promise<boolean> {
+  output.appendLine(`[SETUP] Starting processing: ${download.name}`);
+  output.appendLine(`[SETUP] URL: ${download.url}`);
+  output.appendLine(`[SETUP] Expected MD5: ${download.md5}`);
+
+  const result = await process_download(download, context);
+
+  if (result) {
+    output.appendLine(`[SETUP] Successfully completed: ${download.name}`);
+  } else {
+    output.appendLine(`[SETUP] FAILED to process: ${download.name}`);
+  }
+
+  return result;
+}
+
 async function process_download(download: ManifestDownloadEntry, context: vscode.ExtensionContext) {
   // Promisified exec
   let exec = util.promisify(cp.exec);
 
   // Check if it already exists
-  let filepath = await FileDownload.exists(download.filename);
+  let filepath: string | null = await FileDownload.exists(download.filename);
 
   // Download if doesn't exist _or_ hash doesn't match
   if (filepath === null || (await FileDownload.check(download.filename, download.md5)) === false) {
     output.appendLine("[SETUP] downloading " + download.url);
-    filepath = await FileDownload.fetch(download.url);
+
+    // Download file
+    try {
+      filepath = await FileDownload.fetch(download.url);
+    } catch (error) {
+      output.appendLine(`[SETUP] Failed to download ${download.filename}: ${error}`);
+      vscode.window.showErrorMessage(`Error downloading ${download.filename}. Check output for more info.`);
+      return false;
+    }
 
     // Check again
     if ((await FileDownload.check(download.filename, download.md5)) === false) {
@@ -2007,39 +2176,74 @@ async function process_download(download: ManifestDownloadEntry, context: vscode
     }
   }
 
+  // Ensure filepath is not null before proceeding
+  if (filepath === null) {
+    output.appendLine(`[SETUP] Critical error: filepath is null for ${download.filename}`);
+    vscode.window.showErrorMessage(`Critical error: Unable to locate downloaded file ${download.filename}.`);
+    return false;
+  }
+
   // Get the path to copy the contents to..
   let copytopath = path.join(toolsdir, download.name);
+  output.appendLine(`[SETUP] Initial copytopath: ${copytopath}`);
 
   // Add additional suffix if need be
   if (download.copy_to_subfolder) {
     copytopath = path.join(copytopath, download.copy_to_subfolder);
+    output.appendLine(`[SETUP] Updated copytopath with subfolder: ${copytopath}`);
   }
 
   // Check if copytopath exists and create if not
   if (!(await fs.pathExists(copytopath))) {
     await fs.mkdirp(copytopath);
+    output.appendLine(`[SETUP] Created target directory: ${copytopath}`);
   }
 
   // Remove copy to path
   if (download.clear_target !== false) {
-    await fs.remove(copytopath);
-    await fs.mkdirp(copytopath);
+    try {
+      await fs.remove(copytopath);
+      await fs.mkdirp(copytopath);
+      output.appendLine(`[SETUP] Cleared and recreated target directory: ${copytopath}`);
+    } catch (error) {
+      output.appendLine(`[SETUP] Failed to prepare target directory: ${error}`);
+      vscode.window.showErrorMessage(
+        `Failed to prepare extraction directory for ${download.name}. Check output for details.`,
+      );
+      return false;
+    }
+  } else {
+    output.appendLine(`[SETUP] Preserving existing target directory: ${copytopath}`);
   }
 
   // Unpack and place into `$HOME/.zephyrtools`
   if (download.url.includes(".zip")) {
     // Unzip and copy
     output.appendLine(`[SETUP] unzip ${filepath} to ${copytopath}`);
-    const zip = new unzip.async({ file: filepath });
-    zip.on("extract", (entry, file) => {
-      // Make executable
-      fs.chmodSync(file, 0o755);
-    });
-    await zip.extract(null, copytopath);
-    await zip.close();
+    try {
+      const zip = new unzip.async({ file: filepath! });
+      zip.on("extract", (entry, file) => {
+        // Make executable
+        if (platform !== "win32") {
+          fs.chmodSync(file, 0o755);
+        }
+      });
+      await zip.extract(null, copytopath);
+      await zip.close();
+
+      // Validate extraction
+      if (!(await validateExtraction(copytopath, "ZIP"))) {
+        vscode.window.showErrorMessage(`ZIP extraction failed for ${download.name}. Setup cannot continue.`);
+        return false;
+      }
+    } catch (error) {
+      output.appendLine(`[SETUP] ZIP extraction error: ${error}`);
+      vscode.window.showErrorMessage(`Error extracting ZIP archive for ${download.name}. Setup cannot continue.`);
+      return false;
+    }
   } else if (download.url.includes("tar")) {
     // Then untar
-    const cmd = `tar -xvf "${filepath}" -C "${copytopath}"`;
+    const cmd = `tar -xvf "${filepath!}" -C "${copytopath}"`;
     output.appendLine(cmd);
     let res = await exec(cmd, { env: config.env }).then(
       value => {
@@ -2054,31 +2258,69 @@ async function process_download(download: ManifestDownloadEntry, context: vscode
         vscode.window.showErrorMessage("Error un-tar of download. Check output for more info.");
 
         return false;
-      }
+      },
     );
 
     // Return if untar was unsuccessful
     if (!res) {
       return false;
     }
+
+    // Validate tar extraction
+    if (!(await validateExtraction(copytopath, "TAR"))) {
+      vscode.window.showErrorMessage(`TAR extraction failed for ${download.name}. Setup cannot continue.`);
+      return false;
+    }
   } else if (download.url.includes("7z")) {
     // Unzip and copy
-    output.appendLine(`[SETUP] 7z extract ${filepath} to ${copytopath}`);
+    output.appendLine(`[SETUP] Starting 7z extraction: ${filepath!} to ${copytopath}`);
 
-    const pathTo7zip = sevenzip.path7za;
-    const seven = node7zip.extractFull(filepath, copytopath, {
-      $bin: pathTo7zip,
-    });
+    try {
+      // Use 7zip-bin API to get the correct binary path
+      const pathTo7zip = sevenzip.path7za;
+      output.appendLine(`[SETUP] Using 7z binary from 7zip-bin: ${pathTo7zip}`);
+      output.appendLine(`[SETUP] 7z source: ${filepath!}`);
+      output.appendLine(`[SETUP] 7z destination: ${copytopath}`);
+
+      // Use node-7z for extraction with proper API
+      const seven = node7zip.extractFull(filepath!, copytopath, {
+        $bin: pathTo7zip,
+        $progress: true,
+      });
+
+      // Create promise to handle extraction
+      await new Promise<void>((resolve, reject) => {
+        seven.on("end", () => {
+          output.appendLine(`[SETUP] 7z extraction completed successfully`);
+          resolve();
+        });
+
+        seven.on("error", err => {
+          output.appendLine(`[SETUP] 7z extraction error: ${err}`);
+          reject(err);
+        });
+      });
+
+      // Validate extraction was successful
+      if (!(await validateExtraction(copytopath, "7z"))) {
+        vscode.window.showErrorMessage(`7z extraction failed for ${download.name}. Setup cannot continue.`);
+        return false;
+      }
+    } catch (error) {
+      output.appendLine(`[SETUP] CRITICAL: 7z extraction error for ${download.name}: ${error}`);
+      vscode.window.showErrorMessage(
+        `Critical error extracting ${download.name}. Setup cannot continue. Check output for details.`,
+      );
+      return false;
+    }
   }
 
   // Set path
   let setpath = path.join(copytopath, download.suffix ?? "");
   config.env["PATH"] = path.join(setpath, pathdivider + config.env["PATH"]);
 
-  // Then set the application environment to match
-  if (config.env["PATH"] !== undefined && config.env["PATH"] !== "") {
-    context.environmentVariableCollection.replace("PATH", config.env["PATH"]);
-  }
+  // Add toolchain path to VS Code environment without replacing system PATH
+  context.environmentVariableCollection.prepend("PATH", setpath + pathdivider);
 
   // Set remaining env variables
   for (let entry of download.env ?? []) {
@@ -2087,7 +2329,10 @@ async function process_download(download: ManifestDownloadEntry, context: vscode
     } else if (entry.usepath && !entry.append) {
       config.env[entry.name] = path.join(copytopath, entry.suffix ?? "");
     } else if (entry.usepath && entry.append) {
-      config.env[entry.name] = path.join(copytopath, (entry.suffix ?? "") + pathdivider + config.env[entry.name] ?? "");
+      config.env[entry.name] = path.join(
+        copytopath,
+        (entry.suffix ?? "") + pathdivider + (config.env[entry.name] ?? ""),
+      );
     }
 
     console.log(`env[${entry.name}]: ${config.env[entry.name]}`);
@@ -2120,7 +2365,7 @@ async function process_download(download: ManifestDownloadEntry, context: vscode
         vscode.window.showErrorMessage("Error for sdk command.");
 
         return false;
-      }
+      },
     );
 
     if (!res) {

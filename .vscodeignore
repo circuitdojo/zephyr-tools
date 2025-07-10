@@ -1,5 +1,6 @@
 .vscode
 node_modules
+!node_modules/7zip-bin/**
 out/
 src/
 tsconfig.json

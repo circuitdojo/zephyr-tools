@@ -2,12 +2,12 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "license": "Apache-2.0",
   "publisher": "circuitdojo",
   "icon": "img/bulb.png",
   "engines": {
-    "vscode": "^1.52.0",
+    "vscode": "^1.101.0",
     "node": ">=16"
   },
   "repository": {
@@ -38,7 +38,7 @@
     "onCommand:zephyr-tools.change-runner",
     "onCommand:zephyr-tools.change-sysbuild"
   ],
-  "main": "./dist/extension.js",
+  "main": "./extension.js",
   "contributes": {
     "commands": [
       {
@@ -116,8 +116,9 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run package",
     "compile": "tsc -p ./",
+    "compile:esbuild": "node esbuild.js",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
@@ -126,28 +127,28 @@
     "package": "npm run check-types && node esbuild.js --production"
   },
   "devDependencies": {
-    "@types/fs-extra": "^8.0.1",
-    "@types/glob": "^7.1.3",
-    "@types/mocha": "^8.0.4",
-    "@types/node": "^12.11.7",
-    "@types/node-7z": "^2.1.8",
-    "@types/vscode": "^1.52.0",
-    "@typescript-eslint/eslint-plugin": "^4.9.0",
-    "@typescript-eslint/parser": "^4.9.0",
-    "esbuild": "^0.23.0",
-    "eslint": "^7.15.0",
-    "glob": "^7.1.6",
-    "mocha": "^10.7.0",
-    "typescript": "^4.1.2",
-    "vscode-test": "^1.4.1"
+    "@types/fs-extra": "^11.0.4",
+    "@types/glob": "^9.0.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.0.12",
+    "@types/node-7z": "^2.1.10",
+    "@types/vscode": "^1.101.0",
+    "@typescript-eslint/eslint-plugin": "^8.36.0",
+    "@typescript-eslint/parser": "^8.36.0",
+    "esbuild": "^0.25.6",
+    "eslint": "^9.30.1",
+    "glob": "^11.0.3",
+    "mocha": "^11.7.1",
+    "typescript": "^5.8.3",
+    "vscode-test": "^1.6.1"
   },
   "dependencies": {
     "7zip-bin": "^5.2.0",
-    "fs-extra": "^10.0.0",
+    "fs-extra": "^11.3.0",
     "node-7z": "^3.0.0",
     "node-stream-zip": "^1.15.0",
-    "typed-rest-client": "^1.8.6",
-    "yaml": "^2.5.0"
+    "typed-rest-client": "^2.1.0",
+    "yaml": "^2.8.0"
   },
   "extensionPack": [
     "ms-vscode.cpptools",
