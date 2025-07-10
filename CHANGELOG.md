@@ -2,6 +2,36 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.3.5]
+
+Added:
+
+- Python version detection to ensure Python 3.10+ is used for virtual environment creation
+- Proper 7zip-bin API usage instead of manual path construction for cross-platform compatibility
+- Logging for west update and pip install sequence in Init Repo command
+
+Changed:
+
+- Fixed race condition in "Init Repo" where pip install ran before west update completed
+- Fixed PATH environment variable handling to use prepend instead of replace, preserving system paths
+- Fixed toolchain selection QuickPick focus loss by moving selection outside progress window
+- Fixed debug configuration to use TypeScript compiled files instead of esbuild bundled files
+- Fixed main entry point in package.json and extension wrapper for proper development/production builds
+- TaskManager now executes callbacks for all successful tasks, not just last tasks
+- Removed retry operations for downloads and ZIP extraction to simplify error handling
+
+Fixed:
+
+- 7zip extraction silent failures due to incorrect binary path detection
+- Extension activation errors when compiled files were in wrong directory
+- Windows TypeScript compilation issues by using proper tsc commands
+
+### [0.3.4]
+
+Changed:
+
+- Updated dependencies and improved build configuration
+
 ### [0.3.3]
 
 Changed:
