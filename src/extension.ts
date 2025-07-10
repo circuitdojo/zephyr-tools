@@ -1312,8 +1312,11 @@ export async function initRepo(config: GlobalConfig, context: vscode.ExtensionCo
         output.appendLine(`[INIT] Determined zephyr base path: ${base}`);
       }
 
-      // Install python dependencies `pip install -r zephyr/requirements.txt`
-      let cmd = `pip install -r ${path.join(base, "scripts", "requirements.txt")}`;
+      // Install python dependencies using virtual environment Python
+      let pythonenv = path.join(toolsdir, "env");
+      let venvPython =
+        platform === "win32" ? path.join(pythonenv, "Scripts", "python.exe") : path.join(pythonenv, "bin", "python");
+      let cmd = `"${venvPython}" -m pip install -r ${path.join(base, "scripts", "requirements.txt")}`;
       output.appendLine(`[INIT] Starting pip install: ${cmd}`);
       let exec = new vscode.ShellExecution(cmd, shellOptions);
 
@@ -2059,6 +2062,9 @@ async function build(
 
   if (project.target === undefined) {
     await changeProject(config, context);
+
+    // Reload project config after changeProject
+    project = context.workspaceState.get("zephyr.project") ?? { isInit: false };
 
     // Check again..
     if (project.target === undefined) {
