@@ -2,6 +2,21 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.3.6]
+
+Added:
+
+- Default project configuration constant for consistent sysbuild behavior across all commands
+
+Changed:
+
+- Sysbuild is now enabled by default for all new projects (was previously disabled)
+- Added 7zip-bin as external dependency in esbuild configuration to prevent binary bundling
+
+Fixed:
+
+- 7zip extraction ENOENT errors by excluding 7zip-bin from bundling, allowing binary files to remain in node_modules
+
 ### [0.3.5]
 
 Added:

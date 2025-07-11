@@ -120,6 +120,12 @@ interface ZephyrTask {
   data?: any;
 }
 
+// Default project configuration
+const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
+  isInit: false,
+  sysbuild: true,
+};
+
 // Output Channel
 let output: vscode.OutputChannel;
 
@@ -718,7 +724,7 @@ export async function activate(context: vscode.ExtensionContext) {
         return;
       }
       // Fetch the project config
-      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
 
       // Get serial settings
       let port = await getPort();
@@ -746,7 +752,7 @@ export async function activate(context: vscode.ExtensionContext) {
       }
 
       // Fetch the project config
-      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
 
       if (config.isSetup && project.isInit) {
         await build(config, project, true, context);
@@ -763,7 +769,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.build", async () => {
       // Fetch the project config
-      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
 
       // Check if manifest is good
       if (config.manifestVersion !== manifest.version) {
@@ -786,7 +792,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.flash", async () => {
       // Fetch the project config
-      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
 
       // Check if manifest is good
       if (config.manifestVersion !== manifest.version) {
@@ -808,7 +814,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.clean", async () => {
       // Fetch the project config
-      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
 
       // Check if manifest is good
       if (config.manifestVersion !== manifest.version) {
@@ -830,7 +836,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.update", async () => {
       // Fetch the project config
-      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
 
       // Check if manifest is good
       if (config.manifestVersion !== manifest.version) {
@@ -855,7 +861,7 @@ export async function activate(context: vscode.ExtensionContext) {
       await TaskManager.cancel();
 
       // Fetch the project config
-      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
 
       // Check if manifest is good
       if (config.manifestVersion !== manifest.version) {
@@ -916,7 +922,7 @@ export async function activate(context: vscode.ExtensionContext) {
       await TaskManager.cancel();
 
       // Fetch the project config
-      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
 
       // Check if manifest is good
       if (config.manifestVersion !== manifest.version) {
@@ -989,7 +995,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.monitor", async () => {
       // Fetch the project config
-      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
 
       // Check if manifest is good
       if (config.manifestVersion !== manifest.version) {
@@ -1025,7 +1031,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.flash-and-monitor", async () => {
       // Fetch the project config
-      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
 
       // Check if manifest is good
       if (config.manifestVersion !== manifest.version) {
@@ -1062,7 +1068,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.change-sysbuild", async () => {
       // Fetch the project config
-      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
 
       // Check if manifest is good
       if (config.manifestVersion !== manifest.version) {
@@ -1084,7 +1090,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.change-runner", async () => {
       // Fetch the project config
-      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
 
       // Check if manifest is good
       if (config.manifestVersion !== manifest.version) {
@@ -1106,7 +1112,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.setup-newtmgr", async () => {
       // Fetch the project config
-      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
 
       // Check if manifest is good
       if (config.manifestVersion !== manifest.version) {
@@ -1332,7 +1338,7 @@ export async function initRepo(config: GlobalConfig, context: vscode.ExtensionCo
       // Final callback after pip install completes
       let done = async (data: any) => {
         // Set the isInit flag
-        let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+        let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
         project.isInit = true;
         await context.workspaceState.update("zephyr.project", project);
       };
@@ -1794,9 +1800,7 @@ async function getProjectList(folder: vscode.Uri): Promise<string[]> {
 
 async function changeProject(config: GlobalConfig, context: vscode.ExtensionContext) {
   // Fetch the project config
-  let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? {
-    isInit: false,
-  };
+  let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
 
   // Create & clear output
   if (output === undefined) {
@@ -1847,9 +1851,7 @@ async function changeProject(config: GlobalConfig, context: vscode.ExtensionCont
 
 async function changeBoard(config: GlobalConfig, context: vscode.ExtensionContext) {
   // TODO: iterative function to find all possible board options
-  let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? {
-    isInit: false,
-  };
+  let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
 
   // Get the workspace root
   let rootPath;
@@ -1897,9 +1899,7 @@ async function changeBoard(config: GlobalConfig, context: vscode.ExtensionContex
 
 async function changeSysBuild(config: GlobalConfig, context: vscode.ExtensionContext) {
   // TODO: iterative function to find all possible board options
-  let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? {
-    isInit: false,
-  };
+  let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
 
   // Get the workspace root
   let rootPath;
@@ -1928,9 +1928,7 @@ async function changeSysBuild(config: GlobalConfig, context: vscode.ExtensionCon
 
 async function changeRunner(config: GlobalConfig, context: vscode.ExtensionContext) {
   // TODO: iterative function to find all possible board options
-  let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? {
-    isInit: false,
-  };
+  let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
 
   // Get the workspace root
   let rootPath;
@@ -2064,7 +2062,7 @@ async function build(
     await changeProject(config, context);
 
     // Reload project config after changeProject
-    project = context.workspaceState.get("zephyr.project") ?? { isInit: false };
+    project = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
 
     // Check again..
     if (project.target === undefined) {
