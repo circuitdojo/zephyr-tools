@@ -16,6 +16,8 @@ Changed:
 Fixed:
 
 - 7zip extraction ENOENT errors by excluding 7zip-bin from bundling, allowing binary files to remain in node_modules
+- Load via Bootloader command now correctly checks for dfu_application.zip existence before extraction
+- Load via Bootloader now supports both .signed.bin (newer SDK) and .bin (older SDK) file formats
 
 ### [0.3.5]
 

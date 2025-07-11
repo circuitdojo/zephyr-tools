@@ -1445,13 +1445,13 @@ async function load(config: GlobalConfig, project: ProjectConfig) {
   let target = "";
 
   // Check if build/boardName/dfu_application.zip_manifest.json exists
-  let manifest = path.join(project.target ?? "", "build", boardName, "dfu_application.zip_manifest.json");
+  const manifest = path.join(project.target ?? "", "build", boardName, "dfu_application.zip_manifest.json");
   let exists = await fs.pathExists(manifest);
 
   if (exists) {
     // Make sure zip file exists
     const dfu_zip = path.join(project.target ?? "", "build", boardName, "dfu_application.zip");
-    const dfu_zip_exists = await fs.pathExists(manifest);
+    const dfu_zip_exists = await fs.pathExists(dfu_zip);
 
     // Doesn't exist error
     if (!dfu_zip_exists) {
@@ -1474,8 +1474,18 @@ async function load(config: GlobalConfig, project: ProjectConfig) {
       return;
     }
 
-    // Provide target
-    target = path.join(project.target ?? "", "build", boardName, parsed.name + ".bin");
+    // Try to find the binary file - newer SDK uses .signed.bin, older uses .bin
+    let signedBinary = path.join(project.target ?? "", "build", boardName, parsed.name + ".signed.bin");
+    let regularBinary = path.join(project.target ?? "", "build", boardName, parsed.name + ".bin");
+
+    if (await fs.pathExists(signedBinary)) {
+      target = signedBinary;
+    } else if (await fs.pathExists(regularBinary)) {
+      target = regularBinary;
+    } else {
+      vscode.window.showWarningMessage(`Binary not found. Expected ${parsed.name}.signed.bin or ${parsed.name}.bin`);
+      return;
+    }
   } else {
     // Check if update file exists
     let files = ["app_update.bin", "zephyr.signed.bin"];
