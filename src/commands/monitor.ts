@@ -42,8 +42,9 @@ export async function monitorCommand(
   // Tasks
   let taskName = "Zephyr Tools: Serial Monitor";
 
-  // Command to run
-  let cmd = `zephyr-tools --port ${project.port} --follow --save`;
+  // Command to run - conditionally include --save based on project setting
+  const saveFlag = project.saveSerialLogs === true ? ' --save' : '';
+  let cmd = `zephyr-tools --port ${project.port} --follow${saveFlag}`;
   let exec = new vscode.ShellExecution(cmd, options);
 
   // Task
@@ -87,4 +88,24 @@ export async function setupMonitorCommand(
 
   // Message output
   vscode.window.showInformationMessage(`Serial monitor set to use ${project.port}`);
+}
+
+export async function toggleSerialLoggingCommand(
+  config: GlobalConfig,
+  context: vscode.ExtensionContext
+): Promise<void> {
+  if (!config.isSetup) {
+    vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
+    return;
+  }
+
+  const project = await ProjectConfigManager.load(context);
+  
+  // Toggle the setting (default false means logging is disabled by default)
+  project.saveSerialLogs = project.saveSerialLogs === true ? false : true;
+  
+  await ProjectConfigManager.save(context, project);
+  
+  const status = project.saveSerialLogs ? 'enabled' : 'disabled';
+  vscode.window.showInformationMessage(`Serial logging ${status}`);
 }

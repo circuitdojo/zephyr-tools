@@ -14,6 +14,7 @@ export interface ProjectConfig {
   sysbuild?: boolean;
   probeRsProbeId?: string; // Cached probe identifier for probe-rs flashing
   probeRsChipName?: string; // Cached chip name for probe-rs flashing
+  saveSerialLogs?: boolean; // Enable/disable saving serial logs to file (default: false)
 }
 
 export interface ZephyrTask {

@@ -31,6 +31,7 @@
     "onCommand:zephyr-tools.setup-newtmgr",
     "onCommand:zephyr-tools.monitor",
     "onCommand:zephyr-tools.setup-monitor",
+    "onCommand:zephyr-tools.toggle-serial-logging",
     "onCommand:zephyr-tools.load",
     "onCommand:zephyr-tools.load-and-monitor",
     "onCommand:zephyr-tools.init-repo",
@@ -98,6 +99,10 @@
       {
         "command": "zephyr-tools.monitor",
         "title": "Zephyr Tools: Serial Monitor"
+      },
+      {
+        "command": "zephyr-tools.toggle-serial-logging",
+        "title": "Zephyr Tools: Toggle Serial Logging"
       },
       {
         "command": "zephyr-tools.init-repo",
