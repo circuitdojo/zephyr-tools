@@ -1,5 +1,5 @@
 {
-  "version": 14,
+  "version": 15,
   "win32": [
     {
       "arch": "x64",
@@ -28,6 +28,12 @@
           "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-windows-x86_64.zip",
           "md5": "1a273903dcb295455b69af7c9c10efa2",
           "suffix": "cmake-3.22.0-windows-x86_64\\bin\\"
+        },
+        {
+          "name": "probe-rs",
+          "filename": "probe-rs-tools-x86_64-pc-windows-msvc.zip",
+          "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.29.1/probe-rs-tools-x86_64-pc-windows-msvc.zip",
+          "md5": "ca52232aaa944e53fa27960f9d180470"
         }
       ],
       "toolchains": [
@@ -132,6 +138,12 @@
           "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-macos-universal.tar.gz",
           "md5": "438fc508b37b70a1d1bb112a4ffd4ad7",
           "suffix": "cmake-3.22.0-macos-universal/CMake.app/Contents/bin/"
+        },
+        {
+          "name": "probe-rs",
+          "filename": "probe-rs-tools-x86_64-apple-darwin.tar.xz",
+          "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.29.1/probe-rs-tools-x86_64-apple-darwin.tar.xz",
+          "md5": "453cd9dd049b8a2e80fb8eb61ac03993"
         }
       ],
       "toolchains": [
@@ -222,6 +234,12 @@
           "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-macos-universal.tar.gz",
           "md5": "438fc508b37b70a1d1bb112a4ffd4ad7",
           "suffix": "cmake-3.22.0-macos-universal/CMake.app/Contents/bin/"
+        },
+        {
+          "name": "probe-rs",
+          "filename": "probe-rs-tools-aarch64-apple-darwin.tar.xz",
+          "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.29.1/probe-rs-tools-aarch64-apple-darwin.tar.xz",
+          "md5": "7627fcd90b2a9399a535cef434767ee3"
         }
       ],
       "toolchains": [
@@ -320,6 +338,12 @@
           "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-linux-x86_64.tar.gz",
           "md5": "5537bbc683e364e5408a393a737f53a1",
           "suffix": "cmake-3.22.0-linux-x86_64/bin/"
+        },
+        {
+          "name": "probe-rs",
+          "filename": "probe-rs-tools-x86_64-unknown-linux-gnu.tar.xz",
+          "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.29.1/probe-rs-tools-x86_64-unknown-linux-gnu.tar.xz",
+          "md5": "01be4d05d6b7ced308f43a0c55865f03"
         }
       ],
       "toolchains": [

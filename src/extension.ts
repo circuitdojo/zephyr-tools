@@ -810,6 +810,28 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
   );
 
+  // Flashes Zephyr project to board using probe-rs
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.flash-probe-rs", async () => {
+      // Fetch the project config
+      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
+
+      // Check if manifest is good
+      if (config.manifestVersion !== manifest.version) {
+        vscode.window.showErrorMessage("An update is required. Run `Zephyr Tools: Setup` command first.");
+        return;
+      }
+
+      // Flash board
+      if (config.isSetup) {
+        await flashProbeRs(config, project);
+      } else {
+        // Display an error message box to the user
+        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command before flashing.");
+      }
+    }),
+  );
+
   // Cleans the project by removing the `build` folder
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.clean", async () => {
@@ -1649,6 +1671,317 @@ async function flash(config: GlobalConfig, project: ProjectConfig) {
 
   // Start task here
   await vscode.tasks.executeTask(task);
+}
+
+// Flash using probe-rs
+async function flashProbeRs(config: GlobalConfig, project: ProjectConfig) {
+  // Options for ShellExecution
+  let options: vscode.ShellExecutionOptions = {
+    env: <{ [key: string]: string }>config.env,
+    cwd: project.target,
+  };
+
+  // Tasks
+  let taskName = "Zephyr Tools: Flash with probe-rs";
+
+  // Generate universal build path that works on windows & *nix
+  let buildPath = path.join("build", project.board?.split("/")[0] ?? "");
+  let hexFilePathZephyr = path.join(buildPath, "zephyr", "merged.hex");
+  let hexFilePathBoard = path.join(buildPath, "merged.hex");
+  
+  let hexFilePath = "";
+  
+  // Check if merged.hex exists in zephyr subdirectory first
+  if (await fs.pathExists(path.join(project.target ?? "", hexFilePathZephyr))) {
+    hexFilePath = hexFilePathZephyr;
+  }
+  // If not found, check in board directory
+  else if (await fs.pathExists(path.join(project.target ?? "", hexFilePathBoard))) {
+    hexFilePath = hexFilePathBoard;
+  }
+  // If not found in either location, show error
+  else {
+    vscode.window.showErrorMessage(`Hex file not found at paths: ${hexFilePathZephyr} or ${hexFilePathBoard}. Build project before flashing.`);
+    return;
+  }
+
+  // Check for available probes first
+  let probeId: string | undefined;
+  const availableProbes = await getAvailableProbes(config);
+  if (!availableProbes) {
+    vscode.window.showErrorMessage("No debug probes found. Please connect a probe and try again.");
+    return;
+  }
+  
+  if (availableProbes.length === 0) {
+    vscode.window.showErrorMessage("No debug probes found. Please connect a probe and try again.");
+    return;
+  } else if (availableProbes.length === 1) {
+    // Single probe, use it automatically
+    probeId = availableProbes[0].probeId;
+    console.log(`Using single available probe: ${probeId}`);
+  } else {
+    // Multiple probes, let user choose
+    const selectedProbe = await selectProbe(availableProbes);
+    if (!selectedProbe) {
+      vscode.window.showErrorMessage("No probe selected for probe-rs flashing.");
+      return;
+    }
+    probeId = selectedProbe.probeId;
+  }
+
+  // Get chip name from user selection or use cached value
+  let chipName: string | undefined;
+  
+  // Use runner field as chip name if specified, otherwise prompt user
+  if (project.runner && project.runner !== "default") {
+    chipName = project.runner;
+  } else {
+    // Get available chips from probe-rs
+    chipName = await getProbeRsChipName(config);
+    if (!chipName) {
+      vscode.window.showErrorMessage("No chip selected for probe-rs flashing.");
+      return;
+    }
+  }
+
+  // Command - use probe-rs download with the merged.hex file
+  let cmd = `probe-rs download --chip ${chipName} --binary-format hex ${hexFilePath}`;
+  
+  // Append --probe flag if probeId is available
+  if (probeId) {
+    cmd += ` --probe ${probeId}`;
+  }
+
+  console.log("probe-rs command: " + cmd);
+
+  let exec = new vscode.ShellExecution(cmd, options);
+
+  // Task
+  let task = new vscode.Task(
+    { type: "zephyr-tools", command: taskName },
+    vscode.TaskScope.Workspace,
+    taskName,
+    "zephyr-tools",
+    exec,
+  );
+
+  vscode.window.showInformationMessage(`Flashing with probe-rs for ${project.board} using chip: ${chipName}`);
+
+  // Start execution with error handling and callback for reset
+  await TaskManager.push(task, {
+    ignoreError: false,
+    lastTask: false,
+    errorMessage: "probe-rs flash error! Check that your probe is connected and the chip name is correct.",
+    callback: async () => {
+      // Reset the device after successful programming
+      let resetCmd = `probe-rs reset --chip ${chipName}`;
+      
+      // Append --probe flag if probeId is available
+      if (probeId) {
+        resetCmd += ` --probe ${probeId}`;
+      }
+      
+      console.log("probe-rs reset command: " + resetCmd);
+      
+      let resetExec = new vscode.ShellExecution(resetCmd, options);
+      
+      let resetTask = new vscode.Task(
+        { type: "zephyr-tools", command: taskName },
+        vscode.TaskScope.Workspace,
+        taskName,
+        "zephyr-tools",
+        resetExec,
+      );
+      
+      // Execute reset as final task
+      await TaskManager.push(resetTask, {
+        ignoreError: false,
+        lastTask: true,
+        errorMessage: "probe-rs reset error! Device may not have been reset properly.",
+        successMessage: "Flash and reset complete!",
+      });
+    }
+  });
+}
+
+// Get probe-rs chip name from user selection
+async function getProbeRsChipName(config: GlobalConfig): Promise<string | undefined> {
+  try {
+    // Promisified exec
+    let exec = util.promisify(cp.exec);
+    
+    // Get chip list from probe-rs
+    let cmd = `probe-rs chip list`;
+    let res = await exec(cmd, { env: config.env });
+    
+    if (res.stderr) {
+      vscode.window.showErrorMessage(`Error getting probe-rs chip list: ${res.stderr}`);
+      return undefined;
+    }
+
+    // Parse the output to extract chip names
+    let chipNames = parseProbeRsChipList(res.stdout);
+    
+    if (chipNames.length === 0) {
+      vscode.window.showErrorMessage("No chips found in probe-rs chip list.");
+      return undefined;
+    }
+
+    // Show chip selection to user
+    const selectedChip = await vscode.window.showQuickPick(chipNames, {
+      title: "Select probe-rs target chip",
+      placeHolder: "Choose the target chip for flashing...",
+      ignoreFocusOut: true,
+    });
+
+    return selectedChip;
+  } catch (error) {
+    vscode.window.showErrorMessage(`Error running probe-rs chip list: ${error}`);
+    return undefined;
+  }
+}
+
+// Parse probe-rs chip list output to extract available chip variants
+function parseProbeRsChipList(output: string): string[] {
+  const lines = output.split('\n');
+  const chipNames: string[] = [];
+  
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    
+    // Look for variant lines (they are indented and don't end with "Series")
+    if (trimmedLine && 
+        !trimmedLine.endsWith('Series') && 
+        !trimmedLine.startsWith('Variants:') &&
+        trimmedLine !== 'Variants:' &&
+        line.startsWith('        ')) { // Variants are indented with 8 spaces
+      chipNames.push(trimmedLine);
+    }
+  }
+  
+  // Sort alphabetically for easier selection
+  return chipNames.sort();
+}
+
+// Interface for probe information
+interface ProbeInfo {
+  id: string;
+  name: string;
+  probeId?: string; // The actual probe identifier for --probe flag
+}
+
+// Get available probes from probe-rs list command
+async function getAvailableProbes(config: GlobalConfig): Promise<ProbeInfo[] | null> {
+  try {
+    // Promisified exec
+    let exec = util.promisify(cp.exec);
+    
+    // Get probe list from probe-rs
+    let cmd = `probe-rs list`;
+    let res = await exec(cmd, { env: config.env });
+    
+    if (res.stderr && res.stderr.trim() !== "") {
+      console.error(`probe-rs list stderr: ${res.stderr}`);
+      // Don't return null for stderr - probe-rs might still output valid probes
+    }
+
+    // Parse the output to extract probe information
+    let probes = parseProbeRsList(res.stdout);
+    
+    return probes;
+  } catch (error) {
+    console.error(`Error running probe-rs list: ${error}`);
+    return null;
+  }
+}
+
+// Parse probe-rs list output to extract available probes
+function parseProbeRsList(output: string): ProbeInfo[] {
+  const lines = output.split('\n');
+  const probes: ProbeInfo[] = [];
+  
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    
+    // Look for probe entries - they typically have format like:
+    // "[0]: J-Link (J-Link) (VID: 1366, PID: 0101, Serial: 000123456789, JLink)"
+    // "[0]: Debug Probe (CMSIS-DAP) -- 2e8a:000c:E663383087545423 (CMSIS-DAP)"
+    // or similar patterns from different probe types
+    if (trimmedLine && (trimmedLine.includes('VID:') || trimmedLine.includes('Serial:') || 
+        (trimmedLine.startsWith('[') && trimmedLine.includes(']:')))) {
+      // Extract probe ID from the bracket notation
+      const idMatch = trimmedLine.match(/\[([^\]]+)\]/);
+      if (idMatch) {
+        const id = idMatch[1];
+        
+        // Extract everything after the ID and colon as the probe description
+        const descriptionMatch = trimmedLine.match(/\[([^\]]+)\]:\s*(.+)/);
+        if (descriptionMatch) {
+          const fullDescription = descriptionMatch[2];
+          
+          // For the name, try to extract just the probe name part (before any additional info)
+          // but keep the full description for display
+          const nameMatch = fullDescription.match(/^([^(]+)/);
+          const probeName = nameMatch ? nameMatch[1].trim() : fullDescription;
+          
+          // Extract probe identifier for --probe flag
+          let probeIdentifier: string | undefined;
+          
+          // For CMSIS-DAP probes: extract VID:PID:Serial format
+          // "Debug Probe (CMSIS-DAP) -- 2e8a:000c:E663383087545423 (CMSIS-DAP)"
+          const cmsisMatch = fullDescription.match(/--\s*([0-9a-fA-F:]+)/);
+          if (cmsisMatch) {
+            probeIdentifier = cmsisMatch[1];
+          }
+          // For J-Link probes: extract serial number
+          // "J-Link (J-Link) (VID: 1366, PID: 0101, Serial: 000123456789, JLink)"
+          else {
+            const serialMatch = fullDescription.match(/Serial:\s*([^,\s)]+)/);
+            if (serialMatch) {
+              probeIdentifier = serialMatch[1];
+            }
+          }
+          
+          probes.push({ 
+            id, 
+            name: `${probeName} - ${fullDescription}`,
+            probeId: probeIdentifier
+          });
+        } else {
+          // Fallback if regex doesn't match
+          probes.push({ id, name: `Probe ${id}` });
+        }
+      } else {
+        // Fallback: use the line index as ID if parsing fails
+        const parts = trimmedLine.split(':');
+        if (parts.length >= 2) {
+          const id = parts[0].replace(/[\[\]]/g, '').trim();
+          const name = parts.slice(1).join(':').trim();
+          probes.push({ id, name: `${name} (${id})` });
+        }
+      }
+    }
+  }
+  
+  return probes;
+}
+
+// Show probe selection picker to user
+async function selectProbe(probes: ProbeInfo[]): Promise<ProbeInfo | undefined> {
+  const probeItems = probes.map(probe => ({
+    label: probe.name,
+    description: `ID: ${probe.id}`,
+    probe: probe
+  }));
+
+  const selectedItem = await vscode.window.showQuickPick(probeItems, {
+    title: "Select debug probe for flashing",
+    placeHolder: "Choose which probe to use for flashing...",
+    ignoreFocusOut: true,
+  });
+
+  return selectedItem?.probe;
 }
 
 function getRootPath(): vscode.Uri | undefined {

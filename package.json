@@ -26,6 +26,7 @@
     "onCommand:zephyr-tools.change-board",
     "onCommand:zephyr-tools.change-project",
     "onCommand:zephyr-tools.flash",
+    "onCommand:zephyr-tools.flash-probe-rs",
     "onCommand:zephyr-tools.flash-and-monitor",
     "onCommand:zephyr-tools.setup-newtmgr",
     "onCommand:zephyr-tools.monitor",
@@ -68,6 +69,10 @@
       {
         "command": "zephyr-tools.flash",
         "title": "Zephyr Tools: Flash"
+      },
+      {
+        "command": "zephyr-tools.flash-probe-rs",
+        "title": "Zephyr Tools: Flash with probe-rs"
       },
       {
         "command": "zephyr-tools.flash-and-monitor",
