@@ -2,6 +2,23 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.4.1] - 2025-07-23
+
+Added:
+- Automatic probe-rs detection and usage for Circuit Dojo boards
+- Smart flash command routing based on board selection
+
+Changed:
+- Flash command now automatically uses probe-rs for Circuit Dojo boards instead of west flash
+- Flash & Monitor command automatically uses probe-rs for Circuit Dojo boards
+- Simplified sidebar UI by removing redundant "Flash via probe-rs & Monitor" button
+- Circuit Dojo boards get optimized flashing experience without manual runner selection
+
+Improved:
+- Streamlined user experience - one flash button works optimally for all board types
+- Reduced UI complexity while maintaining full functionality via Command Palette
+- Better board-specific optimization with transparent user experience
+
 ### [0.4.0] - 2025-07-23
 
 Major Release 0.4.0 - 2025-07-23
