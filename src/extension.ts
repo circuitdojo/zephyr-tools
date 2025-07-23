@@ -7,7 +7,7 @@
 import * as vscode from "vscode";
 import { GlobalConfigManager, ProjectConfigManager } from "./config";
 import { TaskManager } from "./tasks";
-import { StatusBarManager, OutputChannelManager, DialogManager } from "./ui";
+import { StatusBarManager, OutputChannelManager, DialogManager, activateSidebar } from "./ui";
 import { PathManager } from "./environment";
 import { GlobalConfig, ProjectConfig } from "./types";
 import {
@@ -49,6 +49,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Initialize status bar
   StatusBarManager.initializeStatusBarItems(context);
+
+  // Initialize sidebar
+  activateSidebar(context);
 
   // Load project config and update status bar
   await updateStatusBarFromConfig(context);

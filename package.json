@@ -128,7 +128,25 @@
         "command": "zephyr-tools.change-probe-rs-settings",
         "title": "Zephyr Tools: Change probe-rs Settings"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "zephyr-tools",
+          "title": "Zephyr Tools",
+          "icon": "$(circuit-board)"
+        }
+      ]
+    },
+    "views": {
+      "zephyr-tools": [
+        {
+          "id": "zephyrToolsSidebar",
+          "name": "Project",
+          "when": ""
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",

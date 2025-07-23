@@ -8,3 +8,5 @@ export * from './output-channel';
 export * from './status-bar';
 export * from './quick-picks';
 export * from './dialogs';
+export * from './sidebar-manager';
+export * from './sidebar-tree-items';

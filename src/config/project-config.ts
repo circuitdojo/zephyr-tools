@@ -14,6 +14,9 @@ export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
 };
 
 export class ProjectConfigManager {
+  // Event emitter for configuration change
+  private static _onDidChangeConfig: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
+  static readonly onDidChangeConfig: vscode.Event<void> = ProjectConfigManager._onDidChangeConfig.event;
   private static readonly PROJECT_CONFIG_KEY = "zephyr.project";
   private static readonly TASK_CONFIG_KEY = "zephyr.task";
 
@@ -23,6 +26,7 @@ export class ProjectConfigManager {
 
   static async save(context: vscode.ExtensionContext, config: ProjectConfig): Promise<void> {
     await context.workspaceState.update(this.PROJECT_CONFIG_KEY, config);
+    ProjectConfigManager._onDidChangeConfig.fire(); // Notify listeners of changes
   }
 
   static async loadPendingTask(context: vscode.ExtensionContext): Promise<ZephyrTask | undefined> {
