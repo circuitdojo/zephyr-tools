@@ -9,7 +9,7 @@ import { GlobalConfigManager, ProjectConfigManager } from "../config";
 import { GlobalConfig, ProjectConfig } from "../types";
 
 interface SidebarState {
-  type: 'setup-required' | 'project-required' | 'initializing' | 'ready';
+  type: 'setup-required' | 'project-required' | 'initializing' | 'setup-in-progress' | 'ready';
   config: GlobalConfig;
   project: ProjectConfig;
   hasWorkspace: boolean;
@@ -72,6 +72,11 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
       const project = await ProjectConfigManager.load(this.context);
       const state = await this.determineState(config, project);
       
+      // Auto-reveal the sidebar when in progress states
+      if (state.type === 'initializing' || state.type === 'setup-in-progress') {
+        await this.revealSidebar();
+      }
+      
       this._view.webview.postMessage({
         type: 'update',
         data: {
@@ -85,6 +90,16 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
 
   private async determineState(config: GlobalConfig, project: ProjectConfig): Promise<SidebarState> {
     const hasWorkspace = (vscode.workspace.workspaceFolders?.length ?? 0) > 0;
+    
+    // Check if setup is in progress
+    if (config.isSetupInProgress) {
+      return {
+        type: 'setup-in-progress',
+        config,
+        project,
+        hasWorkspace
+      };
+    }
     
     // Import validation here to avoid circular dependencies
     const { ConfigValidator } = await import('../config/validation');
@@ -127,6 +142,33 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
       project,
       hasWorkspace
     };
+  }
+
+  public async revealSidebar() {
+    try {
+      // First reveal the Zephyr Tools view container in the activity bar
+      await vscode.commands.executeCommand('workbench.view.extension.zephyr-tools');
+      
+      // Wait a bit for the view container to initialize if needed
+      if (!this._view) {
+        // Try to force view initialization by focusing on the specific view
+        try {
+          await vscode.commands.executeCommand('zephyrToolsSidebar.focus');
+        } catch {
+          // If that doesn't work, continue silently
+        }
+        
+        // Wait a bit more for initialization
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+      // Focus on the specific sidebar view
+      if (this._view) {
+        this._view.show?.(true); // true = focus the view
+      }
+    } catch (error) {
+      // Silently fail if commands are not available
+    }
   }
 
   private _getHtmlForWebview(webview: vscode.Webview) {

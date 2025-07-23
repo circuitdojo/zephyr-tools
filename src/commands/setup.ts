@@ -199,8 +199,13 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
   const config = await GlobalConfigManager.load(context);
   config.env["PATH"] = process.env["PATH"];
   
-  // Clear any existing PATH modifications
-  context.environmentVariableCollection.clear();
+  // Set setup in progress flag and save config to trigger sidebar update
+  config.isSetupInProgress = true;
+  await GlobalConfigManager.save(context, config);
+  
+  try {
+    // Clear any existing PATH modifications
+    context.environmentVariableCollection.clear();
 
   // Define what manifest to use
   let platformManifest: ManifestEntry[] | undefined;
@@ -357,9 +362,10 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
 
       output.appendLine("[SETUP] Zephyr setup complete!");
       
-      // Save manifest version
+      // Save manifest version and clear setup progress flag
       config.manifestVersion = manifest.version;
       config.isSetup = true;
+      config.isSetupInProgress = false;
 
       // Save configuration
       await GlobalConfigManager.save(context, config);
@@ -369,4 +375,18 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
       vscode.window.showInformationMessage("Zephyr Tools setup complete!");
     }
   );
+  } catch (error) {
+    // Clear setup progress flag on any error
+    config.isSetupInProgress = false;
+    await GlobalConfigManager.save(context, config);
+    
+    // Re-throw the error so it's handled by the caller
+    throw error;
+  } finally {
+    // Ensure setup progress flag is cleared if not already done
+    if (config.isSetupInProgress) {
+      config.isSetupInProgress = false;
+      await GlobalConfigManager.save(context, config);
+    }
+  }
 }

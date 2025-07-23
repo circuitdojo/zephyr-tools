@@ -279,7 +279,11 @@ async function handlePendingTasks(context: vscode.ExtensionContext): Promise<voi
   const pendingTask = await ProjectConfigManager.loadPendingTask(context);
   
   if (pendingTask?.name) {
-    console.log("Running pending task: " + JSON.stringify(pendingTask));
+    // Reveal sidebar for init-repo tasks since they will show progress
+    if (pendingTask.name === "zephyr-tools.init-repo" && sidebarProvider) {
+      await sidebarProvider.revealSidebar();
+    }
+    
     await ProjectConfigManager.clearPendingTask(context);
     await vscode.commands.executeCommand(pendingTask.name, pendingTask.data);
   }

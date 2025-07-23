@@ -17,6 +17,7 @@ export class GlobalConfigManager {
       env: process.env,
       manifestVersion: 0,
       isSetup: false,
+      isSetupInProgress: false,
     };
   }
 
@@ -33,6 +34,7 @@ export class GlobalConfigManager {
       env: process.env,
       manifestVersion: 0,
       isSetup: false,
+      isSetupInProgress: false,
     };
     this._onDidChangeConfig.fire(defaultConfig);
   }

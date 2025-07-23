@@ -81,6 +81,15 @@ export async function initRepoCommand(
   // Set isInitializing flag
   project.isInitializing = true;
   await ProjectConfigManager.save(context, project);
+  
+  // Schedule a delayed sidebar reveal to ensure it happens even if the immediate reveal doesn't work
+  setTimeout(async () => {
+    try {
+      await vscode.commands.executeCommand('workbench.view.extension.zephyr-tools');
+    } catch (error) {
+      // Silently fail if commands are not available
+    }
+  }, 2000);
 
   try {
     const taskName = "Zephyr Tools: Init Repo";

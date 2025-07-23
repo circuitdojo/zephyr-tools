@@ -6,6 +6,7 @@
 
 export interface GlobalConfig {
   isSetup: boolean;
+  isSetupInProgress: boolean;
   manifestVersion: Number;
   env: { [name: string]: string | undefined };
 }

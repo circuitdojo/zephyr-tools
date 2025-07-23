@@ -162,6 +162,11 @@
   border-color: var(--vscode-inputValidation-infoBorder, var(--vscode-widget-border));
 }
 
+.setup-in-progress {
+  background: var(--vscode-inputValidation-infoBackground, var(--vscode-editor-background));
+  border-color: var(--vscode-inputValidation-infoBorder, var(--vscode-widget-border));
+}
+
 .state-message {
   color: var(--vscode-foreground);
   font-size: 13px;

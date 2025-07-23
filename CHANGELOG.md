@@ -2,6 +2,34 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.4.4] - 2025-07-23
+
+User Interface Enhancement:
+
+**Added:**
+- **Setup Progress in Sidebar**: New real-time progress indicator when running Zephyr Tools setup command
+- **Animated Setup State**: Sidebar now shows "Setting Up Zephyr Tools" state with animated progress bar during setup process
+- **Setup-Specific Progress Steps**: Displays relevant setup steps (Python validation, dependency installation, toolchain download)
+- **Sidebar Auto-Reveal**: Sidebar automatically opens and focuses during initialization and setup processes
+- **Robust Error Handling**: Setup progress state is properly cleared on completion, cancellation, or errors
+
+**Improved:**
+- **Immediate Visual Feedback**: Users see setup progress in sidebar immediately when clicking "Run Setup" button
+- **Consistent Progress Design**: Reuses existing initialization progress UI pattern for familiarity
+- **Non-Intrusive Progress**: Setup progress shown in sidebar alongside existing VS Code notification progress
+- **Real-time State Updates**: Sidebar automatically updates when setup completes or fails
+- **Enhanced Init Experience**: Sidebar automatically reveals when switching folders during project initialization
+
+**Technical:**
+- Added `isSetupInProgress` flag to `GlobalConfig` type and configuration management
+- Enhanced sidebar state detection to prioritize setup progress state
+- Added `showSetupInProgressState()` function with setup-specific messaging and progress steps
+- Added comprehensive error handling with try-catch-finally to ensure progress state cleanup
+- Extended CSS with `.setup-in-progress` class reusing existing progress bar animations
+- Added `revealSidebar()` method with robust view initialization handling
+- Enhanced pending task execution to auto-reveal sidebar for init-repo commands
+- Added delayed sidebar reveal mechanism to handle workspace switching timing issues
+
 ### [0.4.3] - 2025-07-23
 
 User Interface and Initialization Improvements:

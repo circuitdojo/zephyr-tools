@@ -56,6 +56,9 @@ function updateUI(data) {
     case 'initializing':
       showInitializingState();
       break;
+    case 'setup-in-progress':
+      showSetupInProgressState();
+      break;
     case 'ready':
       showReadyState(config, project);
       break;
@@ -144,6 +147,37 @@ function showInitializingState() {
   `;
   
   // Re-setup event listeners (though there shouldn't be any interactive elements during init)
+  setupEventListeners();
+}
+
+// Show setup in progress state
+function showSetupInProgressState() {
+  const container = document.querySelector('.container');
+  if (!container) return;
+  
+  container.innerHTML = `
+    <div class="card setup-in-progress">
+      <h3 class="card-title">🔧 Setting Up Zephyr Tools</h3>
+      <p class="state-message">Installing dependencies and configuring your development environment...</p>
+      <div class="progress-container">
+        <div class="progress-bar">
+          <div class="progress-fill"></div>
+        </div>
+        <p class="progress-text">Please wait while we:</p>
+        <ul class="progress-steps">
+          <li>🐍 Validate Python installation</li>
+          <li>📦 Install development dependencies</li>
+          <li>🔧 Download and configure toolchain</li>
+        </ul>
+      </div>
+      <div class="state-info">
+        <p class="info-text">💡 <strong>Tip:</strong> Check the output panel for detailed progress information.</p>
+        <p class="info-text">⏱️ This process may take several minutes depending on your internet connection.</p>
+      </div>
+    </div>
+  `;
+  
+  // Re-setup event listeners (though there shouldn't be any interactive elements during setup)
   setupEventListeners();
 }
 
