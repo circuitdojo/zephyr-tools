@@ -4,15 +4,19 @@
  * @license Apache 2.0
  */
 
+import * as vscode from "vscode";
 import { GlobalConfig, ProjectConfig } from "../types";
+import { GlobalConfigManager } from "./global-config";
+import { ManifestValidator, ManifestValidationResult } from "./manifest-validator";
 
 export interface ValidationResult {
   isValid: boolean;
   error?: string;
+  details?: string[];
 }
 
 /**
- * Configuration validation utilities
+ * Configuration validation utilities with comprehensive manifest checking
  */
 export class ConfigValidator {
   /**
@@ -24,9 +28,78 @@ export class ConfigValidator {
   }
 
   /**
-   * Validates setup state and manifest version compatibility
+   * Validates setup state with comprehensive manifest verification
+   * Automatically resets setup flag if physical validation fails
    */
-  static validateSetupState(config: GlobalConfig): ValidationResult {
+  static async validateSetupState(
+    config: GlobalConfig, 
+    context?: vscode.ExtensionContext,
+    performPhysicalValidation: boolean = true
+  ): Promise<ValidationResult> {
+    const manifest = require("../../manifest/manifest.json");
+    
+    // Check manifest version first
+    if (config.manifestVersion !== manifest.version) {
+      return {
+        isValid: false,
+        error: "An update is required. Run `Zephyr Tools: Setup` command first.",
+        details: [`Expected manifest version ${manifest.version}, found ${config.manifestVersion}`]
+      };
+    }
+    
+    // Check basic setup flag
+    if (!config.isSetup) {
+      return {
+        isValid: false,
+        error: "Run `Zephyr Tools: Setup` command first.",
+        details: ["Setup has not been completed"]
+      };
+    }
+
+    // Perform physical validation if requested and context available
+    if (performPhysicalValidation && context) {
+      try {
+        const physicalValidation = await ManifestValidator.validateCompleteSetup(config);
+        
+        if (!physicalValidation.isValid) {
+          // Reset setup flag due to physical validation failure
+          console.log("Physical validation failed, resetting setup flag");
+          config.isSetup = false;
+          await GlobalConfigManager.save(context, config);
+          
+          return {
+            isValid: false,
+            error: "Setup validation failed. Run `Zephyr Tools: Setup` command again.",
+            details: [
+              "Physical validation detected missing or corrupted components:",
+              ...physicalValidation.errors,
+              ...physicalValidation.warnings
+            ]
+          };
+        }
+        
+        // Log warnings but don't fail validation
+        if (physicalValidation.warnings.length > 0) {
+          console.log("Setup validation warnings:", physicalValidation.warnings);
+        }
+      } catch (error) {
+        console.warn("Physical validation failed with error:", error);
+        // Don't fail validation due to validation errors, but log them
+        return {
+          isValid: true, // Allow to proceed but with warning
+          error: undefined,
+          details: [`Warning: Could not verify physical setup: ${error}`]
+        };
+      }
+    }
+    
+    return { isValid: true };
+  }
+
+  /**
+   * Quick validation without physical checks (for performance-critical paths)
+   */
+  static validateSetupStateQuick(config: GlobalConfig): ValidationResult {
     const manifest = require("../../manifest/manifest.json");
     
     if (config.manifestVersion !== manifest.version) {
@@ -62,9 +135,28 @@ export class ConfigValidator {
   /**
    * Validates both setup state and project initialization
    */
-  static validateSetupAndProject(config: GlobalConfig, project: ProjectConfig): ValidationResult {
+  static async validateSetupAndProject(
+    config: GlobalConfig, 
+    project: ProjectConfig,
+    context?: vscode.ExtensionContext,
+    performPhysicalValidation: boolean = false
+  ): Promise<ValidationResult> {
     // First check setup state
-    const setupValidation = this.validateSetupState(config);
+    const setupValidation = await this.validateSetupState(config, context, performPhysicalValidation);
+    if (!setupValidation.isValid) {
+      return setupValidation;
+    }
+
+    // Then check project initialization
+    return this.validateProjectInit(project);
+  }
+
+  /**
+   * Quick validation of both setup and project (synchronous)
+   */
+  static validateSetupAndProjectQuick(config: GlobalConfig, project: ProjectConfig): ValidationResult {
+    // First check setup state
+    const setupValidation = this.validateSetupStateQuick(config);
     if (!setupValidation.isValid) {
       return setupValidation;
     }

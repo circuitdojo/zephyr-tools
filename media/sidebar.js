@@ -53,6 +53,9 @@ function updateUI(data) {
     case 'project-required':
       showProjectRequiredState();
       break;
+    case 'initializing':
+      showInitializingState();
+      break;
     case 'ready':
       showReadyState(config, project);
       break;
@@ -111,6 +114,36 @@ function showProjectRequiredState() {
   `;
   
   // Re-setup event listeners for the new buttons
+  setupEventListeners();
+}
+
+// Show initializing state
+function showInitializingState() {
+  const container = document.querySelector('.container');
+  if (!container) return;
+  
+  container.innerHTML = `
+    <div class="card initializing">
+      <h3 class="card-title">🔄 Initializing Project</h3>
+      <p class="state-message">Setting up your Zephyr project. This may take a few minutes...</p>
+      <div class="progress-container">
+        <div class="progress-bar">
+          <div class="progress-fill"></div>
+        </div>
+        <p class="progress-text">Please wait while we:</p>
+        <ul class="progress-steps">
+          <li>📥 Clone repository and dependencies</li>
+          <li>🐍 Install Python requirements</li>
+          <li>⚙️ Configure project settings</li>
+        </ul>
+      </div>
+      <div class="state-info">
+        <p class="info-text">💡 <strong>Tip:</strong> Check the output panel for detailed progress information.</p>
+      </div>
+    </div>
+  `;
+  
+  // Re-setup event listeners (though there shouldn't be any interactive elements during init)
   setupEventListeners();
 }
 

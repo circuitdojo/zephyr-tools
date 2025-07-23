@@ -9,6 +9,7 @@ export interface ProjectConfig {
   target?: string;
   port?: string;
   isInit: boolean;
+  isInitializing?: boolean; // Track when initialization is in progress
   runner?: string;
   runnerParams?: string;
   sysbuild?: boolean;

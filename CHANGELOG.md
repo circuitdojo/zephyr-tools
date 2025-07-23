@@ -2,6 +2,37 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.4.3] - 2025-07-23
+
+User Interface and Initialization Improvements:
+
+**Fixed:**
+- **Sidebar Button Overflow**: Resolved Create Project and Init Repo buttons overlapping their card boundaries in narrow sidebar widths
+- **Initialization State Management**: Fixed sidebar not updating to show initialization progress when running init commands
+- **Responsive Design**: Enhanced button layout and text wrapping to work consistently across all sidebar widths (down to 200px)
+
+**Added:**
+- **Initializing State UI**: New "Initializing Project" state with animated progress bar and helpful status information
+- **Manifest Validation**: Comprehensive validation system that automatically detects missing or corrupted Zephyr Tools setup files
+- **Auto-Reset Setup**: Setup flag is automatically reset when manifest validation fails, prompting users to re-run setup
+- **Real-time Sidebar Updates**: Sidebar now updates immediately when global or project configuration changes
+- **Enhanced CSS Styling**: Added progress bar animations, improved button containment, and extreme width responsive breakpoints
+
+**Improved:**
+- **Button Layout**: Action buttons now properly wrap text and stay within card boundaries at all sidebar widths
+- **Initialization Feedback**: Users now see immediate visual feedback when project initialization begins
+- **Error Handling**: Enhanced error recovery with proper cleanup of initialization state flags
+- **Validation System**: More robust checking of Python environments, toolchains, and required executables
+- **Configuration Management**: Better event handling for configuration changes with proper async validation
+
+**Technical:**
+- Enhanced `ConfigValidator` with physical manifest validation checking file existence and executable functionality
+- Added `ManifestValidator` module for comprehensive setup validation beyond configuration checks
+- Improved `ProjectConfigManager` and `GlobalConfigManager` with proper event emission for real-time updates
+- Added proper `isInitializing` flag management throughout the initialization workflow
+- Enhanced CSS with layout containment, overflow protection, and smooth progress animations
+- Updated all command files to properly await async validation calls
+
 ### [0.4.2] - 2025-07-23
 
 User Experience Improvements:

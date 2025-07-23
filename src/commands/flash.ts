@@ -108,7 +108,7 @@ export async function flashAndMonitorCommand(
   context: vscode.ExtensionContext
 ): Promise<void> {
   // Check manifest version and setup state
-  const validationResult = ConfigValidator.validateSetupState(config);
+  const validationResult = await ConfigValidator.validateSetupState(config, context, false);
   if (!validationResult.isValid) {
     vscode.window.showErrorMessage(validationResult.error!);
     return;
@@ -150,7 +150,7 @@ export async function flashProbeRsAndMonitorCommand(
   context: vscode.ExtensionContext
 ): Promise<void> {
   // Check manifest version and setup state
-  const validationResult = ConfigValidator.validateSetupState(config);
+  const validationResult = await ConfigValidator.validateSetupState(config, context, false);
   if (!validationResult.isValid) {
     vscode.window.showErrorMessage(validationResult.error!);
     return;

@@ -36,6 +36,7 @@ import {
 
 // Global configuration instance
 let globalConfig: GlobalConfig;
+let sidebarProvider: SidebarWebviewProvider | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
   // Initialize task manager
@@ -51,7 +52,7 @@ export async function activate(context: vscode.ExtensionContext) {
   StatusBarManager.initializeStatusBarItems(context);
 
   // Initialize sidebar webview
-  const sidebarProvider = new SidebarWebviewProvider(context.extensionUri, context);
+  sidebarProvider = new SidebarWebviewProvider(context.extensionUri, context);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(SidebarWebviewProvider.viewType, sidebarProvider)
   );
@@ -60,7 +61,7 @@ export async function activate(context: vscode.ExtensionContext) {
   await updateStatusBarFromConfig(context);
 
   // Register all commands
-  registerCommands(context);
+  registerCommands(context, sidebarProvider);
 
   // Handle pending tasks
   await handlePendingTasks(context);
@@ -86,7 +87,7 @@ function setupEnvironmentVariables(context: vscode.ExtensionContext): void {
   PathManager.restorePaths(globalConfig, context);
 }
 
-function registerCommands(context: vscode.ExtensionContext): void {
+function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWebviewProvider): void {
   // Setup command
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.setup", async () => {

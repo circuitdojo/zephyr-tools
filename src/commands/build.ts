@@ -17,7 +17,7 @@ export async function buildCommand(
   pristine: boolean = false
 ): Promise<void> {
   // Validate setup state and manifest version
-  const setupValidation = ConfigValidator.validateSetupState(config);
+  const setupValidation = await ConfigValidator.validateSetupState(config, context, false);
   if (!setupValidation.isValid) {
     vscode.window.showErrorMessage(setupValidation.error!);
     return;

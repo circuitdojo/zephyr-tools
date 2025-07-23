@@ -75,6 +75,13 @@ export async function initRepoCommand(
   const output = OutputChannelManager.getChannel();
   output.show();
 
+  // Load and update project configuration
+  const project = await ProjectConfigManager.load(context);
+
+  // Set isInitializing flag
+  project.isInitializing = true;
+  await ProjectConfigManager.save(context, project);
+
   try {
     const taskName = "Zephyr Tools: Init Repo";
 
@@ -84,6 +91,10 @@ export async function initRepoCommand(
     // Check if we're in the right workspace
     if (rootPath?.fsPath !== dest.fsPath) {
       console.log("Setting task!");
+
+      // Reset isInitializing flag since we're switching workspaces
+      project.isInitializing = false;
+      await ProjectConfigManager.save(context, project);
 
       // Set init-repo task next
       const task: ZephyrTask = { name: "zephyr-tools.init-repo", data: dest };
@@ -118,6 +129,11 @@ export async function initRepoCommand(
       // Get repository URL
       const url = await DialogManager.getRepositoryUrl();
       if (!url) {
+        // Reset isInitializing flag on cancellation
+        const project = await ProjectConfigManager.load(context);
+        project.isInitializing = false;
+        await ProjectConfigManager.save(context, project);
+        
         vscode.window.showErrorMessage("Zephyr Tools: invalid repository url provided.");
         return;
       }
@@ -214,6 +230,7 @@ export async function initRepoCommand(
         // Set the isInit flag
         const project = await ProjectConfigManager.load(context);
         project.isInit = true;
+        project.isInitializing = false;
         await ProjectConfigManager.save(context, project);
       };
 
@@ -236,6 +253,11 @@ export async function initRepoCommand(
       callbackData: { dest: dest },
     });
   } catch (error) {
+    // Reset isInitializing flag on error
+    const project = await ProjectConfigManager.load(context);
+    project.isInitializing = false;
+    await ProjectConfigManager.save(context, project);
+
     let text = "";
     if (typeof error === "string") {
       text = error;
