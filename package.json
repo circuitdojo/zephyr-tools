@@ -188,10 +188,5 @@
     "node-stream-zip": "^1.15.0",
     "typed-rest-client": "^2.1.0",
     "yaml": "^2.8.0"
-  },
-  "extensionPack": [
-    "ms-vscode.cpptools",
-    "nordic-semiconductor.nrf-devicetree",
-    "nordic-semiconductor.nrf-kconfig"
-  ]
+  }
 }

@@ -10,6 +10,16 @@ Circuit Dojo designed Zephyr Tools to make getting started with Zephyr a snap. M
 - Build and flash your code
 - Bring your own Zephyr modules
 
+## Recommended Extensions
+
+For the best development experience with Zephyr Tools, we recommend installing these VS Code extensions:
+
+- **C/C++ Extension Pack** (`ms-vscode.cpptools`) - Provides IntelliSense, debugging, and code browsing for C/C++ code
+- **nRF DeviceTree** (`nordic-semiconductor.nrf-devicetree`) - Syntax highlighting and IntelliSense for DeviceTree files
+- **nRF Kconfig** (`nordic-semiconductor.nrf-kconfig`) - Syntax highlighting and IntelliSense for Kconfig files
+
+These extensions will be automatically suggested when you open a workspace with Zephyr Tools. You can install them individually from the Extensions marketplace or all at once when prompted.
+
 ## Requirements
 
 ### Mac

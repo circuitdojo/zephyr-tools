@@ -9,6 +9,7 @@ User Experience Improvements:
 - **Setup Required State**: Clean warning interface when Zephyr Tools hasn't been set up
 - **Project Required State**: Guided interface for initializing Zephyr projects in non-Zephyr workspaces
 - **Ready State**: Full functionality when everything is properly configured
+- **Extension Pack Changes**: Converted required extensions to optional recommendations
 
 Added:
 - Smart sidebar state detection based on setup and project initialization status
@@ -16,6 +17,13 @@ Added:
 - Contextual help text explaining next steps for each state
 - Progressive disclosure - only show relevant options for current state
 - Visual consistency with VS Code theme colors and styling patterns
+- Recommended Extensions section in README with clear descriptions
+
+Changed:
+- Extension pack dependencies are now optional workspace recommendations instead of required installations
+- Extensions (C/C++ tools, nRF DeviceTree, nRF Kconfig) are suggested but not forced on users
+- Users receive VS Code notifications to install recommended extensions with choice to accept or decline
+- Updated .vscode/extensions.json to include previous extension pack items as recommendations
 
 Improved:
 - New user onboarding experience with clear guidance
@@ -23,6 +31,7 @@ Improved:
 - Better visual hierarchy with prominent call-to-action buttons
 - Accessibility support maintained across all states
 - Dynamic content rendering with proper event handling
+- User choice and control over extension installation
 
 ### [0.4.1] - 2025-07-23
 
