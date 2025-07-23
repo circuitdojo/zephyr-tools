@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "license": "Apache-2.0",
   "publisher": "circuitdojo",
   "icon": "img/bulb.png",
@@ -37,7 +37,8 @@
     "onCommand:zephyr-tools.clean",
     "onCommand:zephyr-tools.update",
     "onCommand:zephyr-tools.change-runner",
-    "onCommand:zephyr-tools.change-sysbuild"
+    "onCommand:zephyr-tools.change-sysbuild",
+    "onCommand:zephyr-tools.change-probe-rs-settings"
   ],
   "main": "./extension.js",
   "contributes": {
@@ -117,6 +118,10 @@
       {
         "command": "zephyr-tools.change-sysbuild",
         "title": "Zephyr Tools: Change Sysbuild Enable"
+      },
+      {
+        "command": "zephyr-tools.change-probe-rs-settings",
+        "title": "Zephyr Tools: Change probe-rs Settings"
       }
     ]
   },

@@ -2,6 +2,13 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.3.8]
+
+Added: 
+- Caching `probe-rs` settings
+- `Zephyr Tools: Change probe-rs Settings` command for resetting/updating
+
+
 ### [0.3.7]
 
 Added:

@@ -105,6 +105,8 @@ export interface ProjectConfig {
   runner?: string;
   runnerParams?: string;
   sysbuild?: boolean;
+  probeRsProbeId?: string; // Cached probe identifier for probe-rs flashing
+  probeRsChipName?: string; // Cached chip name for probe-rs flashing
 }
 
 // Config for the exention
@@ -828,7 +830,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
       // Flash board
       if (config.isSetup) {
-        await flashProbeRs(config, project);
+        await flashProbeRs(config, project, context);
       } else {
         // Display an error message box to the user
         vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command before flashing.");
@@ -1130,6 +1132,28 @@ export async function activate(context: vscode.ExtensionContext) {
       } else {
         // Display an error message box to the user
         vscode.window.showErrorMessage("Run `Zephyr Toools: Setup` command first.");
+      }
+    }),
+  );
+
+  // Command for changing probe-rs settings
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.change-probe-rs-settings", async () => {
+      // Fetch the project config
+      let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
+
+      // Check if manifest is good
+      if (config.manifestVersion !== manifest.version) {
+        vscode.window.showErrorMessage("An update is required. Run `Zephyr Tools: Setup` command first.");
+        return;
+      }
+
+      // See if config is set first
+      if (config.isSetup) {
+        changeProbeRsSettings(config, context);
+      } else {
+        // Display an error message box to the user
+        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
       }
     }),
   );
@@ -1681,7 +1705,7 @@ async function flash(config: GlobalConfig, project: ProjectConfig) {
 }
 
 // Flash using probe-rs
-async function flashProbeRs(config: GlobalConfig, project: ProjectConfig) {
+async function flashProbeRs(config: GlobalConfig, project: ProjectConfig, context: vscode.ExtensionContext) {
   // Options for ShellExecution
   let options: vscode.ShellExecutionOptions = {
     env: <{ [key: string]: string }>config.env,
@@ -1712,7 +1736,7 @@ async function flashProbeRs(config: GlobalConfig, project: ProjectConfig) {
     return;
   }
 
-  // Check for available probes first
+  // Check for available probes and handle caching
   let probeId: string | undefined;
   const availableProbes = await getAvailableProbes(config);
   if (!availableProbes) {
@@ -1727,21 +1751,49 @@ async function flashProbeRs(config: GlobalConfig, project: ProjectConfig) {
     // Single probe, use it automatically
     probeId = availableProbes[0].probeId;
     console.log(`Using single available probe: ${probeId}`);
-  } else {
-    // Multiple probes, let user choose
-    const selectedProbe = await selectProbe(availableProbes);
-    if (!selectedProbe) {
-      vscode.window.showErrorMessage("No probe selected for probe-rs flashing.");
-      return;
+    
+    // Cache the probe ID for future use
+    if (probeId) {
+      project.probeRsProbeId = probeId;
+      await context.workspaceState.update("zephyr.project", project);
     }
-    probeId = selectedProbe.probeId;
+  } else {
+    // Multiple probes - check if we have a cached probe ID that's still available
+    if (project.probeRsProbeId) {
+      const cachedProbe = availableProbes.find(p => p.probeId === project.probeRsProbeId);
+      if (cachedProbe) {
+        probeId = cachedProbe.probeId;
+        console.log(`Using cached probe: ${probeId}`);
+      }
+    }
+    
+    // If no cached probe or cached probe not found, let user choose
+    if (!probeId) {
+      const selectedProbe = await selectProbe(availableProbes);
+      if (!selectedProbe) {
+        vscode.window.showErrorMessage("No probe selected for probe-rs flashing.");
+        return;
+      }
+      probeId = selectedProbe.probeId;
+      
+      // Cache the selected probe ID
+      if (probeId) {
+        project.probeRsProbeId = probeId;
+        await context.workspaceState.update("zephyr.project", project);
+      }
+    }
   }
 
-  // Get chip name from user selection or use cached value
+  // Get chip name from user selection, cached value, or runner field
   let chipName: string | undefined;
   
+  // First check if we have a cached chip name
+  if (project.probeRsChipName) {
+    chipName = project.probeRsChipName;
+    console.log(`Using cached chip name: ${chipName}`);
+  }
   // Use runner field as chip name if specified, otherwise prompt user
-  if (project.runner && project.runner !== "default") {
+  else if (project.runner && project.runner !== "default") {
     chipName = project.runner;
   } else {
     // Get available chips from probe-rs
@@ -1750,6 +1802,10 @@ async function flashProbeRs(config: GlobalConfig, project: ProjectConfig) {
       vscode.window.showErrorMessage("No chip selected for probe-rs flashing.");
       return;
     }
+    
+    // Cache the selected chip name
+    project.probeRsChipName = chipName;
+    await context.workspaceState.update("zephyr.project", project);
   }
 
   // Command - use probe-rs download with the merged.hex file
@@ -2195,6 +2251,11 @@ async function changeProject(config: GlobalConfig, context: vscode.ExtensionCont
     console.log("Changing project to " + result);
     vscode.window.showInformationMessage(`Project changed to ${result}`);
     project.target = result;
+    
+    // Clear probe-rs cache when changing projects
+    project.probeRsProbeId = undefined;
+    project.probeRsChipName = undefined;
+    
     await context.workspaceState.update("zephyr.project", project);
     
     // Update status bar
@@ -2246,6 +2307,11 @@ async function changeBoard(config: GlobalConfig, context: vscode.ExtensionContex
     console.log("Changing board to " + result);
     vscode.window.showInformationMessage(`Board changed to ${result}`);
     project.board = result;
+    
+    // Clear probe-rs cache when changing boards
+    project.probeRsProbeId = undefined;
+    project.probeRsChipName = undefined;
+    
     await context.workspaceState.update("zephyr.project", project);
     
     // Update status bar
@@ -2818,6 +2884,119 @@ function updateProjectStatusBar(target?: string) {
   } else {
     projectStatusBarItem.text = "$(folder) No Project";
     projectStatusBarItem.tooltip = "No project selected\nClick to select project";
+  }
+}
+
+// Change probe-rs settings (probe ID and chip name)
+async function changeProbeRsSettings(config: GlobalConfig, context: vscode.ExtensionContext) {
+  let project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
+
+  // Show current settings
+  const currentProbe = project.probeRsProbeId ? `Probe ID: ${project.probeRsProbeId}` : "No probe configured";
+  const currentChip = project.probeRsChipName ? `Chip: ${project.probeRsChipName}` : "No chip configured";
+  
+  // Options for what to change
+  const changeOptions = [
+    {
+      label: "Change Probe",
+      description: currentProbe,
+      action: "probe"
+    },
+    {
+      label: "Change Chip Name", 
+      description: currentChip,
+      action: "chip"
+    },
+    {
+      label: "Change Both",
+      description: "Reconfigure probe and chip",
+      action: "both"
+    },
+    {
+      label: "Clear All Settings",
+      description: "Remove cached probe-rs configuration",
+      action: "clear"
+    }
+  ];
+
+  const selectedOption = await vscode.window.showQuickPick(changeOptions, {
+    title: "Configure probe-rs Settings",
+    placeHolder: "What would you like to change?",
+    ignoreFocusOut: true,
+  });
+
+  if (!selectedOption) {
+    return; // User canceled
+  }
+
+  switch (selectedOption.action) {
+    case "probe":
+      await changeProbeSelection(config, project, context);
+      break;
+    case "chip":
+      await changeChipSelection(config, project, context);
+      break;
+    case "both":
+      await changeProbeSelection(config, project, context);
+      // Reload project config in case it was updated
+      project = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
+      await changeChipSelection(config, project, context);
+      break;
+    case "clear":
+      await clearProbeRsSettings(project, context);
+      break;
+  }
+}
+
+// Change probe selection
+async function changeProbeSelection(config: GlobalConfig, project: ProjectConfig, context: vscode.ExtensionContext) {
+  const availableProbes = await getAvailableProbes(config);
+  if (!availableProbes || availableProbes.length === 0) {
+    vscode.window.showErrorMessage("No debug probes found. Please connect a probe and try again.");
+    return;
+  }
+
+  const selectedProbe = await selectProbe(availableProbes);
+  if (!selectedProbe) {
+    vscode.window.showWarningMessage("No probe selected. Probe configuration unchanged.");
+    return;
+  }
+
+  // Update project config
+  project.probeRsProbeId = selectedProbe.probeId;
+  await context.workspaceState.update("zephyr.project", project);
+  
+  const probeInfo = selectedProbe.probeId ? `(ID: ${selectedProbe.probeId})` : "";
+  vscode.window.showInformationMessage(`Probe updated to: ${selectedProbe.name} ${probeInfo}`);
+}
+
+// Change chip selection
+async function changeChipSelection(config: GlobalConfig, project: ProjectConfig, context: vscode.ExtensionContext) {
+  const chipName = await getProbeRsChipName(config);
+  if (!chipName) {
+    vscode.window.showWarningMessage("No chip selected. Chip configuration unchanged.");
+    return;
+  }
+
+  // Update project config  
+  project.probeRsChipName = chipName;
+  await context.workspaceState.update("zephyr.project", project);
+  
+  vscode.window.showInformationMessage(`Chip name updated to: ${chipName}`);
+}
+
+// Clear all probe-rs settings
+async function clearProbeRsSettings(project: ProjectConfig, context: vscode.ExtensionContext) {
+  const hadSettings = project.probeRsProbeId || project.probeRsChipName;
+  
+  project.probeRsProbeId = undefined;
+  project.probeRsChipName = undefined;
+  await context.workspaceState.update("zephyr.project", project);
+  
+  if (hadSettings) {
+    vscode.window.showInformationMessage("probe-rs settings cleared. Next flash will prompt for probe and chip selection.");
+  } else {
+    vscode.window.showInformationMessage("No probe-rs settings were configured.");
   }
 }
 
