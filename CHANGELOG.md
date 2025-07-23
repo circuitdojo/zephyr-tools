@@ -2,6 +2,35 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.4.0] - 2025-07-23
+
+Major Release 0.4.0 - 2025-07-23
+
+A comprehensive overhaul with improvements in architecture, maintainability, and user experience. Key highlights include:
+
+Architecture and Code:
+- Modular design with distinct modules for commands, configuration, UI, hardware management, and more.
+- Improved TypeScript practices and error handling.
+- Centralized configuration and task management.
+
+User Experience Improvements:
+- Enhanced auto-prompting for configuration.
+- Restored seamless folder selection.
+- Improved build and flash commands to match original behavior.
+
+Technical Improvements:
+- Centralized validation and dialog management.
+- Better error messaging and code organization.
+
+Bug Fixes and Compatibility:
+- Resolved build and repo initialization errors.
+- Fixed TypeScript compilation issues.
+
+Developer Experience:
+- Comprehensive documentation and improved tooling.
+
+This release ensures backward compatibility while enhancing reliability and maintainability.
+
 ### [0.3.8]
 
 Added: 
