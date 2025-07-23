@@ -2,6 +2,38 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.3.7]
+
+Added:
+
+- Status bar items showing current board and project selection with clickable interface
+- Visual indicators for board (circuit-board icon) and project (folder icon) in status bar
+- Interactive tooltips displaying full names and click instructions for status bar items
+- Smart text truncation for long board and project names in status bar display
+- Support for probe-rs flashing with automatic chip detection and user selection
+- Enhanced hex file path resolution for probe-rs (checks both zephyr subdirectory and board directory)
+- Automatic status bar updates when board or project configuration changes
+- Intelligent probe selection for probe-rs flashing with support for multiple connected probes
+- Automatic probe identifier extraction from probe-rs list output for precise probe targeting
+- Enhanced probe parsing supporting both CMSIS-DAP (VID:PID:Serial) and J-Link (Serial) probe formats
+- Probe-specific command execution using --probe flag for both download and reset operations
+
+Changed:
+
+- Status bar items positioned on the right side of VS Code status bar
+- Flash probe-rs command now uses TaskManager for proper error handling and user feedback
+- Improved error messaging for probe-rs flashing failures (connection and chip selection issues)
+- Enhanced user experience with one-click access to board and project change dialogs
+- Probe-rs commands now include specific probe identifiers when multiple probes are connected
+- Probe selection interface displays full probe descriptions with extracted identifiers
+
+Fixed:
+
+- Probe-rs flashing errors now display in user-visible error popups instead of console only
+- Missing hex file detection with clear error messages for both possible file locations
+- Status bar items properly disposed on extension deactivation to prevent memory leaks
+- Multiple probe scenarios now work correctly with proper probe identification and selection
+
 ### [0.3.6]
 
 Added:
