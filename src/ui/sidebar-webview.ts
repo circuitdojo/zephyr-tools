@@ -8,6 +8,13 @@ import * as vscode from "vscode";
 import { GlobalConfigManager, ProjectConfigManager } from "../config";
 import { GlobalConfig, ProjectConfig } from "../types";
 
+interface SidebarState {
+  type: 'setup-required' | 'project-required' | 'ready';
+  config: GlobalConfig;
+  project: ProjectConfig;
+  hasWorkspace: boolean;
+}
+
 export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'zephyrToolsSidebar';
 
@@ -62,15 +69,49 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
     if (this._view) {
       const config = await GlobalConfigManager.load(this.context);
       const project = await ProjectConfigManager.load(this.context);
+      const state = this.determineState(config, project);
       
       this._view.webview.postMessage({
         type: 'update',
         data: {
+          state,
           config,
           project
         }
       });
     }
+  }
+
+  private determineState(config: GlobalConfig, project: ProjectConfig): SidebarState {
+    const hasWorkspace = (vscode.workspace.workspaceFolders?.length ?? 0) > 0;
+    
+    // Check if setup is required
+    if (!config.isSetup) {
+      return {
+        type: 'setup-required',
+        config,
+        project,
+        hasWorkspace
+      };
+    }
+    
+    // Check if project initialization is required
+    if (!project.isInit) {
+      return {
+        type: 'project-required',
+        config,
+        project,
+        hasWorkspace
+      };
+    }
+    
+    // All good - ready state
+    return {
+      type: 'ready',
+      config,
+      project,
+      hasWorkspace
+    };
   }
 
   private _getHtmlForWebview(webview: vscode.Webview) {

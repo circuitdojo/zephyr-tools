@@ -2,6 +2,28 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.4.2] - 2025-07-23
+
+User Experience Improvements:
+- Enhanced sidebar with intelligent state detection and contextual UI
+- **Setup Required State**: Clean warning interface when Zephyr Tools hasn't been set up
+- **Project Required State**: Guided interface for initializing Zephyr projects in non-Zephyr workspaces
+- **Ready State**: Full functionality when everything is properly configured
+
+Added:
+- Smart sidebar state detection based on setup and project initialization status
+- State-specific UI rendering with appropriate guidance and available actions
+- Contextual help text explaining next steps for each state
+- Progressive disclosure - only show relevant options for current state
+- Visual consistency with VS Code theme colors and styling patterns
+
+Improved:
+- New user onboarding experience with clear guidance
+- Reduced confusion from disabled buttons and unclear error states
+- Better visual hierarchy with prominent call-to-action buttons
+- Accessibility support maintained across all states
+- Dynamic content rendering with proper event handling
+
 ### [0.4.1] - 2025-07-23
 
 Added:

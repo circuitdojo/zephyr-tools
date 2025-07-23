@@ -146,6 +146,95 @@
   grid-column: 1 / -1;
 }
 
+/* State-specific Cards */
+.setup-required {
+  background: var(--vscode-inputValidation-warningBackground, var(--vscode-editor-background));
+  border-color: var(--vscode-inputValidation-warningBorder, var(--vscode-widget-border));
+}
+
+.project-required {
+  background: var(--vscode-inputValidation-infoBackground, var(--vscode-editor-background));
+  border-color: var(--vscode-inputValidation-infoBorder, var(--vscode-widget-border));
+}
+
+.state-message {
+  color: var(--vscode-foreground);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 8px 0 16px 0;
+  opacity: 0.9;
+}
+
+.state-action {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.state-info {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--vscode-widget-border);
+}
+
+.info-text {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  margin: 4px 0;
+  line-height: 1.3;
+}
+
+/* Enhanced button styles for primary state */
+.action-btn.primary {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border-color: var(--vscode-button-background);
+  font-weight: 600;
+}
+
+.action-btn.primary:hover {
+  background: var(--vscode-button-hoverBackground);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Make single buttons full width in state screens */
+.setup-required .action-btn,
+.project-required .action-btn {
+  min-width: 120px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.setup-required .state-action .action-btn {
+  grid-column: 1 / -1;
+}
+
+/* Ensure proper text wrapping for project-required action buttons */
+.project-required .action-grid {
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.project-required .action-btn {
+  width: 100%;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.project-required .action-btn .action-text {
+  font-size: 10px;
+  line-height: 1.1;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  text-align: center;
+  max-width: 100%;
+}
+
 /* Advanced Settings Card */
 .settings-list {
   display: flex;
@@ -193,7 +282,7 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 300px) {
+@media (max-width: 350px) {
   .action-grid {
     grid-template-columns: 1fr;
   }
@@ -208,6 +297,80 @@
   .action-icon {
     margin-right: 8px;
   }
+  
+  /* Override project-required specific styles for mobile */
+  .project-required .action-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .project-required .action-btn .action-text {
+    font-size: 11px;
+    line-height: 1.2;
+  }
+}
+
+/* Additional breakpoint for very narrow sidebars */
+@media (max-width: 250px) {
+  .container {
+    padding: 4px;
+  }
+  
+  .card {
+    padding: 8px;
+  }
+  
+  .action-btn {
+    padding: 6px 8px;
+    min-height: 36px;
+  }
+  
+  .action-text, .project-required .action-btn .action-text {
+    font-size: 10px;
+  }
+}
+
+/* Extreme narrow width protection */
+@media (max-width: 200px) {
+  .container {
+    padding: 2px;
+  }
+  
+  .card {
+    padding: 6px;
+    margin-bottom: 8px;
+  }
+  
+  .project-required .action-grid {
+    gap: 4px;
+  }
+  
+  .project-required .action-btn {
+    padding: 4px 6px;
+    min-height: 32px;
+    min-width: 0;
+    font-size: 9px;
+  }
+  
+  .project-required .action-btn .action-text {
+    font-size: 9px;
+    line-height: 1.0;
+  }
+  
+  .action-icon {
+    font-size: 12px;
+  }
+}
+
+/* Force overflow containment at all widths */
+.project-required .action-grid,
+.project-required .action-btn {
+  contain: layout;
+}
+
+.card {
+  overflow: hidden;
+  contain: layout;
 }
 
 /* Loading states */
