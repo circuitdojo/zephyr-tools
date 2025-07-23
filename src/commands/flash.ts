@@ -35,6 +35,11 @@ export async function flashCommand(
     }
   }
 
+  // Check if this is a Circuit Dojo board - if so, use probe-rs command instead
+  if (project.board.toLowerCase().includes('circuitdojo')) {
+    return await flashProbeRsCommand(config, context);
+  }
+
   // Auto-prompt for project target if undefined (replicates old extension behavior)
   if (!project.target) {
     await changeProjectCommand(config, context);
@@ -111,6 +116,11 @@ export async function flashAndMonitorCommand(
 
   try {
     const project = await ProjectConfigManager.load(context);
+
+    // Check if this is a Circuit Dojo board - if so, use probe-rs version instead
+    if (project.board && project.board.toLowerCase().includes('circuitdojo')) {
+      return await flashProbeRsAndMonitorCommand(config, context);
+    }
 
     // Step 1: Flash the device
     await flashCommand(config, context);

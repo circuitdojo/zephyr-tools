@@ -143,10 +143,6 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
                 <span class="action-icon">🔗</span>
                 <span class="action-text">Flash & Monitor</span>
               </button>
-              <button class="action-btn tertiary" data-command="zephyr-tools.flash-probe-rs-and-monitor">
-                <span class="action-icon">🔬</span>
-                <span class="action-text">Flash via probe-rs & Monitor</span>
-              </button>
               <button class="action-btn tertiary" data-command="zephyr-tools.load">
                 <span class="action-icon">📱</span>
                 <span class="action-text">Load via Bootloader</span>

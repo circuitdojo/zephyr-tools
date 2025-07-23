@@ -141,8 +141,8 @@
   line-height: 1.2;
 }
 
-/* Full-width button for the 8th item (Monitor) */
-.action-grid .action-btn:nth-child(8) {
+/* Full-width button for the 7th item (Monitor) */
+.action-grid .action-btn:nth-child(7) {
   grid-column: 1 / -1;
 }
 
