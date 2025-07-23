@@ -129,8 +129,12 @@ const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
 // Output Channel
 let output: vscode.OutputChannel;
 
-// Configuratoin
+// Configuration
 let config: GlobalConfig;
+
+// Status bar items
+let boardStatusBarItem: vscode.StatusBarItem;
+let projectStatusBarItem: vscode.StatusBarItem;
 
 // this method is called when your extension is activated
 // Function to find a suitable Python 3.10+ version
@@ -1182,6 +1186,9 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
   );
 
+  // Initialize status bar items
+  initializeStatusBarItems(context);
+
   // Check if there's a task to run
   let task: ZephyrTask | undefined = context.globalState.get("zephyr.task");
   if (task !== undefined && task.name !== undefined) {
@@ -2189,6 +2196,9 @@ async function changeProject(config: GlobalConfig, context: vscode.ExtensionCont
     vscode.window.showInformationMessage(`Project changed to ${result}`);
     project.target = result;
     await context.workspaceState.update("zephyr.project", project);
+    
+    // Update status bar
+    updateProjectStatusBar(project.target);
   }
 }
 
@@ -2237,6 +2247,9 @@ async function changeBoard(config: GlobalConfig, context: vscode.ExtensionContex
     vscode.window.showInformationMessage(`Board changed to ${result}`);
     project.board = result;
     await context.workspaceState.update("zephyr.project", project);
+    
+    // Update status bar
+    updateBoardStatusBar(project.board);
   }
 }
 
@@ -2747,5 +2760,74 @@ async function clean(config: GlobalConfig, project: ProjectConfig) {
   vscode.window.showInformationMessage(`Cleaning ${project.target}`);
 }
 
+// Initialize status bar items
+function initializeStatusBarItems(context: vscode.ExtensionContext) {
+  // Create board status bar item
+  boardStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+  boardStatusBarItem.command = "zephyr-tools.change-board";
+  boardStatusBarItem.tooltip = "Click to change board";
+  context.subscriptions.push(boardStatusBarItem);
+  
+  // Create project status bar item
+  projectStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
+  projectStatusBarItem.command = "zephyr-tools.change-project";
+  projectStatusBarItem.tooltip = "Click to change project";
+  context.subscriptions.push(projectStatusBarItem);
+  
+  // Initial update of status bar items
+  updateStatusBarItems(context);
+  
+  // Show the status bar items
+  boardStatusBarItem.show();
+  projectStatusBarItem.show();
+}
+
+// Update status bar items with current board and project
+function updateStatusBarItems(context: vscode.ExtensionContext) {
+  const project: ProjectConfig = context.workspaceState.get("zephyr.project") ?? DEFAULT_PROJECT_CONFIG;
+  
+  updateBoardStatusBar(project.board);
+  updateProjectStatusBar(project.target);
+}
+
+// Update board status bar item
+function updateBoardStatusBar(board?: string) {
+  if (!boardStatusBarItem) return;
+  
+  if (board) {
+    // Truncate long board names for display
+    const displayBoard = board.length > 30 ? board.substring(0, 27) + "..." : board;
+    boardStatusBarItem.text = `$(circuit-board) ${displayBoard}`;
+    boardStatusBarItem.tooltip = `Board: ${board}\nClick to change board`;
+  } else {
+    boardStatusBarItem.text = "$(circuit-board) No Board";
+    boardStatusBarItem.tooltip = "No board selected\nClick to select board";
+  }
+}
+
+// Update project status bar item
+function updateProjectStatusBar(target?: string) {
+  if (!projectStatusBarItem) return;
+  
+  if (target) {
+    // Extract just the project name from the full path
+    const projectName = path.basename(target);
+    const displayProject = projectName.length > 25 ? projectName.substring(0, 22) + "..." : projectName;
+    projectStatusBarItem.text = `$(folder) ${displayProject}`;
+    projectStatusBarItem.tooltip = `Project: ${target}\nClick to change project`;
+  } else {
+    projectStatusBarItem.text = "$(folder) No Project";
+    projectStatusBarItem.tooltip = "No project selected\nClick to select project";
+  }
+}
+
 // this method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+  // Dispose status bar items
+  if (boardStatusBarItem) {
+    boardStatusBarItem.dispose();
+  }
+  if (projectStatusBarItem) {
+    projectStatusBarItem.dispose();
+  }
+}
