@@ -1,0 +1,230 @@
+/* Zephyr Tools Sidebar Styles */
+.container {
+  padding: 8px;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+/* Card Styles */
+.card {
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-widget-border);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--vscode-widget-border);
+  padding-bottom: 6px;
+}
+
+/* Project Status Card */
+.project-status .status-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status-item {
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 4px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.status-item:hover {
+  background: var(--vscode-list-hoverBackground);
+  border-color: var(--vscode-focusBorder);
+}
+
+.status-label {
+  font-weight: 500;
+  color: var(--vscode-foreground);
+  min-width: 60px;
+  font-size: 12px;
+}
+
+.status-value {
+  flex: 1;
+  color: var(--vscode-textPreformat-foreground);
+  font-size: 12px;
+  margin-left: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-edit {
+  opacity: 0.6;
+  margin-left: 4px;
+  font-size: 10px;
+}
+
+.status-item:hover .status-edit {
+  opacity: 1;
+}
+
+/* Quick Actions Card */
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.action-btn {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: 1px solid var(--vscode-button-border);
+  border-radius: 4px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 60px;
+}
+
+.action-btn:hover {
+  background: var(--vscode-button-hoverBackground);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.action-btn:active {
+  transform: translateY(0);
+}
+
+.action-btn.primary {
+  background: var(--vscode-button-background);
+  border-color: var(--vscode-button-background);
+}
+
+.action-btn.secondary {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border-color: var(--vscode-button-secondaryBackground);
+}
+
+.action-btn.accent {
+  background: var(--vscode-textLink-foreground);
+  color: var(--vscode-button-foreground);
+  border-color: var(--vscode-textLink-foreground);
+}
+
+.action-btn.tertiary {
+  background: var(--vscode-input-background);
+  color: var(--vscode-foreground);
+  border-color: var(--vscode-input-border);
+}
+
+.action-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.action-text {
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Full-width button for the 8th item (Monitor) */
+.action-grid .action-btn:nth-child(8) {
+  grid-column: 1 / -1;
+}
+
+/* Advanced Settings Card */
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setting-item {
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.setting-item:hover {
+  background: var(--vscode-list-hoverBackground);
+  border-color: var(--vscode-focusBorder);
+}
+
+.setting-icon {
+  margin-right: 10px;
+  font-size: 14px;
+}
+
+.setting-text {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--vscode-foreground);
+}
+
+.setting-arrow {
+  opacity: 0.6;
+  font-size: 12px;
+  color: var(--vscode-foreground);
+}
+
+.setting-item:hover .setting-arrow {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 300px) {
+  .action-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .action-btn {
+    flex-direction: row;
+    justify-content: flex-start;
+    min-height: 40px;
+    padding: 8px 12px;
+  }
+  
+  .action-icon {
+    margin-right: 8px;
+  }
+}
+
+/* Loading states */
+.status-value.loading {
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+}
+
+/* Disabled states */
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.action-btn:disabled:hover {
+  background: var(--vscode-button-background);
+  transform: none;
+  box-shadow: none;
+}

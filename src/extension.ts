@@ -7,7 +7,7 @@
 import * as vscode from "vscode";
 import { GlobalConfigManager, ProjectConfigManager } from "./config";
 import { TaskManager } from "./tasks";
-import { StatusBarManager, OutputChannelManager, DialogManager, activateSidebar } from "./ui";
+import { StatusBarManager, OutputChannelManager, DialogManager, SidebarWebviewProvider } from "./ui";
 import { PathManager } from "./environment";
 import { GlobalConfig, ProjectConfig } from "./types";
 import {
@@ -17,12 +17,12 @@ import {
   flashCommand,
   flashProbeRsCommand,
   flashAndMonitorCommand,
+  flashProbeRsAndMonitorCommand,
   loadCommand,
   loadAndMonitorCommand,
   setupNewtmgrCommand,
   monitorCommand,
   setupMonitorCommand,
-  toggleSerialLoggingCommand,
   changeProjectCommand,
   initRepoCommand,
   changeBoardCommand,
@@ -50,8 +50,11 @@ export async function activate(context: vscode.ExtensionContext) {
   // Initialize status bar
   StatusBarManager.initializeStatusBarItems(context);
 
-  // Initialize sidebar
-  activateSidebar(context);
+  // Initialize sidebar webview
+  const sidebarProvider = new SidebarWebviewProvider(context.extensionUri, context);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(SidebarWebviewProvider.viewType, sidebarProvider)
+  );
 
   // Load project config and update status bar
   await updateStatusBarFromConfig(context);
@@ -169,6 +172,16 @@ function registerCommands(context: vscode.ExtensionContext): void {
     })
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.flash-probe-rs-and-monitor", async () => {
+      if (!globalConfig.isSetup) {
+        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
+        return;
+      }
+      await flashProbeRsAndMonitorCommand(globalConfig, context);
+    })
+  );
+
   // Load commands
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.load", async () => {
@@ -210,12 +223,6 @@ function registerCommands(context: vscode.ExtensionContext): void {
     })
   );
 
-  // Toggle serial logging
-  context.subscriptions.push(
-    vscode.commands.registerCommand("zephyr-tools.toggle-serial-logging", async () => {
-      await toggleSerialLoggingCommand(globalConfig, context);
-    })
-  );
 
   // Board management
   context.subscriptions.push(

@@ -28,6 +28,7 @@
     "onCommand:zephyr-tools.flash",
     "onCommand:zephyr-tools.flash-probe-rs",
     "onCommand:zephyr-tools.flash-and-monitor",
+    "onCommand:zephyr-tools.flash-probe-rs-and-monitor",
     "onCommand:zephyr-tools.setup-newtmgr",
     "onCommand:zephyr-tools.monitor",
     "onCommand:zephyr-tools.setup-monitor",
@@ -79,6 +80,10 @@
       {
         "command": "zephyr-tools.flash-and-monitor",
         "title": "Zephyr Tools: Flash and Monitor"
+      },
+      {
+        "command": "zephyr-tools.flash-probe-rs-and-monitor",
+        "title": "Zephyr Tools: Flash with probe-rs and Monitor"
       },
       {
         "command": "zephyr-tools.load",
@@ -134,13 +139,14 @@
         {
           "id": "zephyr-tools",
           "title": "Zephyr Tools",
-          "icon": "$(circuit-board)"
+          "icon": "./icons/bulb.svg"
         }
       ]
     },
     "views": {
       "zephyr-tools": [
         {
+          "type": "webview",
           "id": "zephyrToolsSidebar",
           "name": "Project",
           "when": ""

@@ -135,6 +135,43 @@ export async function flashAndMonitorCommand(
   }
 }
 
+export async function flashProbeRsAndMonitorCommand(
+  config: GlobalConfig,
+  context: vscode.ExtensionContext
+): Promise<void> {
+  // Check manifest version and setup state
+  const validationResult = ConfigValidator.validateSetupState(config);
+  if (!validationResult.isValid) {
+    vscode.window.showErrorMessage(validationResult.error!);
+    return;
+  }
+
+  try {
+    const project = await ProjectConfigManager.load(context);
+
+    // Step 1: Flash the device with probe-rs
+    await flashProbeRsCommand(config, context);
+
+    // Step 2: Set up serial port if not configured
+    if (!project.port) {
+      const port = await SerialPortManager.selectPort(config);
+      if (!port) {
+        vscode.window.showErrorMessage("Error obtaining serial port for monitoring.");
+        return;
+      }
+      
+      project.port = port;
+      await ProjectConfigManager.save(context, project);
+    }
+
+    // Step 3: Start monitoring
+    await monitorCommand(config, context);
+    
+  } catch (error) {
+    vscode.window.showErrorMessage(`Flash via probe-rs and monitor failed: ${error}`);
+  }
+}
+
 export async function flashProbeRsCommand(
   config: GlobalConfig,
   context: vscode.ExtensionContext
