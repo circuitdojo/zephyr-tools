@@ -42,7 +42,7 @@
     "onCommand:zephyr-tools.change-sysbuild",
     "onCommand:zephyr-tools.change-probe-rs-settings"
   ],
-  "main": "./dist/extension.js",
+  "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
