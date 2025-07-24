@@ -6,7 +6,7 @@
     {
       "type": "npm",
       "script": "compile",
-      "problemMatcher": "$tsc",
+      "problemMatcher": ["$esbuild"],
       "group": {
         "kind": "build",
         "isDefault": true
@@ -14,8 +14,16 @@
     },
     {
       "type": "npm",
+      "script": "compile:tsc",
+      "problemMatcher": "$tsc",
+      "group": {
+        "kind": "build"
+      }
+    },
+    {
+      "type": "npm",
       "script": "watch",
-      "problemMatcher": "$tsc-watch",
+      "problemMatcher": ["$esbuild-watch"],
       "isBackground": true,
       "presentation": {
         "reveal": "never"

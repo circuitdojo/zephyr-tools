@@ -149,6 +149,9 @@ async function processDownload(
     context.environmentVariableCollection.prepend("PATH", copytopath + pathdivider);
   }
 
+  console.log("PATH: "+config.env["PATH"]);
+  output.appendLine(`[SETUP] PATH: ${config.env["PATH"]}`);
+
   // Set remaining environment variables
   for (const entry of download.env ?? []) {
     if (entry.value) {

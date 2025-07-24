@@ -1,12 +1,11 @@
-**/*.ts
 **/*.map
 .vscode/**
 .vscode-test/**
 .github/**
-src/**
-out/**
 node_modules/**
 !node_modules/7zip-bin/**
+out/test/**
+src/**
 .gitignore
 .gitattributes
 tsconfig.json
@@ -17,5 +16,9 @@ webpack.config.js
 .git/**
 *.log
 test/**
-extension.js
 extension.js.map
+**/*.md
+!changelog.md
+!LICENSE.md
+!readme.md
+.nvmrc

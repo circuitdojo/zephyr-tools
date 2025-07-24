@@ -143,7 +143,8 @@
           "name": "probe-rs",
           "filename": "probe-rs-tools-x86_64-apple-darwin.tar.xz",
           "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.29.1/probe-rs-tools-x86_64-apple-darwin.tar.xz",
-          "md5": "453cd9dd049b8a2e80fb8eb61ac03993"
+          "md5": "453cd9dd049b8a2e80fb8eb61ac03993",
+          "suffix": "probe-rs-tools-x86_64-apple-darwin/"
         }
       ],
       "toolchains": [
@@ -239,7 +240,8 @@
           "name": "probe-rs",
           "filename": "probe-rs-tools-aarch64-apple-darwin.tar.xz",
           "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.29.1/probe-rs-tools-aarch64-apple-darwin.tar.xz",
-          "md5": "7627fcd90b2a9399a535cef434767ee3"
+          "md5": "7627fcd90b2a9399a535cef434767ee3",
+          "suffix": "probe-rs-tools-aarch64-apple-darwin/"
         }
       ],
       "toolchains": [
@@ -343,7 +345,8 @@
           "name": "probe-rs",
           "filename": "probe-rs-tools-x86_64-unknown-linux-gnu.tar.xz",
           "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.29.1/probe-rs-tools-x86_64-unknown-linux-gnu.tar.xz",
-          "md5": "01be4d05d6b7ced308f43a0c55865f03"
+          "md5": "01be4d05d6b7ced308f43a0c55865f03", 
+          "suffix": "probe-rs-tools-x86_64-unknown-linux-gnu/"
         }
       ],
       "toolchains": [

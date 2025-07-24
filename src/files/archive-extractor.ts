@@ -75,7 +75,7 @@ export class ArchiveExtractor {
       // Make extracted files executable on non-Windows platforms
       if (platform !== "win32") {
         try {
-          await exec(`find "${destination}" -type f -exec chmod +x {} \;`);
+          await exec(`find "${destination}" -type f -exec chmod +x {} +`);
         } catch (chmodError) {
           // Don't fail extraction if chmod fails
           console.log(`chmod warning: ${chmodError}`);
