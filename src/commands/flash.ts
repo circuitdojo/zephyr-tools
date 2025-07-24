@@ -14,6 +14,8 @@ import { monitorCommand } from "./monitor";
 import { changeBoardCommand } from "./board-management";
 import { changeProjectCommand } from "./project-management";
 import { ProjectConfig } from "../types";
+import { PlatformUtils } from "../utils";
+
 
 export async function flashCommand(
   config: GlobalConfig,
@@ -314,7 +316,8 @@ export async function flashProbeRsCommand(
   }
 
   // Command - use probe-rs download with the merged.hex file
-  let cmd = `probe-rs download --chip ${chipName} --binary-format hex ${hexFilePath}`;
+  const tools = PlatformUtils.getToolExecutables();
+  let cmd = `${tools.probeRs} download --chip ${chipName} --binary-format hex ${hexFilePath}`;
   
   // Append --probe flag if probeId is available
   if (probeId) {
@@ -364,7 +367,7 @@ export async function flashProbeRsCommand(
     console.log("Flash task completed successfully, now resetting device...");
     
     // Reset the device after successful programming
-    let resetCmd = `probe-rs reset --chip ${chipName}`;
+    let resetCmd = `${tools.probeRs} reset --chip ${chipName}`;
     
     // Append --probe flag if probeId is available
     if (probeId) {

@@ -9,13 +9,16 @@ import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as util from 'util';
 import { ProbeInfo } from '../types';
+import { PlatformUtils } from '../utils';
 
 export class ProbeManager {
+
 
   static async getAvailableProbes(): Promise<ProbeInfo[] | null> {
     try {
       const exec = util.promisify(cp.exec);
-      const cmd = `probe-rs list`;
+      const tools = PlatformUtils.getToolExecutables();
+      const cmd = `${tools.probeRs} list`;
       const result = await exec(cmd);
 
       if (result.stderr && result.stderr.trim() !== "") {
@@ -66,7 +69,8 @@ export class ProbeManager {
   static async getProbeRsChipName(): Promise<string | undefined> {
     try {
       const exec = util.promisify(cp.exec);
-      const cmd = `probe-rs chip list`;
+      const tools = PlatformUtils.getToolExecutables();
+      const cmd = `${tools.probeRs} chip list`;
       const result = await exec(cmd);
 
       if (result.stderr) {

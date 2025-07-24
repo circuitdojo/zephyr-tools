@@ -45,4 +45,15 @@ export class PlatformUtils {
       return inputPath.replace(/\\/g, "/");
     }
   }
+
+  /**
+   * Get platform-specific executable names for tools used by Zephyr Tools
+   */
+  static getToolExecutables() {
+    return {
+      probeRs: `probe-rs${this.getExecutableExtension()}`,
+      newtmgr: `newtmgr${this.getExecutableExtension()}`,
+      zephyrTools: `zephyr-tools${this.getExecutableExtension()}`
+    };
+  }
 }

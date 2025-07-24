@@ -8,6 +8,7 @@ import * as util from "util";
 import * as cp from "child_process";
 import { GlobalConfig } from "../types";
 import { OutputChannelManager } from "../ui";
+import { PlatformUtils } from "../utils";
 
 /**
  * Manages newtmgr connection profiles and operations
@@ -26,7 +27,8 @@ export class NewtmgrManager {
     const exec = util.promisify(cp.exec);
     
     try {
-      const cmd = `newtmgr conn add ${this.PROFILE_NAME} type=serial connstring="dev=${port},baud=${baud}"`;
+      const tools = PlatformUtils.getToolExecutables();
+      const cmd = `${tools.newtmgr} conn add ${this.PROFILE_NAME} type=serial connstring="dev=${port},baud=${baud}"`;
       const result = await exec(cmd, { env: config.env });
       
       if (result.stderr) {
@@ -50,7 +52,8 @@ export class NewtmgrManager {
     const exec = util.promisify(cp.exec);
     
     try {
-      const cmd = "newtmgr conn show";
+      const tools = PlatformUtils.getToolExecutables();
+      const cmd = `${tools.newtmgr} conn show`;
       const result = await exec(cmd, { env: config.env });
       
       if (result.stderr) {
@@ -81,7 +84,8 @@ export class NewtmgrManager {
     const exec = util.promisify(cp.exec);
     
     try {
-      await exec("newtmgr version", { env: config.env });
+      const tools = PlatformUtils.getToolExecutables();
+      await exec(`${tools.newtmgr} version`, { env: config.env });
       return true;
     } catch (error) {
       return false;
