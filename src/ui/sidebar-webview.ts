@@ -269,6 +269,11 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
                 <span class="setting-text">Probe-rs Settings</span>
                 <span class="setting-arrow">→</span>
               </div>
+              <div class="setting-item" data-command="zephyr-tools.setup-newtmgr">
+                <span class="setting-icon">📱</span>
+                <span class="setting-text">Setup Newtmgr</span>
+                <span class="setting-arrow">→</span>
+              </div>
             </div>
           </div>
         </div>
