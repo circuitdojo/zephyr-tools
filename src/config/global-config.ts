@@ -6,6 +6,7 @@
 
 import * as vscode from "vscode";
 import { GlobalConfig } from "../types";
+import { EnvironmentUtils } from "../utils";
 
 export class GlobalConfigManager {
   private static readonly CONFIG_KEY = "zephyr.env";
@@ -14,7 +15,7 @@ export class GlobalConfigManager {
 
   static async load(context: vscode.ExtensionContext): Promise<GlobalConfig> {
     return context.globalState.get(this.CONFIG_KEY) ?? {
-      env: process.env,
+      env: EnvironmentUtils.getSystemEnvironment(),
       manifestVersion: 0,
       isSetup: false,
       isSetupInProgress: false,
@@ -31,7 +32,7 @@ export class GlobalConfigManager {
     await context.globalState.update(this.CONFIG_KEY, undefined);
     // Load default config and fire event
     const defaultConfig: GlobalConfig = {
-      env: process.env,
+      env: EnvironmentUtils.getSystemEnvironment(),
       manifestVersion: 0,
       isSetup: false,
       isSetupInProgress: false,

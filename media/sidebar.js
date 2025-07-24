@@ -247,6 +247,10 @@ function showReadyState(config, project) {
           <span class="action-icon">📺</span>
           <span class="action-text">Monitor</span>
         </button>
+        <button class="action-btn tertiary" data-command="zephyr-tools.update">
+          <span class="action-icon">🔄</span>
+          <span class="action-text">Update Dependencies</span>
+        </button>
       </div>
     </div>
 

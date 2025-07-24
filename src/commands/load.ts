@@ -11,7 +11,7 @@ import { ProjectConfigManager, ConfigValidator } from "../config";
 import { SerialPortManager, NewtmgrManager } from "../hardware";
 import { TaskManager } from "../tasks";
 import { monitorCommand } from "./monitor";
-import { PlatformUtils } from "../utils";
+import { PlatformUtils, EnvironmentUtils } from "../utils";
 
 
 export async function loadCommand(
@@ -30,9 +30,9 @@ export async function loadCommand(
     return;
   }
 
-  // Options for Shell Execution
+  // Options for Shell Execution with normalized environment
   let options: vscode.ShellExecutionOptions = {
-    env: <{ [key: string]: string }>config.env,
+    env: EnvironmentUtils.normalizeEnvironment(config.env),
     cwd: project.target,
   };
 

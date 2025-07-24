@@ -15,7 +15,8 @@ export class PathManager {
     const pathDivider = platformConfig.pathDivider;
 
     if (config.isSetup && config.env["PATH"] !== undefined) {
-      const systemPath = process.env["PATH"] || "";
+      // Handle Windows case sensitivity for PATH environment variable
+      const systemPath = process.env.PATH || process.env.Path || process.env.path || "";
       const configPath = config.env["PATH"];
 
       if (configPath !== systemPath && configPath.length > systemPath.length) {

@@ -200,7 +200,8 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
   // Reset configuration
   await GlobalConfigManager.reset(context);
   const config = await GlobalConfigManager.load(context);
-  config.env["PATH"] = process.env["PATH"];
+  
+  // Environment is already normalized by GlobalConfigManager
   
   // Set setup in progress flag and save config to trigger sidebar update
   config.isSetupInProgress = true;

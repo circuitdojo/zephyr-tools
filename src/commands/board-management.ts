@@ -10,7 +10,7 @@ import * as path from "path";
 import { GlobalConfig, ProjectConfig } from "../types";
 import { ProjectConfigManager } from "../config";
 import { QuickPickManager, StatusBarManager } from "../ui";
-import { YamlParser } from "../utils";
+import { YamlParser, EnvironmentUtils } from "../utils";
 import { ProbeManager } from "../hardware";
 
 export async function changeBoardCommand(
@@ -250,7 +250,9 @@ export async function changeProbeRsSettingsCommand(
 
 // Change probe selection
 async function changeProbeSelection(config: GlobalConfig, project: ProjectConfig, context: vscode.ExtensionContext) {
-  const availableProbes = await ProbeManager.getAvailableProbes();
+  // Use normalized environment from config
+  const normalizedEnv = EnvironmentUtils.normalizeEnvironment(config.env);
+  const availableProbes = await ProbeManager.getAvailableProbes(normalizedEnv);
   if (!availableProbes || availableProbes.length === 0) {
     vscode.window.showErrorMessage("No debug probes found. Please connect a probe and try again.");
     return;
@@ -272,7 +274,9 @@ async function changeProbeSelection(config: GlobalConfig, project: ProjectConfig
 
 // Change chip selection
 async function changeChipSelection(config: GlobalConfig, project: ProjectConfig, context: vscode.ExtensionContext) {
-  const chipName = await ProbeManager.getProbeRsChipName();
+  // Use normalized environment from config
+  const normalizedEnv = EnvironmentUtils.normalizeEnvironment(config.env);
+  const chipName = await ProbeManager.getProbeRsChipName(normalizedEnv);
   if (!chipName) {
     vscode.window.showWarningMessage("No chip selected. Chip configuration unchanged.");
     return;

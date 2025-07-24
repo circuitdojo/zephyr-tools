@@ -141,10 +141,8 @@
   line-height: 1.2;
 }
 
-/* Full-width button for the 7th item (Monitor) */
-.action-grid .action-btn:nth-child(7) {
-  grid-column: 1 / -1;
-}
+/* Full-width button for the 7th item (Monitor) - removed to allow 2-column layout */
+/* Monitor and Update Dependencies buttons will now display side by side in normal 2-column grid */
 
 /* State-specific Cards */
 .setup-required {

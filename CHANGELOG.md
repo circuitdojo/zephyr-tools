@@ -2,6 +2,30 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.4.5] - 2025-07-24
+
+User Interface Enhancement:
+
+**Added:**
+- **Update Dependencies Button**: New "Update Dependencies" button in Quick Actions sidebar for easy dependency management
+- **Improved Button Layout**: Monitor and Update Dependencies buttons now display side by side in 2-column grid layout
+- **Consistent Button Styling**: Update Dependencies button uses tertiary styling to match other utility buttons
+
+**Improved:**
+- **Better Space Utilization**: Quick Actions grid now uses consistent 2-column layout for all button pairs
+- **Visual Consistency**: All action buttons follow same styling hierarchy without unnecessary highlighting
+- **Enhanced User Experience**: One-click access to dependency updates directly from sidebar interface
+
+**Updated:**
+- **README Documentation**: Updated TODO list to reflect completed features including project configuration, probe-rs integration, board caching, and manifest validation
+- **Feature Status**: Marked implemented features as complete including dependency reinstallation and serial logging configuration
+
+**Technical:**
+- Added Update Dependencies button to both TypeScript sidebar provider and JavaScript client implementations
+- Updated CSS grid layout to accommodate new button arrangement
+- Leveraged existing `zephyr-tools.update` command for seamless integration
+- Maintained responsive design across all sidebar widths
+
 ### [0.4.4] - 2025-07-23
 
 User Interface Enhancement:

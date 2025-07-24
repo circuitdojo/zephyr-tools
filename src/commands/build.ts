@@ -11,6 +11,7 @@ import { ProjectConfigManager, ConfigValidator } from "../config";
 import { TaskManager } from "../tasks";
 import { changeBoardCommand } from "./board-management";
 import { changeProjectCommand } from "./project-management";
+import { EnvironmentUtils } from "../utils";
 export async function buildCommand(
   config: GlobalConfig,
   context: vscode.ExtensionContext,
@@ -75,9 +76,9 @@ export async function buildCommand(
   
   const rootPath = rootPaths[0].uri;
 
-  // Options for Shell Execution
+  // Options for Shell Execution with normalized environment
   let options: vscode.ShellExecutionOptions = {
-    env: <{ [key: string]: string }>config.env,
+    env: EnvironmentUtils.normalizeEnvironment(config.env),
     cwd: project.target,
   };
 

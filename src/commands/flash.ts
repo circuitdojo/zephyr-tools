@@ -14,7 +14,7 @@ import { monitorCommand } from "./monitor";
 import { changeBoardCommand } from "./board-management";
 import { changeProjectCommand } from "./project-management";
 import { ProjectConfig } from "../types";
-import { PlatformUtils } from "../utils";
+import { PlatformUtils, EnvironmentUtils } from "../utils";
 
 
 export async function flashCommand(
@@ -56,9 +56,9 @@ export async function flashCommand(
     }
   }
 
-  // Options for Shell Execution
+  // Options for Shell Execution with normalized environment
   let options: vscode.ShellExecutionOptions = {
-    env: <{ [key: string]: string }>config.env,
+    env: EnvironmentUtils.normalizeEnvironment(config.env),
     cwd: project.target,
   };
 
@@ -75,7 +75,7 @@ export async function flashCommand(
     
     // Handle probe-rs runner with probe selection
     if (project.runner === "probe-rs") {
-      await handleProbeRsProbeSelection(project, context);
+      await handleProbeRsProbeSelection(project, context, config);
       // Reload project to get updated runnerParams
       project = await ProjectConfigManager.load(context);
     }
@@ -218,10 +218,9 @@ export async function flashProbeRsCommand(
     }
   }
 
-  const options: vscode.ShellExecutionOptions = {
-    env: <{ [key: string]: string }>config.env,
-    cwd: project.target,
-  };
+  // Create shell options with normalized environment
+  const shellOptions = EnvironmentUtils.createShellOptions(config.env, project.target);
+  const options: vscode.ShellExecutionOptions = shellOptions;
 
   const taskName = "Zephyr Tools: Flash with probe-rs";
 
@@ -249,7 +248,7 @@ export async function flashProbeRsCommand(
 
   // Check for available probes and handle caching
   let probeId: string | undefined;
-  const availableProbes = await ProbeManager.getAvailableProbes();
+  const availableProbes = await ProbeManager.getAvailableProbes(shellOptions.env);
   if (!availableProbes) {
     vscode.window.showErrorMessage("No debug probes found. Please connect a probe and try again.");
     return;
@@ -304,7 +303,7 @@ export async function flashProbeRsCommand(
     console.log(`Using cached chip name: ${chipName}`);
   } else {
     // Get available chips from probe-rs
-    chipName = await ProbeManager.getProbeRsChipName();
+    chipName = await ProbeManager.getProbeRsChipName(shellOptions.env);
     if (!chipName) {
       vscode.window.showErrorMessage("No chip selected for probe-rs flashing.");
       return;
@@ -400,9 +399,12 @@ export async function flashProbeRsCommand(
  */
 async function handleProbeRsProbeSelection(
   project: ProjectConfig,
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
+  config: GlobalConfig
 ): Promise<void> {
-  const availableProbes = await ProbeManager.getAvailableProbes();
+  // Use normalized environment from config
+  const normalizedEnv = EnvironmentUtils.normalizeEnvironment(config.env);
+  const availableProbes = await ProbeManager.getAvailableProbes(normalizedEnv);
   if (!availableProbes || availableProbes.length === 0) {
     vscode.window.showErrorMessage("No debug probes found. Please connect a probe and try again.");
     return;

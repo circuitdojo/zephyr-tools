@@ -9,17 +9,27 @@ import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as util from 'util';
 import { ProbeInfo } from '../types';
-import { PlatformUtils } from '../utils';
+import { PlatformUtils, EnvironmentUtils } from '../utils';
 
 export class ProbeManager {
 
 
-  static async getAvailableProbes(): Promise<ProbeInfo[] | null> {
+  static async getAvailableProbes(configEnv?: { [key: string]: string }): Promise<ProbeInfo[] | null> {
     try {
       const exec = util.promisify(cp.exec);
       const tools = PlatformUtils.getToolExecutables();
       const cmd = `${tools.probeRs} list`;
-      const result = await exec(cmd);
+      
+      // Use normalized environment - either from config or system default
+      const execEnv = configEnv ? 
+        EnvironmentUtils.normalizeEnvironment(configEnv) : 
+        EnvironmentUtils.getSystemEnvironment();
+      
+      console.log(`ProbeManager: About to execute: ${cmd}`);
+      console.log(`ProbeManager: PATH in execEnv: ${execEnv.PATH}`);
+      console.log(`ProbeManager: Full execEnv:`, JSON.stringify(execEnv, null, 2));
+      
+      const result = await exec(cmd, { env: execEnv });
 
       if (result.stderr && result.stderr.trim() !== "") {
         console.error(`probe-rs list stderr: ${result.stderr}`);
@@ -66,12 +76,21 @@ export class ProbeManager {
     return selectedItem?.probe;
   }
 
-  static async getProbeRsChipName(): Promise<string | undefined> {
+  static async getProbeRsChipName(configEnv?: { [key: string]: string }): Promise<string | undefined> {
     try {
       const exec = util.promisify(cp.exec);
       const tools = PlatformUtils.getToolExecutables();
       const cmd = `${tools.probeRs} chip list`;
-      const result = await exec(cmd);
+      
+      // Use normalized environment - either from config or system default
+      const execEnv = configEnv ? 
+        EnvironmentUtils.normalizeEnvironment(configEnv) : 
+        EnvironmentUtils.getSystemEnvironment();
+      
+      console.log(`ProbeManager: About to execute: ${cmd}`);
+      console.log(`ProbeManager: PATH in execEnv: ${execEnv.PATH}`);
+      
+      const result = await exec(cmd, { env: execEnv });
 
       if (result.stderr) {
         console.error(`Error getting probe-rs chip list: ${result.stderr}`);

@@ -53,14 +53,14 @@ sudo apt install git python3 python3-pip python3-venv
 
 Here are some of the tasks needed to be completed for this project:
 
-- [ ] Project based config file (editable persistent configurations)
+- [x] Project based config file (editable persistent configurations)
 - [ ] Allow for different manfest names (if applicable)
-- [ ] Disable auto logging to file (settings/configuration)
+- [x] Disable auto logging to file (settings/configuration)
 - [ ] Setting common parameters in confguration
-- [ ] Reinstall dependencies if manifest differs from what's installed
+- [x] Reinstall dependencies if manifest differs from what's installed
 - [x] Creating a new project from scratch/template
 - [ ] CI/CD
-- [ ] Using probe-rs for programming (cross platform)
-- [ ] Cache boards for change boards
-- [ ] Store board in project
+- [x] Using probe-rs for programming (cross platform)
+- [x] Cache boards for change boards
+- [x] Store board in project
 - [ ] Delay after reset command
