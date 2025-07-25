@@ -185,28 +185,99 @@ export class BuildAssetsManager {
   }
 
   /**
-   * Watch build directory for changes
+   * Watch build directory for changes - optimized to only watch for final build outputs
    */
   public static createFileWatcher(
     project: ProjectConfig,
     onChanged: () => void
   ): vscode.FileSystemWatcher | null {
     const buildPath = this.getBuildPath(project);
+    console.log('Creating file watcher for build path:', buildPath);
     
-    if (!buildPath || !fs.existsSync(buildPath)) {
+    if (!buildPath) {
+      console.log('No build path available, cannot create watcher');
       return null;
     }
 
     try {
       // Watch the build directory and its subdirectories
-      const pattern = new vscode.RelativePattern(buildPath, "**/*");
-      const watcher = vscode.workspace.createFileSystemWatcher(pattern);
-
-      watcher.onDidCreate(onChanged);
-      watcher.onDidChange(onChanged);
-      watcher.onDidDelete(onChanged);
-
-      return watcher;
+      // Use the project target directory to watch for build folder creation
+      const watchPath = project.target || '';
+      if (!watchPath) {
+        console.log('No project target path available');
+        return null;
+      }
+      
+      console.log('Setting up file watcher for path:', watchPath);
+      
+      // Watch only for specific build output files that we care about
+      // This reduces the number of events significantly
+      const patterns = [
+        'build/**/zephyr.elf',
+        'build/**/zephyr.hex', 
+        'build/**/merged.hex',
+        'build/**/dfu_application.zip',
+        'build/**/dfu_application.zip_manifest.json'
+      ];
+      
+      const watchers: vscode.FileSystemWatcher[] = [];
+      let debounceTimer: NodeJS.Timeout | null = null;
+      
+      const debouncedChangeHandler = () => {
+        if (debounceTimer) {
+          clearTimeout(debounceTimer);
+        }
+        
+        debounceTimer = setTimeout(() => {
+          console.log('Build assets change detected (debounced)');
+          onChanged();
+          debounceTimer = null;
+        }, 2000); // 2 second debounce to let build process complete
+      };
+      
+      // Create watchers for each specific file pattern
+      for (const pattern of patterns) {
+        try {
+          const filePattern = new vscode.RelativePattern(watchPath, pattern);
+          console.log(`Creating watcher for pattern: ${pattern} in ${watchPath}`);
+          const watcher = vscode.workspace.createFileSystemWatcher(filePattern);
+          
+          watcher.onDidCreate((uri) => {
+            console.log(`File created: ${uri.fsPath}`);
+            debouncedChangeHandler();
+          });
+          watcher.onDidChange((uri) => {
+            console.log(`File changed: ${uri.fsPath}`);
+            debouncedChangeHandler();
+          });
+          watcher.onDidDelete((uri) => {
+            console.log(`File deleted: ${uri.fsPath}`);
+            debouncedChangeHandler();
+          });
+          
+          watchers.push(watcher);
+        } catch (error) {
+          console.error(`Failed to create watcher for pattern ${pattern}:`, error);
+        }
+      }
+      
+      if (watchers.length === 0) {
+        console.log('No watchers created');
+        return null;
+      }
+      
+      console.log(`File watchers created successfully for ${watchers.length} patterns`);
+      
+      // Return a composite watcher that disposes all individual watchers
+      return {
+        dispose: () => {
+          if (debounceTimer) {
+            clearTimeout(debounceTimer);
+          }
+          watchers.forEach(w => w.dispose());
+        }
+      } as vscode.FileSystemWatcher;
+      
     } catch (error) {
       console.error("Failed to create file watcher for build assets:", error);
       return null;

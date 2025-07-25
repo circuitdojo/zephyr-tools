@@ -19,7 +19,8 @@ import { PlatformUtils, EnvironmentUtils } from "../utils";
 
 export async function flashCommand(
   config: GlobalConfig,
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
+  sidebarProvider?: any
 ): Promise<void> {
   let project = await ProjectConfigManager.load(context);
 
@@ -101,13 +102,34 @@ export async function flashCommand(
 
   vscode.window.showInformationMessage(`Flashing for ${project.board}`);
 
+  // Set up task completion listener to refresh sidebar (flash may trigger build)
+  let taskCompletionDisposable: vscode.Disposable | undefined;
+  if (sidebarProvider) {
+    taskCompletionDisposable = vscode.tasks.onDidEndTask((taskEvent) => {
+      // Check if this is our flash task that completed
+      if (taskEvent.execution.task === task) {
+        console.log('Flash task completed, refreshing sidebar in 1 second...');
+        // Small delay to ensure build artifacts are fully written if build occurred
+        setTimeout(() => {
+          if (sidebarProvider && typeof sidebarProvider.refresh === 'function') {
+            sidebarProvider.refresh();
+          }
+        }, 1000);
+        
+        // Clean up the listener
+        taskCompletionDisposable?.dispose();
+      }
+    });
+  }
+
   // Start task here
   await vscode.tasks.executeTask(task);
 }
 
 export async function flashAndMonitorCommand(
   config: GlobalConfig,
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
+  sidebarProvider?: any
 ): Promise<void> {
   // Check manifest version and setup state
   const validationResult = await ConfigValidator.validateSetupState(config, context, false);
@@ -125,7 +147,7 @@ export async function flashAndMonitorCommand(
     }
 
     // Step 1: Flash the device
-    await flashCommand(config, context);
+    await flashCommand(config, context, sidebarProvider);
 
     // Step 2: Set up serial port if not configured
     if (!project.port) {

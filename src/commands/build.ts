@@ -15,7 +15,8 @@ import { EnvironmentUtils } from "../utils";
 export async function buildCommand(
   config: GlobalConfig,
   context: vscode.ExtensionContext,
-  pristine: boolean = false
+  pristine: boolean = false,
+  sidebarProvider?: any
 ): Promise<void> {
   // Validate setup state and manifest version
   const setupValidation = await ConfigValidator.validateSetupState(config, context, false);
@@ -106,13 +107,34 @@ export async function buildCommand(
 
   vscode.window.showInformationMessage(`Building for ${project.board}`);
 
+  // Set up task completion listener to refresh sidebar
+  let taskCompletionDisposable: vscode.Disposable | undefined;
+  if (sidebarProvider) {
+    taskCompletionDisposable = vscode.tasks.onDidEndTask((taskEvent) => {
+      // Check if this is our build task that completed
+      if (taskEvent.execution.task === task) {
+        console.log('Build task completed, refreshing sidebar in 1 second...');
+        // Small delay to ensure build artifacts are fully written
+        setTimeout(() => {
+          if (sidebarProvider && typeof sidebarProvider.refresh === 'function') {
+            sidebarProvider.refresh();
+          }
+        }, 1000);
+        
+        // Clean up the listener
+        taskCompletionDisposable?.dispose();
+      }
+    });
+  }
+
   // Start execution
   await vscode.tasks.executeTask(task);
 }
 
 export async function buildPristineCommand(
   config: GlobalConfig,
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
+  sidebarProvider?: any
 ): Promise<void> {
-  await buildCommand(config, context, true);
+  await buildCommand(config, context, true, sidebarProvider);
 }

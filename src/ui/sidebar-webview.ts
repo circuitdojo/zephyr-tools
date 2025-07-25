@@ -22,6 +22,7 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
 
   private _view?: vscode.WebviewView;
   private _buildAssetsWatcher?: vscode.FileSystemWatcher | null;
+  private _currentProjectKey?: string;
 
   constructor(private readonly _extensionUri: vscode.Uri, private context: vscode.ExtensionContext) {
     // Subscribe to configuration changes to refresh the webview
@@ -78,6 +79,16 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
       // Set up file watching for build assets if we're in ready state
       this.setupBuildAssetsWatcher(project);
       
+      // Always refresh build assets if we're in ready state and have project configuration
+      let buildAssets: BuildAssetsState | undefined = state.buildAssets;
+      if (state.type === 'ready' && project.target && project.board) {
+        try {
+          buildAssets = await BuildAssetsManager.getBuildAssetsState(project);
+        } catch (error) {
+          console.error('Failed to refresh build assets:', error);
+        }
+      }
+      
       // Auto-reveal the sidebar when in progress states
       if (state.type === 'initializing' || state.type === 'setup-in-progress') {
         await this.revealSidebar();
@@ -86,10 +97,13 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
       this._view.webview.postMessage({
         type: 'update',
         data: {
-          state,
+          state: {
+            ...state,
+            buildAssets
+          },
           config,
           project,
-          buildAssets: state.buildAssets
+          buildAssets
         }
       });
     }
@@ -161,25 +175,44 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
   }
 
   private setupBuildAssetsWatcher(project: ProjectConfig): void {
+    // Only set up watcher if we don't have one or project config changed
+    const projectKey = `${project.target}:${project.board}`;
+    if (this._buildAssetsWatcher && this._currentProjectKey === projectKey) {
+      return; // Watcher already exists for this project
+    }
+    
     // Dispose existing watcher if any
     if (this._buildAssetsWatcher) {
+      console.log('Disposing existing build assets watcher');
       this._buildAssetsWatcher.dispose();
       this._buildAssetsWatcher = null;
     }
 
     // Create new watcher if project is configured
     if (project.target && project.board) {
+      console.log('Setting up build assets watcher for project:', {
+        target: project.target,
+        board: project.board
+      });
       try {
         this._buildAssetsWatcher = BuildAssetsManager.createFileWatcher(
           project,
           () => {
-            // Debounce the refresh calls to avoid excessive updates
-            setTimeout(() => this.refresh(), 500);
+            console.log('Build assets watcher triggered, refreshing sidebar');
+            this.refresh();
           }
         );
+        this._currentProjectKey = projectKey;
+        console.log('Build assets watcher setup result:', this._buildAssetsWatcher ? 'success' : 'failed');
       } catch (error) {
         console.error('Failed to set up build assets watcher:', error);
       }
+    } else {
+      console.log('Cannot set up build assets watcher - missing project configuration:', {
+        target: project.target,
+        board: project.board
+      });
+      this._currentProjectKey = undefined;
     }
   }
 

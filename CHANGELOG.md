@@ -9,15 +9,26 @@ User Interface Enhancement:
 **Added:**
 - **Filename Display for Build Assets**: JavaScript update to show actual filename below the description in the asset list with lighter grey style
 - **Enhanced Asset Information**: Build assets now display both description and actual filename for better file identification
+- **Automatic Sidebar Refresh**: Build assets now refresh automatically after build and flash commands complete
+- **Smart Task Completion Listeners**: Build and flash commands now trigger sidebar refresh when they complete
 
 **Fixed:**
 - **Scrollbar Rendering**: Adjusted UI to handle complex scrollbar rendering issues
 - **Asset Display Clarity**: Improved visual hierarchy in build assets list with proper filename extraction and styling
+- **Build Assets Not Refreshing**: Fixed issue where build assets would only appear after manual sidebar refresh or navigation
+
+**Improved:**
+- **File Watcher Performance**: Optimized build assets watcher to monitor only specific output files instead of entire build directory
+- **Reduced Watcher Events**: Added debouncing and specific file pattern watching to prevent excessive refresh calls during builds
+- **Watcher Management**: Prevented redundant watcher recreation with project-specific tracking
 
 **Technical:**
 - Updated sidebar JavaScript to extract and display filenames from full asset paths
 - Added filename line rendering with appropriate styling hooks for CSS integration
 - Enhanced asset list user experience with dual-line information display
+- Added task completion listeners to build and flash commands for automatic sidebar refresh
+- Implemented optimized file watchers with 2-second debouncing and specific file pattern matching
+- Added project-specific watcher tracking to prevent unnecessary recreation
 
 ### [0.4.5] - 2025-07-24
 

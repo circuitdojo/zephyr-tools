@@ -130,7 +130,7 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
         vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
         return;
       }
-      await buildCommand(globalConfig, context, false);
+      await buildCommand(globalConfig, context, false, sidebar);
     })
   );
 
@@ -140,7 +140,7 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
         vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
         return;
       }
-      await buildPristineCommand(globalConfig, context);
+      await buildPristineCommand(globalConfig, context, sidebar);
     })
   );
 
@@ -151,7 +151,7 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
         vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
         return;
       }
-      await flashCommand(globalConfig, context);
+      await flashCommand(globalConfig, context, sidebar);
     })
   );
 
@@ -171,7 +171,7 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
         vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
         return;
       }
-      await flashAndMonitorCommand(globalConfig, context);
+      await flashAndMonitorCommand(globalConfig, context, sidebar);
     })
   );
 
