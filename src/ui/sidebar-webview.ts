@@ -7,18 +7,21 @@
 import * as vscode from "vscode";
 import { GlobalConfigManager, ProjectConfigManager } from "../config";
 import { GlobalConfig, ProjectConfig } from "../types";
+import { BuildAssetsManager, BuildAssetsState } from "../build/build-assets-manager";
 
 interface SidebarState {
   type: 'setup-required' | 'project-required' | 'initializing' | 'setup-in-progress' | 'ready';
   config: GlobalConfig;
   project: ProjectConfig;
   hasWorkspace: boolean;
+  buildAssets?: BuildAssetsState;
 }
 
 export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'zephyrToolsSidebar';
 
   private _view?: vscode.WebviewView;
+  private _buildAssetsWatcher?: vscode.FileSystemWatcher | null;
 
   constructor(private readonly _extensionUri: vscode.Uri, private context: vscode.ExtensionContext) {
     // Subscribe to configuration changes to refresh the webview
@@ -72,6 +75,9 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
       const project = await ProjectConfigManager.load(this.context);
       const state = await this.determineState(config, project);
       
+      // Set up file watching for build assets if we're in ready state
+      this.setupBuildAssetsWatcher(project);
+      
       // Auto-reveal the sidebar when in progress states
       if (state.type === 'initializing' || state.type === 'setup-in-progress') {
         await this.revealSidebar();
@@ -82,7 +88,8 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
         data: {
           state,
           config,
-          project
+          project,
+          buildAssets: state.buildAssets
         }
       });
     }
@@ -136,12 +143,44 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
     }
     
     // All good - ready state
+    // Load build assets for ready state
+    let buildAssets: BuildAssetsState | undefined;
+    try {
+      buildAssets = await BuildAssetsManager.getBuildAssetsState(project);
+    } catch (error) {
+      console.error('Failed to load build assets:', error);
+    }
+    
     return {
       type: 'ready',
       config,
       project,
-      hasWorkspace
+      hasWorkspace,
+      buildAssets
     };
+  }
+
+  private setupBuildAssetsWatcher(project: ProjectConfig): void {
+    // Dispose existing watcher if any
+    if (this._buildAssetsWatcher) {
+      this._buildAssetsWatcher.dispose();
+      this._buildAssetsWatcher = null;
+    }
+
+    // Create new watcher if project is configured
+    if (project.target && project.board) {
+      try {
+        this._buildAssetsWatcher = BuildAssetsManager.createFileWatcher(
+          project,
+          () => {
+            // Debounce the refresh calls to avoid excessive updates
+            setTimeout(() => this.refresh(), 500);
+          }
+        );
+      } catch (error) {
+        console.error('Failed to set up build assets watcher:', error);
+      }
+    }
   }
 
   public async revealSidebar() {
@@ -272,6 +311,11 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
               <div class="setting-item" data-command="zephyr-tools.setup-newtmgr">
                 <span class="setting-icon">📱</span>
                 <span class="setting-text">Setup Newtmgr</span>
+                <span class="setting-arrow">→</span>
+              </div>
+              <div class="setting-item" data-command="zephyr-tools.setup-monitor">
+                <span class="setting-icon">📺</span>
+                <span class="setting-text">Setup Serial Monitor</span>
                 <span class="setting-arrow">→</span>
               </div>
             </div>

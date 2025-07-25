@@ -26,7 +26,19 @@ function setupEventListeners() {
       const command = target.getAttribute('data-command');
       if (command) {
         console.log('Click detected on element with command:', command);
-        executeCommand(command);
+        
+        // Check if this is a reveal-build-asset command that needs a file path
+        if (command === 'zephyr-tools.reveal-build-asset') {
+          const filePath = target.getAttribute('data-file-path');
+          if (filePath) {
+            console.log('Executing reveal command with file path:', filePath);
+            executeCommand(command, filePath);
+          } else {
+            console.error('No file path found for reveal-build-asset command');
+          }
+        } else {
+          executeCommand(command);
+        }
       }
     }
   });
@@ -41,9 +53,93 @@ function getDisplayName(path) {
   return parts[parts.length - 1] || path;
 }
 
+// Format file size in human-readable format
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 B';
+  
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+}
+
+// Format time relative to now (e.g., "2 min ago")
+function formatTimeAgo(dateString) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMins < 1) {
+    return 'just now';
+  } else if (diffMins < 60) {
+    return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+  } else if (diffHours < 24) {
+    return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  } else if (diffDays < 7) {
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  } else {
+    return date.toLocaleDateString();
+  }
+}
+
+// Generate build assets HTML
+function generateBuildAssetsHtml(buildAssets) {
+  if (!buildAssets || !buildAssets.hasAssets) {
+    return ''; // Return empty string if no assets exist
+  }
+  
+  const existingAssets = buildAssets.assets.filter(asset => asset.exists);
+  
+  if (existingAssets.length === 0) {
+    return '';
+  }
+  
+  const assetListHtml = existingAssets.map(asset => {
+    const size = asset.size ? formatFileSize(asset.size) : 'Unknown';
+    // Extract filename from the full path
+    const filename = asset.path.split('/').pop() || asset.name;
+    
+    return `
+      <div class="build-asset-item clickable" data-command="zephyr-tools.reveal-build-asset" data-file-path="${asset.path}" title="Click to reveal in file manager">
+        <div class="asset-main-line">
+          <span class="asset-status">✓</span>
+          <span class="asset-name">${asset.displayName}:</span>
+          <span class="asset-size">${size}</span>
+          <span class="asset-reveal-hint">→</span>
+        </div>
+        <div class="asset-filename-line">
+          <span class="asset-filename">${filename}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  const lastBuildText = buildAssets.lastBuild ? formatTimeAgo(buildAssets.lastBuild) : 'Unknown';
+  
+  return `
+    <!-- Build Assets Card -->
+    <div class="card build-assets">
+      <h3 class="card-title">📦 Build Assets</h3>
+      <div class="build-assets-list">
+        ${assetListHtml}
+        <div class="build-timestamp">
+          <span class="timestamp-label">Built:</span>
+          <span class="timestamp-value">${lastBuildText}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 // Update UI with project data
 function updateUI(data) {
-  const { state, config, project } = data;
+  const { state, config, project, buildAssets } = data;
+  console.log('Updating UI with data:', data);
+  console.log('Build assets:', buildAssets);
   
   // Handle different states
   switch (state.type) {
@@ -60,11 +156,11 @@ function updateUI(data) {
       showSetupInProgressState();
       break;
     case 'ready':
-      showReadyState(config, project);
+      showReadyState(config, project, buildAssets);
       break;
     default:
       console.warn('Unknown state type:', state.type);
-      showReadyState(config, project); // fallback
+      showReadyState(config, project, buildAssets); // fallback
   }
 }
 
@@ -182,9 +278,12 @@ function showSetupInProgressState() {
 }
 
 // Show ready state (original functionality)
-function showReadyState(config, project) {
+function showReadyState(config, project, buildAssets) {
   const container = document.querySelector('.container');
   if (!container) return;
+  
+  // Generate build assets HTML if they exist
+  const buildAssetsHtml = generateBuildAssetsHtml(buildAssets);
   
   // Restore original UI structure
   container.innerHTML = `
@@ -214,6 +313,8 @@ function showReadyState(config, project) {
         </div>
       </div>
     </div>
+
+    ${buildAssetsHtml}
 
     <!-- Quick Actions -->
     <div class="card quick-actions">
@@ -266,6 +367,11 @@ function showReadyState(config, project) {
         <div class="setting-item" data-command="zephyr-tools.setup-newtmgr">
           <span class="setting-icon">📱</span>
           <span class="setting-text">Setup Newtmgr</span>
+          <span class="setting-arrow">→</span>
+        </div>
+        <div class="setting-item" data-command="zephyr-tools.setup-monitor">
+          <span class="setting-icon">📺</span>
+          <span class="setting-text">Setup Serial Monitor</span>
           <span class="setting-arrow">→</span>
         </div>
       </div>
@@ -346,7 +452,7 @@ document.addEventListener('keydown', (event) => {
 
 // Make status items and buttons focusable for accessibility
 document.addEventListener('DOMContentLoaded', () => {
-  const focusableElements = document.querySelectorAll('.status-item, .action-btn, .setting-item');
+  const focusableElements = document.querySelectorAll('.status-item, .action-btn, .setting-item, .build-asset-item.clickable');
   focusableElements.forEach(element => {
     if (!element.hasAttribute('tabindex')) {
       element.setAttribute('tabindex', '0');

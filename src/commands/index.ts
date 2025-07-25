@@ -14,3 +14,4 @@ export * from './board-management';
 export * from './create-project';
 export * from './clean';
 export * from './update';
+export * from './build-assets';

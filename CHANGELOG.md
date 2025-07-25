@@ -2,6 +2,23 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.4.7] - 2025-07-25
+
+User Interface Enhancement:
+
+**Added:**
+- **Filename Display for Build Assets**: JavaScript update to show actual filename below the description in the asset list with lighter grey style
+- **Enhanced Asset Information**: Build assets now display both description and actual filename for better file identification
+
+**Fixed:**
+- **Scrollbar Rendering**: Adjusted UI to handle complex scrollbar rendering issues
+- **Asset Display Clarity**: Improved visual hierarchy in build assets list with proper filename extraction and styling
+
+**Technical:**
+- Updated sidebar JavaScript to extract and display filenames from full asset paths
+- Added filename line rendering with appropriate styling hooks for CSS integration
+- Enhanced asset list user experience with dual-line information display
+
 ### [0.4.5] - 2025-07-24
 
 User Interface Enhancement:

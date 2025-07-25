@@ -31,7 +31,9 @@ import {
   changeProbeRsSettingsCommand,
   createProjectCommand,
   cleanCommand,
-  updateCommand
+  updateCommand,
+  openBuildFolderCommand,
+  revealBuildAssetCommand
 } from "./commands";
 
 // Global configuration instance
@@ -271,6 +273,19 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.update", async () => {
       await updateCommand(globalConfig, context);
+    })
+  );
+
+  // Build assets commands
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.open-build-folder", async () => {
+      await openBuildFolderCommand(globalConfig, context);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.reveal-build-asset", async (filePath: string) => {
+      await revealBuildAssetCommand(globalConfig, context, filePath);
     })
   );
 }
