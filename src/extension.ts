@@ -47,6 +47,12 @@ export async function activate(context: vscode.ExtensionContext) {
   // Load configuration
   globalConfig = await GlobalConfigManager.load(context);
 
+  // Clean up any stale in-progress flags from previous VS Code sessions
+  await cleanupStaleProgressFlags(context);
+  
+  // Reload global config in case it was modified during cleanup
+  globalConfig = await GlobalConfigManager.load(context);
+
   // Set up environment variable collection
   setupEnvironmentVariables(context);
 
@@ -301,6 +307,48 @@ async function handlePendingTasks(context: vscode.ExtensionContext): Promise<voi
     
     await ProjectConfigManager.clearPendingTask(context);
     await vscode.commands.executeCommand(pendingTask.name, pendingTask.data);
+  }
+}
+
+async function cleanupStaleProgressFlags(context: vscode.ExtensionContext): Promise<void> {
+  try {
+    // Clean up setup progress if setup is actually complete
+    const globalConfig = await GlobalConfigManager.load(context);
+    if (globalConfig.isSetupInProgress && globalConfig.isSetup) {
+      const manifest = require("../manifest/manifest.json");
+      if (globalConfig.manifestVersion === manifest.version) {
+        console.log('Cleaning up stale setup progress flag - setup is already complete');
+        globalConfig.isSetupInProgress = false;
+        await GlobalConfigManager.save(context, globalConfig);
+      }
+    }
+
+    // Clean up initialization progress - but be careful about pending tasks
+    const projectConfig = await ProjectConfigManager.load(context);
+    const pendingTask = await ProjectConfigManager.loadPendingTask(context);
+    
+    if (projectConfig.isInitializing) {
+      // If init is complete, clean up the flag
+      if (projectConfig.isInit) {
+        console.log('Cleaning up initialization progress flag - initialization is complete');
+        projectConfig.isInitializing = false;
+        await ProjectConfigManager.save(context, projectConfig);
+      }
+      // If there's a pending init-repo task, keep the flag (legitimate restart scenario)
+      else if (!pendingTask || pendingTask.name !== "zephyr-tools.init-repo") {
+        // No pending init task and init not complete = stale flag from crashed session
+        console.log('Cleaning up stale initialization progress flag - no pending task and init incomplete');
+        projectConfig.isInitializing = false;
+        await ProjectConfigManager.save(context, projectConfig);
+      }
+      // If there IS a pending init-repo task, leave isInitializing true so UI shows progress
+      else {
+        console.log('Keeping initialization progress flag - pending init-repo task detected');
+      }
+    }
+  } catch (error) {
+    console.error('Error cleaning up stale progress flags:', error);
+    // Don't throw - extension should still activate even if cleanup fails
   }
 }
 

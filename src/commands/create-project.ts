@@ -49,6 +49,14 @@ export async function createProjectCommand(
     return;
   }
 
+  // Check if .west folder exists in destination - project must be in clean/empty folder
+  const westFolderPath = path.join(dest.fsPath, ".west");
+  const westFolderExists = await fs.pathExists(westFolderPath);
+  if (westFolderExists) {
+    vscode.window.showErrorMessage("Cannot create project: .west folder found. Target folder must be clean/empty.");
+    return;
+  }
+
   // Merge path
   const appDest = path.join(dest.fsPath, "app");
 

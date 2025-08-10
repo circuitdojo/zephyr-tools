@@ -297,7 +297,7 @@ function showReadyState(config, project, buildAssets) {
           <span class="status-edit">✏️</span>
         </div>
         <div class="status-item" data-command="zephyr-tools.change-project">
-          <span class="status-label">Target:</span>
+          <span class="status-label">Project:</span>
           <span class="status-value" id="target-value">Loading...</span>
           <span class="status-edit">✏️</span>
         </div>

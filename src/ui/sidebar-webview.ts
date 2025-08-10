@@ -147,7 +147,13 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
     }
     
     // Check if project initialization is required
-    if (!project.isInit) {
+    // First check if .west folder actually exists in current workspace
+    const fs = await import('fs-extra');
+    const path = await import('path');
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const westFolderExists = workspaceRoot ? await fs.pathExists(path.join(workspaceRoot, '.west')) : false;
+    
+    if (!project.isInit || !westFolderExists) {
       return {
         type: 'project-required',
         config,

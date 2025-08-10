@@ -2,6 +2,18 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.4.8] - 2025-08-10
+
+Project Workspace Detection Enhancement:
+
+**Fixed:**
+- **Project Detection in Parent Directories**: Fixed issue where extension incorrectly detected projects in parent Git folders when projects only existed in subfolders
+- **Clean Folder Validation**: Added .west folder check during project creation to ensure target folder is clean/empty before creating new projects
+
+**Improved:**
+- **Workspace State Detection**: Enhanced sidebar state determination to verify .west folder actually exists in current workspace
+- **Project Creation Safety**: Prevent overwriting existing Zephyr workspaces during project creation
+
 ### [0.4.7] - 2025-07-25
 
 User Interface Enhancement:
