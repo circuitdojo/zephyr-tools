@@ -15,3 +15,4 @@ export * from './create-project';
 export * from './clean';
 export * from './update';
 export * from './build-assets';
+export * from './terminal';

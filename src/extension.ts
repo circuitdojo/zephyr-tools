@@ -33,7 +33,8 @@ import {
   cleanCommand,
   updateCommand,
   openBuildFolderCommand,
-  revealBuildAssetCommand
+  revealBuildAssetCommand,
+  openZephyrTerminalCommand
 } from "./commands";
 
 // Global configuration instance
@@ -292,6 +293,13 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.reveal-build-asset", async (filePath: string) => {
       await revealBuildAssetCommand(globalConfig, context, filePath);
+    })
+  );
+
+  // Zephyr terminal command
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.open-zephyr-terminal", async () => {
+      await openZephyrTerminalCommand(globalConfig, context);
     })
   );
 }

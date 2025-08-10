@@ -143,6 +143,9 @@ function updateUI(data) {
   
   // Handle different states
   switch (state.type) {
+    case 'loading':
+      showLoadingState();
+      break;
     case 'setup-required':
       showSetupRequiredState();
       break;
@@ -243,6 +246,27 @@ function showInitializingState() {
   `;
   
   // Re-setup event listeners (though there shouldn't be any interactive elements during init)
+  setupEventListeners();
+}
+
+// Show loading state
+function showLoadingState() {
+  const container = document.querySelector('.container');
+  if (!container) return;
+  
+  container.innerHTML = `
+    <div class="card loading">
+      <h3 class="card-title">⏳ Loading</h3>
+      <p class="state-message">Loading project configuration...</p>
+      <div class="progress-container">
+        <div class="progress-bar">
+          <div class="progress-fill"></div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Re-setup event listeners (though there shouldn't be any interactive elements during loading)
   setupEventListeners();
 }
 
@@ -351,6 +375,10 @@ function showReadyState(config, project, buildAssets) {
         <button class="action-btn tertiary" data-command="zephyr-tools.update">
           <span class="action-icon">🔄</span>
           <span class="action-text">Update Dependencies</span>
+        </button>
+        <button class="action-btn tertiary" data-command="zephyr-tools.open-zephyr-terminal">
+          <span class="action-icon">🪁</span>
+          <span class="action-text">Open Zephyr Terminal</span>
         </button>
       </div>
     </div>

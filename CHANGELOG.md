@@ -2,6 +2,19 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.4.9] - 2025-08-10
+
+UI Enhancement:
+
+**Added:**
+- **Loading Dialog**: Sidebar now shows a clean loading dialog with progress bar during initial load instead of showing project view with "Loading..." placeholders
+- **Zephyr Terminal Command**: New `zephyr-tools.open-zephyr-terminal` command opens a terminal with Python virtual environment pre-activated
+- **Sidebar Terminal Button**: Added "Open Zephyr Terminal" button with kite emoji (🪁) to the Quick Actions section
+- **Environment Integration**: Terminal automatically inherits all Zephyr tool paths and environment variables for seamless development
+
+**Improved:**
+- **Better Loading UX**: Enhanced initial sidebar loading experience with dedicated loading state
+
 ### [0.4.8] - 2025-08-10
 
 Project Workspace Detection Enhancement:

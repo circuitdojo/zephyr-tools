@@ -143,6 +143,11 @@
 /* Monitor and Update Dependencies buttons will now display side by side in normal 2-column grid */
 
 /* State-specific Cards */
+.loading {
+  background: var(--vscode-inputValidation-infoBackground, var(--vscode-editor-background));
+  border-color: var(--vscode-inputValidation-infoBorder, var(--vscode-widget-border));
+}
+
 .setup-required {
   background: var(--vscode-inputValidation-warningBackground, var(--vscode-editor-background));
   border-color: var(--vscode-inputValidation-warningBorder, var(--vscode-widget-border));

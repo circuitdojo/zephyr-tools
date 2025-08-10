@@ -10,7 +10,7 @@ import { GlobalConfig, ProjectConfig } from "../types";
 import { BuildAssetsManager, BuildAssetsState } from "../build/build-assets-manager";
 
 interface SidebarState {
-  type: 'setup-required' | 'project-required' | 'initializing' | 'setup-in-progress' | 'ready';
+  type: 'loading' | 'setup-required' | 'project-required' | 'initializing' | 'setup-in-progress' | 'ready';
   config: GlobalConfig;
   project: ProjectConfig;
   hasWorkspace: boolean;
@@ -72,6 +72,21 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
 
   public async refresh() {
     if (this._view) {
+      // Show loading state initially
+      this._view.webview.postMessage({
+        type: 'update',
+        data: {
+          state: {
+            type: 'loading',
+            config: {} as GlobalConfig,
+            project: {} as ProjectConfig,
+            hasWorkspace: false
+          },
+          config: {} as GlobalConfig,
+          project: {} as ProjectConfig
+        }
+      });
+
       const config = await GlobalConfigManager.load(this.context);
       const project = await ProjectConfigManager.load(this.context);
       const state = await this.determineState(config, project);
