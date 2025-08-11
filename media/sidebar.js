@@ -418,8 +418,15 @@ function updateReadyStateValues(config, project) {
   // Update board value
   const boardElement = document.getElementById('board-value');
   if (boardElement) {
-    boardElement.textContent = project.board || 'No Board Selected';
+    const boardValue = project.board || 'No Board Selected';
+    // Check if it's a custom board (contains slashes for multi-core boards)
+    const isCustomBoard = boardValue.includes('/') && boardValue.split('/').length > 2;
+    boardElement.textContent = boardValue;
     boardElement.classList.toggle('loading', false);
+    // Add custom indicator if it's a custom board
+    if (isCustomBoard) {
+      boardElement.title = 'Custom board configuration';
+    }
   }
   
   // Update target value

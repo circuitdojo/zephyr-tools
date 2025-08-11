@@ -2,6 +2,18 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.4.10] - 2025-08-11
+
+Board Selection Enhancement:
+
+**Added:**
+- **Custom Board Entry**: Added "Enter custom board..." option to board selection dropdown, allowing manual entry of complex board identifiers
+- **Multi-core Board Support**: Users can now enter board configurations like `stm32h747i_disco/stm32h747xx/m4` for multi-core processors
+- **Custom Board Indicator**: Sidebar displays tooltip for custom board configurations to indicate manual entry
+
+**Improved:**
+- **Board Selection Flexibility**: Enhanced board selection to support both dropdown selection and manual text entry for edge cases
+
 ### [0.4.9] - 2025-08-10
 
 UI Enhancement:

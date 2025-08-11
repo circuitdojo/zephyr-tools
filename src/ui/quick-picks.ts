@@ -9,10 +9,31 @@ import * as vscode from 'vscode';
 
 export class QuickPickManager {
   static async selectBoard(boards: string[]): Promise<string | undefined> {
-    return await vscode.window.showQuickPick(boards, {
-      placeHolder: "Select a board",
+    // Add custom board option at the beginning
+    const CUSTOM_BOARD_OPTION = "$(edit) Enter custom board...";
+    const boardOptions = [CUSTOM_BOARD_OPTION, ...boards];
+    
+    const selected = await vscode.window.showQuickPick(boardOptions, {
+      placeHolder: "Select a board or enter custom",
       ignoreFocusOut: true,
     });
+    
+    if (selected === CUSTOM_BOARD_OPTION) {
+      // Show input box for custom board
+      return await vscode.window.showInputBox({
+        prompt: "Enter custom board identifier (e.g., stm32h747i_disco/stm32h747xx/m4)",
+        placeHolder: "board/variant/core",
+        ignoreFocusOut: true,
+        validateInput: (value) => {
+          if (!value || value.trim().length === 0) {
+            return "Board identifier cannot be empty";
+          }
+          return null;
+        }
+      });
+    }
+    
+    return selected;
   }
 
   static async selectProject(projects: string[]): Promise<string | undefined> {
