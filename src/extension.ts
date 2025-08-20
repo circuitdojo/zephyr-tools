@@ -23,6 +23,7 @@ import {
   setupNewtmgrCommand,
   monitorCommand,
   setupMonitorCommand,
+  toggleSerialLoggingCommand,
   changeProjectCommand,
   initRepoCommand,
   changeBoardCommand,
@@ -230,6 +231,12 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.setup-monitor", async () => {
       await setupMonitorCommand(globalConfig, context);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.toggle-serial-logging", async () => {
+      await toggleSerialLoggingCommand(globalConfig, context);
     })
   );
 
