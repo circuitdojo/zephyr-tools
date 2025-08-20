@@ -102,11 +102,98 @@ export async function toggleSerialLoggingCommand(
 
   const project = await ProjectConfigManager.load(context);
   
-  // Toggle the setting (default false means logging is disabled by default)
-  project.saveSerialLogs = project.saveSerialLogs === true ? false : true;
+  // Show dropdown with Enable/Disable options
+  const currentStatus = project.saveSerialLogs ? 'Enabled' : 'Disabled';
   
-  await ProjectConfigManager.save(context, project);
-  
-  const status = project.saveSerialLogs ? 'enabled' : 'disabled';
-  vscode.window.showInformationMessage(`Serial logging ${status}`);
+  const loggingOptions = [
+    {
+      label: "Enable",
+      description: "Save serial output to log files",
+      value: true
+    },
+    {
+      label: "Disable", 
+      description: "Do not save serial output",
+      value: false
+    }
+  ];
+
+  const selectedOption = await vscode.window.showQuickPick(loggingOptions, {
+    title: "Serial Logging Configuration",
+    placeHolder: `Currently: ${currentStatus}`,
+    ignoreFocusOut: true,
+  });
+
+  if (!selectedOption) {
+    return; // User canceled
+  }
+
+  // Only update if the value changed
+  if (project.saveSerialLogs !== selectedOption.value) {
+    project.saveSerialLogs = selectedOption.value;
+    await ProjectConfigManager.save(context, project);
+    
+    const status = project.saveSerialLogs ? 'enabled' : 'disabled';
+    vscode.window.showInformationMessage(`Serial logging ${status}`);
+  }
+}
+
+export async function changeSerialSettingsCommand(
+  config: GlobalConfig,
+  context: vscode.ExtensionContext
+): Promise<void> {
+  if (!config.isSetup) {
+    vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
+    return;
+  }
+
+  const project = await ProjectConfigManager.load(context);
+
+  // Show current settings
+  const currentPort = project.port ? `Port: ${project.port}` : "No port configured";
+  const loggingStatus = project.saveSerialLogs ? "Logging: Enabled" : "Logging: Disabled";
+
+  // Options for what to change
+  const changeOptions = [
+    {
+      label: "Change Serial Port",
+      description: currentPort,
+      action: "port"
+    },
+    {
+      label: "Change Serial Logging",
+      description: loggingStatus,
+      action: "logging"
+    },
+    {
+      label: "Configure Both",
+      description: "Change port and logging settings",
+      action: "both"
+    }
+  ];
+
+  const selectedOption = await vscode.window.showQuickPick(changeOptions, {
+    title: "Configure Serial Monitor Settings",
+    placeHolder: "What would you like to change?",
+    ignoreFocusOut: true,
+  });
+
+  if (!selectedOption) {
+    return; // User canceled
+  }
+
+  switch (selectedOption.action) {
+    case "port":
+      await setupMonitorCommand(config, context);
+      break;
+    
+    case "logging":
+      await toggleSerialLoggingCommand(config, context);
+      break;
+    
+    case "both":
+      await setupMonitorCommand(config, context);
+      await toggleSerialLoggingCommand(config, context);
+      break;
+  }
 }

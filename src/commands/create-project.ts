@@ -102,7 +102,7 @@ export async function createProjectCommand(
 
   // West init
   const initCmd = `west init -l ${appDest}`;
-  await exec(initCmd, { env: config.env });
+  await exec(initCmd, { env: config.env, cwd: dest.fsPath });
 
   console.log("init_cmd: " + initCmd);
 

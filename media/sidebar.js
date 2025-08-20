@@ -397,9 +397,9 @@ function showReadyState(config, project, buildAssets) {
           <span class="setting-text">Setup Newtmgr</span>
           <span class="setting-arrow">→</span>
         </div>
-        <div class="setting-item" data-command="zephyr-tools.setup-monitor">
+        <div class="setting-item" data-command="zephyr-tools.change-serial-settings">
           <span class="setting-icon">📺</span>
-          <span class="setting-text">Setup Serial Monitor</span>
+          <span class="setting-text">Serial Settings</span>
           <span class="setting-arrow">→</span>
         </div>
       </div>

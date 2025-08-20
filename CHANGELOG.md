@@ -2,6 +2,18 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.4.11] - 2025-08-20
+
+Bug Fixes and UI Improvements:
+
+**Fixed:**
+- **Create Project Command**: Fixed race condition where `west init` was executed in wrong directory, preventing `west update` from running properly
+
+**Improved:**
+- **Serial Settings Menu**: Consolidated serial port and logging settings into a single "Serial Settings" menu, matching the probe-rs settings UI pattern
+- **Serial Logging Configuration**: Changed from toggle to explicit Enable/Disable dropdown for clearer user control
+- **Sidebar Organization**: Replaced "Setup Serial Monitor" with unified "Serial Settings" option in Advanced Settings
+
 ### [0.4.10] - 2025-08-11
 
 Board Selection Enhancement:

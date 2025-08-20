@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.4.10",
+  "version": "0.4.11",
   "license": "Apache-2.0",
   "publisher": "circuitdojo",
   "icon": "img/bulb.png",
@@ -33,6 +33,7 @@
     "onCommand:zephyr-tools.monitor",
     "onCommand:zephyr-tools.setup-monitor",
     "onCommand:zephyr-tools.toggle-serial-logging",
+    "onCommand:zephyr-tools.change-serial-settings",
     "onCommand:zephyr-tools.load",
     "onCommand:zephyr-tools.load-and-monitor",
     "onCommand:zephyr-tools.init-repo",
@@ -108,7 +109,11 @@
       },
       {
         "command": "zephyr-tools.toggle-serial-logging",
-        "title": "Zephyr Tools: Toggle Serial Logging"
+        "title": "Zephyr Tools: Change Serial Logging"
+      },
+      {
+        "command": "zephyr-tools.change-serial-settings",
+        "title": "Zephyr Tools: Serial Settings"
       },
       {
         "command": "zephyr-tools.init-repo",
