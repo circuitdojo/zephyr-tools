@@ -33,6 +33,7 @@ import {
   changeProbeRsSettingsCommand,
   createProjectCommand,
   cleanCommand,
+  cleanIncompleteProjectCommand,
   updateCommand,
   openBuildFolderCommand,
   revealBuildAssetCommand,
@@ -287,6 +288,13 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.clean", async () => {
       await cleanCommand(globalConfig, context);
+    })
+  );
+
+  // Clean incomplete project command (internal use only - not exposed in command palette)
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools._clean-incomplete-project", async () => {
+      await cleanIncompleteProjectCommand(globalConfig, context);
     })
   );
 

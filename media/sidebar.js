@@ -36,6 +36,15 @@ function setupEventListeners() {
           } else {
             console.error('No file path found for reveal-build-asset command');
           }
+        } 
+        // Check if this should use workspace folder
+        else if (target.hasAttribute('data-use-workspace')) {
+          console.log('Executing command with workspace folder:', command);
+          vscode.postMessage({
+            type: 'command',
+            command: command,
+            useWorkspace: true
+          });
         } else {
           executeCommand(command);
         }
@@ -152,6 +161,9 @@ function updateUI(data) {
     case 'project-required':
       showProjectRequiredState();
       break;
+    case 'project-incomplete':
+      showProjectIncompleteState();
+      break;
     case 'initializing':
       showInitializingState();
       break;
@@ -216,6 +228,38 @@ function showProjectRequiredState() {
   `;
   
   // Re-setup event listeners for the new buttons
+  setupEventListeners();
+}
+
+// Show project incomplete state (west folder exists but project not fully initialized)
+function showProjectIncompleteState() {
+  const container = document.querySelector('.container');
+  if (!container) return;
+  
+  container.innerHTML = `
+    <div class="card project-incomplete">
+      <h3 class="card-title">⚠️ Incomplete Project Found</h3>
+      <p class="state-message">A Zephyr project was detected but initialization didn't complete.</p>
+      <div class="action-grid">
+        <button class="action-btn primary" data-command="zephyr-tools.init-repo" data-use-workspace="true">
+          <span class="action-icon">🔄</span>
+          <span class="action-text">Resume Initialization</span>
+        </button>
+        <button class="action-btn secondary" data-command="zephyr-tools._clean-incomplete-project">
+          <span class="action-icon">🧹</span>
+          <span class="action-text">Clean & Start Over</span>
+        </button>
+      </div>
+      <div class="state-info">
+        <p class="info-text">• <strong>Resume:</strong> Continue where the initialization left off</p>
+        <p class="info-text">• <strong>Clean:</strong> Remove the incomplete project and start fresh</p>
+      </div>
+      <div class="state-warning">
+        <p class="warning-text">⚡ <strong>Note:</strong> The .west folder exists but the project isn't marked as complete.</p>
+      </div>
+    </div>
+  `;
+  
   setupEventListeners();
 }
 

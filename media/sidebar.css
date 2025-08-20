@@ -195,6 +195,21 @@
   line-height: 1.3;
 }
 
+.state-warning {
+  margin-top: 12px;
+  padding: 8px;
+  background: var(--vscode-inputValidation-warningBackground, rgba(255, 200, 0, 0.1));
+  border: 1px solid var(--vscode-inputValidation-warningBorder, rgba(255, 200, 0, 0.3));
+  border-radius: 4px;
+}
+
+.warning-text {
+  font-size: 11px;
+  color: var(--vscode-editorWarning-foreground, var(--vscode-foreground));
+  margin: 0;
+  line-height: 1.3;
+}
+
 /* Enhanced button styles for primary state */
 .action-btn.primary {
   background: var(--vscode-button-background);

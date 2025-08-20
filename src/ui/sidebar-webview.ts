@@ -10,7 +10,7 @@ import { GlobalConfig, ProjectConfig } from "../types";
 import { BuildAssetsManager, BuildAssetsState } from "../build/build-assets-manager";
 
 interface SidebarState {
-  type: 'loading' | 'setup-required' | 'project-required' | 'initializing' | 'setup-in-progress' | 'ready';
+  type: 'loading' | 'setup-required' | 'project-required' | 'project-incomplete' | 'initializing' | 'setup-in-progress' | 'ready';
   config: GlobalConfig;
   project: ProjectConfig;
   hasWorkspace: boolean;
@@ -54,7 +54,17 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
         switch (data.type) {
           case 'command':
             console.log('Executing command:', data.command);
-            await vscode.commands.executeCommand(data.command, ...(data.args || []));
+            // Special handling for init-repo with workspace flag
+            if (data.command === 'zephyr-tools.init-repo' && data.useWorkspace) {
+              const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+              if (workspaceFolder) {
+                await vscode.commands.executeCommand(data.command, workspaceFolder.uri);
+              } else {
+                vscode.window.showErrorMessage('No workspace folder found');
+              }
+            } else {
+              await vscode.commands.executeCommand(data.command, ...(data.args || []));
+            }
             break;
           case 'refresh':
             await this.refresh();
@@ -168,6 +178,17 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     const westFolderExists = workspaceRoot ? await fs.pathExists(path.join(workspaceRoot, '.west')) : false;
     
+    // Check for incomplete project (west folder exists but not marked as initialized)
+    if (westFolderExists && !project.isInit) {
+      return {
+        type: 'project-incomplete',
+        config,
+        project,
+        hasWorkspace
+      };
+    }
+    
+    // No west folder at all
     if (!project.isInit || !westFolderExists) {
       return {
         type: 'project-required',

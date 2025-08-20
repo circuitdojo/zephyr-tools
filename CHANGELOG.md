@@ -9,6 +9,11 @@ Bug Fixes and UI Improvements:
 **Fixed:**
 - **Create Project Command**: Fixed race condition where `west init` was executed in wrong directory, preventing `west update` from running properly
 
+**Added:**
+- **Incomplete Project Detection**: New UI state detects and handles incomplete Zephyr projects (when .west folder exists but initialization didn't complete)
+- **Resume Initialization**: Users can now resume interrupted project initialization directly from the sidebar without folder selection dialogs
+- **Clean Incomplete Project**: Safe removal of incomplete projects with confirmation dialog to start fresh
+
 **Improved:**
 - **Serial Settings Menu**: Consolidated serial port and logging settings into a single "Serial Settings" menu, matching the probe-rs settings UI pattern
 - **Serial Logging Configuration**: Changed from toggle to explicit Enable/Disable dropdown for clearer user control
