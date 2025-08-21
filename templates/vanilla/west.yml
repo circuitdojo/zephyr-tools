@@ -6,7 +6,8 @@ manifest:
     - name: zephyr
       repo-path: zephyr
       remote: zephyrproject
-      revision: v3.3.0
+      revision: v4.2.0
+      import: true
   self:
     # This repository should be cloned to
     path: app

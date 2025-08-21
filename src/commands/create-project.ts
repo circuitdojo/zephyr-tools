@@ -69,9 +69,9 @@ export async function createProjectCommand(
     await fs.mkdirp(appDest);
   }
 
-  // Popup asking for which SDK (vanilla vs NCS)
-  const choices = ["Vanilla", "NRF Connect SDK"];
-  const templates = ["vanilla", "ncs"];
+  // Popup asking for which SDK (vanilla vs NCS vs NFED)
+  const choices = ["Vanilla", "NRF Connect SDK", "NFED (Circuit Dojo Boards)"];
+  const templates = ["vanilla", "ncs", "nfed"];
   const sdk = await vscode.window.showQuickPick(choices, {
     title: "Pick your Zephyr SDK variant.",
     placeHolder: choices[0],

@@ -2,6 +2,14 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.4.12] - 2025-08-21
+
+Project Creation Enhancement:
+
+**Added:**
+- **NFED Template Support**: Added "NFED (Circuit Dojo Boards)" option to project creation for nRF9151 Feather development
+- **Circuit Dojo Integration**: New project template automatically configures the nrf9160-feather-examples-and-drivers repository
+
 ### [0.4.11] - 2025-08-20
 
 Bug Fixes and UI Improvements:

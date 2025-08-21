@@ -1,0 +1,10 @@
+manifest:
+  projects:
+    - name: nfed
+      url: https://github.com/circuitdojo/nrf9160-feather-examples-and-drivers.git
+      path: nfed
+      revision: v3.0.x
+      import: true
+  self:
+    # This repository should be cloned to
+    path: app
