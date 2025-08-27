@@ -185,37 +185,47 @@ export async function changeProbeRsSettingsCommand(
   config: GlobalConfig,
   context: vscode.ExtensionContext
 ): Promise<void> {
-  let project = await ProjectConfigManager.load(context);
-
   if (!config.isSetup) {
     vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
     return;
   }
 
+  // Get current settings from SettingsManager
+  const currentProbe = SettingsManager.getProbeRsProbeId();
+  const currentChip = SettingsManager.getProbeRsChipName();
+  const preverify = SettingsManager.getProbeRsPreverify();
+  const verify = SettingsManager.getProbeRsVerify();
+  
   // Show current settings
-  const currentProbe = project.probeRsProbeId ? `Probe ID: ${project.probeRsProbeId}` : "No probe configured";
-  const currentChip = project.probeRsChipName ? `Chip: ${project.probeRsChipName}` : "No chip configured";
+  const currentProbeDisplay = currentProbe ? `Probe ID: ${currentProbe}` : "No probe configured";
+  const currentChipDisplay = currentChip ? `Chip: ${currentChip}` : "No chip configured";
+  const verifyDisplay = `Preverify: ${preverify ? "✓" : "✗"}, Verify: ${verify ? "✓" : "✗"}`;
   
   // Options for what to change
   const changeOptions = [
     {
       label: "Change Probe",
-      description: currentProbe,
+      description: currentProbeDisplay,
       action: "probe"
     },
     {
       label: "Change Chip Name", 
-      description: currentChip,
+      description: currentChipDisplay,
       action: "chip"
     },
     {
-      label: "Change Both",
-      description: "Reconfigure probe and chip",
-      action: "both"
+      label: "Configure Verification",
+      description: verifyDisplay,
+      action: "verify"
+    },
+    {
+      label: "Change All Settings",
+      description: "Reconfigure probe, chip, and verification",
+      action: "all"
     },
     {
       label: "Clear All Settings",
-      description: "Remove cached probe-rs configuration",
+      description: "Remove all probe-rs configuration",
       action: "clear"
     }
   ];
@@ -232,25 +242,27 @@ export async function changeProbeRsSettingsCommand(
 
   switch (selectedOption.action) {
     case "probe":
-      await changeProbeSelection(config, project, context);
+      await changeProbeSelection(config);
       break;
     case "chip":
-      await changeChipSelection(config, project, context);
+      await changeChipSelection(config);
       break;
-    case "both":
-      await changeProbeSelection(config, project, context);
-      // Reload project config in case it was updated
-      project = await ProjectConfigManager.load(context);
-      await changeChipSelection(config, project, context);
+    case "verify":
+      await changeVerificationSettings();
+      break;
+    case "all":
+      await changeProbeSelection(config);
+      await changeChipSelection(config);
+      await changeVerificationSettings();
       break;
     case "clear":
-      await clearProbeRsSettings(project, context);
+      await clearProbeRsSettings();
       break;
   }
 }
 
 // Change probe selection
-async function changeProbeSelection(config: GlobalConfig, project: ProjectConfig, context: vscode.ExtensionContext) {
+async function changeProbeSelection(config: GlobalConfig) {
   // Use normalized environment from config
   const normalizedEnv = EnvironmentUtils.normalizeEnvironment(SettingsManager.buildEnvironmentForExecution());
   const availableProbes = await ProbeManager.getAvailableProbes(normalizedEnv);
@@ -265,16 +277,16 @@ async function changeProbeSelection(config: GlobalConfig, project: ProjectConfig
     return;
   }
 
-  // Update project config
-  project.probeRsProbeId = selectedProbe.probeId;
-  await ProjectConfigManager.save(context, project);
-  
-  const probeInfo = selectedProbe.probeId ? `(ID: ${selectedProbe.probeId})` : "";
-  vscode.window.showInformationMessage(`Probe updated to: ${selectedProbe.name} ${probeInfo}`);
+  // Update settings
+  if (selectedProbe.probeId) {
+    await SettingsManager.setProbeRsProbeId(selectedProbe.probeId);
+    const probeInfo = `(ID: ${selectedProbe.probeId})`;
+    vscode.window.showInformationMessage(`Probe updated to: ${selectedProbe.name} ${probeInfo}`);
+  }
 }
 
 // Change chip selection
-async function changeChipSelection(config: GlobalConfig, project: ProjectConfig, context: vscode.ExtensionContext) {
+async function changeChipSelection(config: GlobalConfig) {
   // Use normalized environment from config
   const normalizedEnv = EnvironmentUtils.normalizeEnvironment(SettingsManager.buildEnvironmentForExecution());
   const chipName = await ProbeManager.getProbeRsChipName(normalizedEnv);
@@ -283,20 +295,65 @@ async function changeChipSelection(config: GlobalConfig, project: ProjectConfig,
     return;
   }
 
-  // Update project config  
-  project.probeRsChipName = chipName;
-  await ProjectConfigManager.save(context, project);
-  
+  // Update settings
+  await SettingsManager.setProbeRsChipName(chipName);
   vscode.window.showInformationMessage(`Chip name updated to: ${chipName}`);
 }
 
-// Clear all probe-rs settings
-async function clearProbeRsSettings(project: ProjectConfig, context: vscode.ExtensionContext) {
-  const hadSettings = project.probeRsProbeId || project.probeRsChipName;
+// Change verification settings
+async function changeVerificationSettings() {
+  const currentPreverify = SettingsManager.getProbeRsPreverify();
+  const currentVerify = SettingsManager.getProbeRsVerify();
   
-  project.probeRsProbeId = undefined;
-  project.probeRsChipName = undefined;
-  await ProjectConfigManager.save(context, project);
+  const verifyOptions = [
+    {
+      label: "Enable Preverify",
+      description: "Verify memory before flashing",
+      picked: currentPreverify,
+      setting: "preverify"
+    },
+    {
+      label: "Enable Verify",
+      description: "Verify memory after flashing",
+      picked: currentVerify,
+      setting: "verify"
+    }
+  ];
+
+  const selectedOptions = await vscode.window.showQuickPick(verifyOptions, {
+    title: "Configure Verification Settings",
+    placeHolder: "Select options to toggle (current state shown)",
+    canPickMany: true,
+    ignoreFocusOut: true,
+  });
+
+  if (!selectedOptions) {
+    return; // User canceled
+  }
+
+  // Determine new states
+  const newPreverify = selectedOptions.some(opt => opt.setting === "preverify");
+  const newVerify = selectedOptions.some(opt => opt.setting === "verify");
+
+  // Update settings
+  await SettingsManager.setProbeRsPreverify(newPreverify);
+  await SettingsManager.setProbeRsVerify(newVerify);
+
+  vscode.window.showInformationMessage(
+    `Verification settings updated: Preverify=${newPreverify ? "enabled" : "disabled"}, Verify=${newVerify ? "enabled" : "disabled"}`
+  );
+}
+
+// Clear all probe-rs settings
+async function clearProbeRsSettings() {
+  const hadSettings = SettingsManager.getProbeRsProbeId() || SettingsManager.getProbeRsChipName() || 
+                     SettingsManager.getProbeRsPreverify() || SettingsManager.getProbeRsVerify();
+  
+  // Clear all settings
+  await SettingsManager.setProbeRsProbeId("");
+  await SettingsManager.setProbeRsChipName("");
+  await SettingsManager.setProbeRsPreverify(false);
+  await SettingsManager.setProbeRsVerify(false);
   
   if (hadSettings) {
     vscode.window.showInformationMessage("probe-rs settings cleared. Next flash will prompt for probe and chip selection.");

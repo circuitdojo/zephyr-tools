@@ -269,8 +269,8 @@ export async function flashProbeRsCommand(
     return;
   }
 
-  // Check for available probes and handle caching
-  let probeId: string | undefined;
+  // Check for available probes and handle settings
+  let probeId: string | undefined = SettingsManager.getProbeRsProbeId();
   const availableProbes = await ProbeManager.getAvailableProbes(shellOptions.env);
   if (!availableProbes) {
     vscode.window.showErrorMessage("No debug probes found. Please connect a probe and try again.");
@@ -285,22 +285,23 @@ export async function flashProbeRsCommand(
     probeId = availableProbes[0].probeId;
     console.log(`Using single available probe: ${probeId}`);
     
-    // Cache the probe ID for future use
+    // Save the probe ID to settings for future use
     if (probeId) {
-      project.probeRsProbeId = probeId;
-      await ProjectConfigManager.save(context, project);
+      await SettingsManager.setProbeRsProbeId(probeId);
     }
   } else {
-    // Multiple probes - check if we have a cached probe ID that's still available
-    if (project.probeRsProbeId) {
-      const cachedProbe = availableProbes.find(p => p.probeId === project.probeRsProbeId);
-      if (cachedProbe) {
-        probeId = cachedProbe.probeId;
-        console.log(`Using cached probe: ${probeId}`);
+    // Multiple probes - check if we have a saved probe ID that's still available
+    if (probeId) {
+      const savedProbe = availableProbes.find(p => p.probeId === probeId);
+      if (savedProbe) {
+        console.log(`Using saved probe: ${probeId}`);
+      } else {
+        // Saved probe not found, clear it
+        probeId = undefined;
       }
     }
     
-    // If no cached probe or cached probe not found, let user choose
+    // If no saved probe or saved probe not found, let user choose
     if (!probeId) {
       const selectedProbe = await ProbeManager.selectProbe(availableProbes);
       if (!selectedProbe) {
@@ -309,21 +310,19 @@ export async function flashProbeRsCommand(
       }
       probeId = selectedProbe.probeId;
       
-      // Cache the selected probe ID
+      // Save the selected probe ID
       if (probeId) {
-        project.probeRsProbeId = probeId;
-        await ProjectConfigManager.save(context, project);
+        await SettingsManager.setProbeRsProbeId(probeId);
       }
     }
   }
 
-  // Get chip name from user selection or cached value
-  let chipName: string | undefined;
+  // Get chip name from settings or user selection
+  let chipName: string | undefined = SettingsManager.getProbeRsChipName();
   
-  // First check if we have a cached chip name
-  if (project.probeRsChipName) {
-    chipName = project.probeRsChipName;
-    console.log(`Using cached chip name: ${chipName}`);
+  // Check if we have a saved chip name
+  if (chipName) {
+    console.log(`Using saved chip name: ${chipName}`);
   } else {
     // Get available chips from probe-rs
     chipName = await ProbeManager.getProbeRsChipName(shellOptions.env);
@@ -332,9 +331,8 @@ export async function flashProbeRsCommand(
       return;
     }
     
-    // Cache the selected chip name
-    project.probeRsChipName = chipName;
-    await ProjectConfigManager.save(context, project);
+    // Save the selected chip name
+    await SettingsManager.setProbeRsChipName(chipName);
   }
 
   // Command - use probe-rs download with the merged.hex file
@@ -344,6 +342,15 @@ export async function flashProbeRsCommand(
   // Append --probe flag if probeId is available
   if (probeId) {
     cmd += ` --probe ${probeId}`;
+  }
+  
+  // Add verification flags from settings
+  if (SettingsManager.getProbeRsPreverify()) {
+    cmd += ` --preverify`;
+  }
+  
+  if (SettingsManager.getProbeRsVerify()) {
+    cmd += ` --verify`;
   }
 
   console.log("probe-rs command: " + cmd);
@@ -433,28 +440,30 @@ async function handleProbeRsProbeSelection(
     return;
   }
 
-  let probeId: string | undefined;
+  let probeId: string | undefined = SettingsManager.getProbeRsProbeId();
 
   if (availableProbes.length === 1) {
     // Single probe, use it automatically
     probeId = availableProbes[0].probeId;
     console.log(`Using single available probe: ${probeId}`);
     
-    // Cache the probe ID for future use
+    // Save the probe ID for future use
     if (probeId) {
-      project.probeRsProbeId = probeId;
+      await SettingsManager.setProbeRsProbeId(probeId);
     }
   } else {
-    // Multiple probes - check if we have a cached probe ID that's still available
-    if (project.probeRsProbeId) {
-      const cachedProbe = availableProbes.find(p => p.probeId === project.probeRsProbeId);
-      if (cachedProbe) {
-        probeId = cachedProbe.probeId;
-        console.log(`Using cached probe: ${probeId}`);
+    // Multiple probes - check if we have a saved probe ID that's still available
+    if (probeId) {
+      const savedProbe = availableProbes.find(p => p.probeId === probeId);
+      if (savedProbe) {
+        console.log(`Using saved probe: ${probeId}`);
+      } else {
+        // Saved probe not found, clear it
+        probeId = undefined;
       }
     }
     
-    // If no cached probe or cached probe not found, let user choose
+    // If no saved probe or saved probe not found, let user choose
     if (!probeId) {
       const selectedProbe = await ProbeManager.selectProbe(availableProbes);
       if (!selectedProbe) {
@@ -463,9 +472,9 @@ async function handleProbeRsProbeSelection(
       }
       probeId = selectedProbe.probeId;
       
-      // Cache the selected probe ID
+      // Save the selected probe ID
       if (probeId) {
-        project.probeRsProbeId = probeId;
+        await SettingsManager.setProbeRsProbeId(probeId);
       }
     }
   }

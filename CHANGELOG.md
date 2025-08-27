@@ -2,6 +2,24 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.1] - 2025-08-27
+
+**New Features:**
+- **probe-rs Settings Migration**: Migrated all probe-rs configuration to VS Code settings for better persistence and discoverability
+- **Verification Flags**: Added --preverify and --verify flag support for probe-rs download operations
+- **Enhanced Settings UI**: Updated probe-rs settings command with verification options and multi-select interface
+
+**Settings Added:**
+- `zephyr-tools.probeRs.chipName`: Chip name for probe-rs operations
+- `zephyr-tools.probeRs.probeId`: Probe ID for probe-rs operations 
+- `zephyr-tools.probeRs.preverify`: Enable --preverify flag to verify memory before flashing
+- `zephyr-tools.probeRs.verify`: Enable --verify flag to verify memory after flashing
+
+**Technical Changes:**
+- Removed probe-rs settings from ProjectConfig (probeRsProbeId, probeRsChipName)
+- Added SettingsManager methods for all probe-rs configuration
+- Updated flash commands to use VS Code settings instead of project configuration
+
 ### [0.5.0] - 2025-08-27
 
 Major Architecture Refactor - VS Code Settings Integration:

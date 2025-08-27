@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "license": "Apache-2.0",
   "publisher": "circuitdojo",
   "icon": "img/bulb.png",
@@ -209,6 +209,30 @@
           "default": {},
           "description": "Environment variables for Zephyr Tools",
           "scope": "machine"
+        },
+        "zephyr-tools.probeRs.chipName": {
+          "type": "string",
+          "default": "",
+          "description": "Chip name for probe-rs operations (e.g., nRF52840_xxAA)",
+          "scope": "workspace"
+        },
+        "zephyr-tools.probeRs.probeId": {
+          "type": "string",
+          "default": "",
+          "description": "Probe ID for probe-rs operations (auto-detected if empty)",
+          "scope": "workspace"
+        },
+        "zephyr-tools.probeRs.preverify": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable --preverify flag to verify memory before flashing",
+          "scope": "workspace"
+        },
+        "zephyr-tools.probeRs.verify": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable --verify flag to verify memory after flashing",
+          "scope": "workspace"
         }
       }
     }

@@ -210,4 +210,45 @@ export class SettingsManager {
     return env;
   }
 
+  // probe-rs specific settings
+  static getProbeRsChipName(): string | undefined {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    return config.get<string>("probeRs.chipName") || undefined;
+  }
+
+  static async setProbeRsChipName(chipName: string): Promise<void> {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    await config.update("probeRs.chipName", chipName, vscode.ConfigurationTarget.Workspace);
+  }
+
+  static getProbeRsProbeId(): string | undefined {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    return config.get<string>("probeRs.probeId") || undefined;
+  }
+
+  static async setProbeRsProbeId(probeId: string): Promise<void> {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    await config.update("probeRs.probeId", probeId, vscode.ConfigurationTarget.Workspace);
+  }
+
+  static getProbeRsPreverify(): boolean {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    return config.get<boolean>("probeRs.preverify") || false;
+  }
+
+  static async setProbeRsPreverify(enabled: boolean): Promise<void> {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    await config.update("probeRs.preverify", enabled, vscode.ConfigurationTarget.Workspace);
+  }
+
+  static getProbeRsVerify(): boolean {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    return config.get<boolean>("probeRs.verify") || false;
+  }
+
+  static async setProbeRsVerify(enabled: boolean): Promise<void> {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    await config.update("probeRs.verify", enabled, vscode.ConfigurationTarget.Workspace);
+  }
+
 }
