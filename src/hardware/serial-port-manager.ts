@@ -10,6 +10,7 @@ import * as cp from "child_process";
 import { BAUD_LIST } from "../config";
 import { DialogManager } from "../ui";
 import { GlobalConfig } from "../types";
+import { SettingsManager } from "../config/settings-manager";
 
 export class SerialPortManager {
   static async getAvailablePorts(config: GlobalConfig): Promise<string[]> {
@@ -18,7 +19,7 @@ export class SerialPortManager {
     try {
       // Get list of ports using zephyr-tools
       const cmd = "zephyr-tools -l";
-      const result = await exec(cmd, { env: config.env });
+      const result = await exec(cmd, { env: SettingsManager.buildEnvironmentForExecution() });
       
       if (result.stderr) {
         console.error("Error getting ports:", result.stderr);

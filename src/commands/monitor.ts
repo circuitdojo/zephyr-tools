@@ -10,6 +10,7 @@ import { ProjectConfigManager } from "../config";
 import { SerialPortManager } from "../hardware";
 import { TaskManager } from "../tasks";
 import { EnvironmentUtils } from "../utils";
+import { SettingsManager } from "../config/settings-manager";
 
 export async function monitorCommand(
   config: GlobalConfig,
@@ -36,7 +37,7 @@ export async function monitorCommand(
 
   // Options for Shell Execution with normalized environment
   let options: vscode.ShellExecutionOptions = {
-    env: EnvironmentUtils.normalizeEnvironment(config.env),
+    env: EnvironmentUtils.normalizeEnvironment(SettingsManager.buildEnvironmentForExecution()),
     cwd: project.target,
   };
 

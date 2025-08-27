@@ -1,5 +1,5 @@
 {
-  "version": 15,
+  "version": 16,
   "win32": [
     {
       "arch": "x64",
@@ -27,7 +27,7 @@
           "filename": "cmake-3.22.0-windows-x86_64.zip",
           "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-windows-x86_64.zip",
           "md5": "1a273903dcb295455b69af7c9c10efa2",
-          "suffix": "cmake-3.22.0-windows-x86_64\\bin\\"
+          "suffix": "cmake-3.22.0-windows-x86_64\\bin"
         },
         {
           "name": "probe-rs",
@@ -45,7 +45,7 @@
               "filename": "zephyr-sdk-0.16.4_windows-x86_64_minimal.7z",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.4/zephyr-sdk-0.16.4_windows-x86_64_minimal.7z",
               "md5": "fbf2ffa00c77227537514fa43075607f",
-              "suffix": "zephyr-sdk-0.16.4\\arm-zephyr-eabi\\bin\\",
+              "suffix": "zephyr-sdk-0.16.4\\arm-zephyr-eabi\\bin",
               "env": [
                 {
                   "name": "ZEPHYR_TOOLCHAIN_VARIANT",
@@ -66,7 +66,7 @@
               "filename": "toolchain_windows-x86_64_arm-zephyr-eabi.7z",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.4/toolchain_windows-x86_64_arm-zephyr-eabi.7z",
               "md5": "37e3d358aae2ee055f34b97fd24aadd5",
-              "suffix": "zephyr-sdk-0.16.4\\arm-zephyr-eabi\\bin\\",
+              "suffix": "zephyr-sdk-0.16.4\\arm-zephyr-eabi\\bin",
               "clear_target": false,
               "copy_to_subfolder": "zephyr-sdk-0.16.4"
             }
@@ -80,7 +80,7 @@
               "filename": "zephyr-sdk-0.15.1_windows-x86_64_minimal.zip",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.1/zephyr-sdk-0.15.1_windows-x86_64_minimal.zip",
               "md5": "4c73427373995d1ac53412383a2f6610",
-              "suffix": "zephyr-sdk-0.15.1\\arm-zephyr-eabi\\bin\\",
+              "suffix": "zephyr-sdk-0.15.1\\arm-zephyr-eabi\\bin",
               "env": [
                 {
                   "name": "ZEPHYR_TOOLCHAIN_VARIANT",
@@ -101,7 +101,7 @@
               "filename": "toolchain_windows-x86_64_arm-zephyr-eabi.zip",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.1/toolchain_windows-x86_64_arm-zephyr-eabi.zip",
               "md5": "1786d58c03f3e380d683b1e5ded45131",
-              "suffix": "zephyr-sdk-0.15.1\\arm-zephyr-eabi\\bin\\",
+              "suffix": "zephyr-sdk-0.15.1\\arm-zephyr-eabi\\bin",
               "clear_target": false,
               "copy_to_subfolder": "zephyr-sdk-0.15.1"
             }
@@ -137,7 +137,7 @@
           "filename": "cmake-3.22.0-macos-universal.tar.gz",
           "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-macos-universal.tar.gz",
           "md5": "438fc508b37b70a1d1bb112a4ffd4ad7",
-          "suffix": "cmake-3.22.0-macos-universal/CMake.app/Contents/bin/"
+          "suffix": "cmake-3.22.0-macos-universal/CMake.app/Contents/bin"
         },
         {
           "name": "probe-rs",
@@ -156,7 +156,7 @@
               "filename": "zephyr-sdk-0.16.4_macos-x86_64_minimal.tar.xz",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.4/zephyr-sdk-0.16.4_macos-x86_64_minimal.tar.xz",
               "md5": "4771443abfc72c1442a2cdf01034ab95",
-              "suffix": "zephyr-sdk-0.16.4/arm-zephyr-eabi/bin/",
+              "suffix": "zephyr-sdk-0.16.4/arm-zephyr-eabi/bin",
               "env": [
                 {
                   "name": "ZEPHYR_TOOLCHAIN_VARIANT",
@@ -188,7 +188,7 @@
               "filename": "zephyr-sdk-0.15.1_macos-x86_64_minimal.tar.gz",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.1/zephyr-sdk-0.15.1_macos-x86_64_minimal.tar.gz",
               "md5": "2e6900c9ea1d03fbf67cd784e18f53bf",
-              "suffix": "zephyr-sdk-0.15.1/arm-zephyr-eabi/bin/",
+              "suffix": "zephyr-sdk-0.15.1/arm-zephyr-eabi/bin",
               "env": [
                 {
                   "name": "ZEPHYR_TOOLCHAIN_VARIANT",
@@ -234,7 +234,7 @@
           "filename": "cmake-3.22.0-macos-universal.tar.gz",
           "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-macos-universal.tar.gz",
           "md5": "438fc508b37b70a1d1bb112a4ffd4ad7",
-          "suffix": "cmake-3.22.0-macos-universal/CMake.app/Contents/bin/"
+          "suffix": "cmake-3.22.0-macos-universal/CMake.app/Contents/bin"
         },
         {
           "name": "probe-rs",
@@ -253,7 +253,7 @@
               "filename": "zephyr-sdk-0.16.4_macos-aarch64_minimal.tar.xz",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.4/zephyr-sdk-0.16.4_macos-aarch64_minimal.tar.xz",
               "md5": "4aa2aa3b8313e04dd93a8bbee4b31754",
-              "suffix": "zephyr-sdk-0.16.4/arm-zephyr-eabi/bin/",
+              "suffix": "zephyr-sdk-0.16.4/arm-zephyr-eabi/bin",
               "env": [
                 {
                   "name": "ZEPHYR_TOOLCHAIN_VARIANT",
@@ -285,7 +285,7 @@
               "filename": "zephyr-sdk-0.15.1_macos-aarch64_minimal.tar.gz",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.1/zephyr-sdk-0.15.1_macos-aarch64_minimal.tar.gz",
               "md5": "6b0d6e08ad5753a29d96df4d6ccfed72",
-              "suffix": "zephyr-sdk-0.15.1/arm-zephyr-eabi/bin/",
+              "suffix": "zephyr-sdk-0.15.1/arm-zephyr-eabi/bin",
               "env": [
                 {
                   "name": "ZEPHYR_TOOLCHAIN_VARIANT",
@@ -339,7 +339,7 @@
           "filename": "cmake-3.22.0-linux-x86_64.tar.gz",
           "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-linux-x86_64.tar.gz",
           "md5": "5537bbc683e364e5408a393a737f53a1",
-          "suffix": "cmake-3.22.0-linux-x86_64/bin/"
+          "suffix": "cmake-3.22.0-linux-x86_64/bin"
         },
         {
           "name": "probe-rs",
@@ -358,7 +358,7 @@
               "filename": "zephyr-sdk-0.16.4_linux-x86_64_minimal.tar.xz",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.4/zephyr-sdk-0.16.4_linux-x86_64_minimal.tar.xz",
               "md5": "5f10ac5111476d4e069b52f07aa3f4d5",
-              "suffix": "zephyr-sdk-0.16.4/arm-zephyr-eabi/bin/",
+              "suffix": "zephyr-sdk-0.16.4/arm-zephyr-eabi/bin",
               "env": [
                 {
                   "name": "ZEPHYR_TOOLCHAIN_VARIANT",
@@ -379,7 +379,6 @@
               "filename": "toolchain_linux-x86_64_arm-zephyr-eabi.tar.xz",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.4/toolchain_linux-x86_64_arm-zephyr-eabi.tar.xz",
               "md5": "4386d940c085670fc54480eb7eaebff8",
-              "suffix": "zephyr-sdk-0.16.4\\arm-zephyr-eabi\\bin\\",
               "clear_target": false,
               "copy_to_subfolder": "zephyr-sdk-0.16.4"
             }
@@ -393,7 +392,7 @@
               "filename": "zephyr-sdk-0.15.1_linux-x86_64_minimal.tar.gz",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.1/zephyr-sdk-0.15.1_linux-x86_64_minimal.tar.gz",
               "md5": "e74588785a291867feacf14134aaec61",
-              "suffix": "zephyr-sdk-0.15.1/arm-zephyr-eabi/bin/",
+              "suffix": "zephyr-sdk-0.15.1/arm-zephyr-eabi/bin",
               "env": [
                 {
                   "name": "ZEPHYR_TOOLCHAIN_VARIANT",
@@ -414,7 +413,6 @@
               "filename": "toolchain_linux-x86_64_arm-zephyr-eabi.tar.gz",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.1/toolchain_linux-x86_64_arm-zephyr-eabi.tar.gz",
               "md5": "bf75b7db76bd5ad260be7e708e29c90d",
-              "suffix": "zephyr-sdk-0.15.1\\arm-zephyr-eabi\\bin\\",
               "clear_target": false,
               "copy_to_subfolder": "zephyr-sdk-0.15.1"
             }

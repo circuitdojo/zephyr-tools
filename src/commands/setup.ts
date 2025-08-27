@@ -10,7 +10,7 @@ import * as path from "path";
 import * as util from "util";
 import * as cp from "child_process";
 import { GlobalConfig, Manifest, ManifestEntry, ManifestToolchainEntry, ManifestDownloadEntry } from "../types";
-import { GlobalConfigManager } from "../config";
+import { GlobalConfigManager, SettingsManager } from "../config";
 import { 
   findSuitablePython, 
   validateGitInstallation, 
@@ -20,7 +20,7 @@ import {
 } from "../environment";
 import { OutputChannelManager } from "../ui";
 import { TaskManager } from "../tasks";
-import { toolsDir, arch, platform, pathdivider } from "../config";
+import { arch, platform, pathdivider } from "../config";
 import { FileDownloader, ArchiveExtractor } from "../files";
 
 // Manifest data
@@ -33,13 +33,14 @@ async function processDownloadWithValidation(
   download: ManifestDownloadEntry,
   config: GlobalConfig,
   context: vscode.ExtensionContext,
-  output: vscode.OutputChannel
+  output: vscode.OutputChannel,
+  allAddedPaths: string[]
 ): Promise<boolean> {
   output.appendLine(`[SETUP] Starting processing: ${download.name}`);
   output.appendLine(`[SETUP] URL: ${download.url}`);
   output.appendLine(`[SETUP] Expected MD5: ${download.md5}`);
 
-  const result = await processDownload(download, config, context, output);
+  const result = await processDownload(download, config, context, output, allAddedPaths);
 
   if (result) {
     output.appendLine(`[SETUP] Successfully completed: ${download.name}`);
@@ -57,7 +58,8 @@ async function processDownload(
   download: ManifestDownloadEntry,
   config: GlobalConfig,
   context: vscode.ExtensionContext,
-  output: vscode.OutputChannel
+  output: vscode.OutputChannel,
+  allAddedPaths: string[]
 ): Promise<boolean> {
   const exec = util.promisify(cp.exec);
 
@@ -88,8 +90,9 @@ async function processDownload(
     return false;
   }
 
-  // Determine target path
-  let copytopath = path.join(toolsDir, download.name);
+  // Determine target path - use settings-based tools directory
+  const currentToolsDir = SettingsManager.getToolsDirectory();
+  let copytopath = path.join(currentToolsDir, download.name);
   output.appendLine(`[SETUP] Initial copytopath: ${copytopath}`);
 
   // Add subfolder if specified
@@ -137,34 +140,53 @@ async function processDownload(
   // Set up PATH environment variable
   if (download.suffix) {
     const setpath = path.join(copytopath, download.suffix);
-    config.env["PATH"] = setpath + pathdivider + config.env["PATH"];
     
     // Add to VS Code environment collection
     context.environmentVariableCollection.prepend("PATH", setpath + pathdivider);
+    
+    // Track this path
+    allAddedPaths.push(setpath);
+    output.appendLine(`[SETUP] Added to PATH: ${setpath}`);
   } else {
     // If no suffix, assume the copytopath contains executables and should be added to PATH
-    config.env["PATH"] = copytopath + pathdivider + config.env["PATH"];
     
     // Add to VS Code environment collection
     context.environmentVariableCollection.prepend("PATH", copytopath + pathdivider);
+    
+    // Track this path
+    allAddedPaths.push(copytopath);
+    output.appendLine(`[SETUP] Added to PATH: ${copytopath}`);
   }
 
-  console.log("PATH: "+config.env["PATH"]);
-  output.appendLine(`[SETUP] PATH: ${config.env["PATH"]}`);
-
-  // Set remaining environment variables
+  // Set remaining environment variables in settings
   for (const entry of download.env ?? []) {
+    let envValue: string;
     if (entry.value) {
-      config.env[entry.name] = entry.value;
+      envValue = entry.value;
     } else if (entry.usepath && !entry.append) {
-      config.env[entry.name] = path.join(copytopath, entry.suffix ?? "");
+      envValue = path.join(copytopath, entry.suffix ?? "");
     } else if (entry.usepath && entry.append) {
-      config.env[entry.name] = path.join(
+      const existingValue = SettingsManager.getZephyrBase() || ""; // For ZEPHYR_BASE mainly
+      envValue = path.join(
         copytopath,
-        (entry.suffix ?? "") + pathdivider + (config.env[entry.name] ?? "")
+        (entry.suffix ?? "") + pathdivider + existingValue
       );
+    } else {
+      continue;
     }
-    console.log(`env[${entry.name}]: ${config.env[entry.name]}`);
+
+    // Save environment variable to settings
+    await SettingsManager.setEnvironmentVariable(entry.name, envValue);
+    
+    // Also save ZEPHYR_BASE to its dedicated setting
+    if (entry.name === "ZEPHYR_BASE") {
+      await SettingsManager.setZephyrBase(envValue);
+    }
+    
+    // Set environment variable in VS Code environment collection
+    context.environmentVariableCollection.replace(entry.name, envValue);
+    
+    output.appendLine(`[SETUP] Set ${entry.name}: ${envValue}`);
   }
 
   // Save configuration to disk
@@ -180,7 +202,7 @@ async function processDownload(
     }
 
     try {
-      const result = await exec(cmd, { env: config.env });
+      const result = await exec(cmd, { env: SettingsManager.buildEnvironmentForExecution() });
       output.append(result.stdout);
       if (result.stderr) {
         output.append(result.stderr);
@@ -206,6 +228,9 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
   // Set setup in progress flag and save config to trigger sidebar update
   config.isSetupInProgress = true;
   await GlobalConfigManager.save(context, config);
+  
+  // Track all paths added during setup
+  const allAddedPaths: string[] = [];
   
   try {
     // Clear any existing PATH modifications
@@ -282,17 +307,21 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
       output.clear();
       output.show();
 
+      // Get current tools directory from settings
+      const currentToolsDir = SettingsManager.getToolsDirectory();
+
       // Check if directory in $HOME exists
-      let exists = await fs.pathExists(toolsDir);
+      let exists = await fs.pathExists(currentToolsDir);
       if (!exists) {
         console.log("toolsdir not found");
-        await fs.mkdirp(toolsDir);
+        await fs.mkdirp(currentToolsDir);
       }
 
       progress.report({ increment: 5 });
 
       // Validate Git installation
-      if (!(await validateGitInstallation(config.env, output))) {
+      const env = SettingsManager.buildEnvironmentForExecution();
+      if (!(await validateGitInstallation(env, output))) {
         vscode.window.showErrorMessage("Unable to continue. Git not installed. Check output for more info.");
         return;
       }
@@ -310,7 +339,7 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
       progress.report({ increment: 5 });
 
       // Create virtual environment
-      if (!(await createVirtualEnvironment(suitablePython, config.env, output))) {
+      if (!(await createVirtualEnvironment(suitablePython, env, output))) {
         vscode.window.showErrorMessage("Error installing virtualenv. Check output for more info.");
         return;
       }
@@ -318,10 +347,10 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
       progress.report({ increment: 5 });
 
       // Setup virtual environment paths
-      setupVirtualEnvironmentPaths(config.env, context);
+      await setupVirtualEnvironmentPaths(env, context);
 
       // Install west
-      if (!(await installWest(suitablePython, config.env, output))) {
+      if (!(await installWest(suitablePython, env, output))) {
         vscode.window.showErrorMessage("Error installing west. Check output for more info.");
         return;
       }
@@ -329,7 +358,7 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
       progress.report({ increment: 5 });
 
       // Initialize FileDownloader
-      FileDownloader.init(path.join(toolsDir, "downloads"));
+      FileDownloader.init(path.join(currentToolsDir, "downloads"));
 
       // Process platform dependencies and toolchain
       for (const element of platformManifest) {
@@ -337,7 +366,7 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
           // Process general dependencies first
           for (const download of element.downloads) {
             progress.report({ increment: 2, message: `Processing ${download.name}...` });
-            const result = await processDownloadWithValidation(download, config, context, output);
+            const result = await processDownloadWithValidation(download, config, context, output, allAddedPaths);
             if (!result) {
               output.appendLine(`[SETUP] ABORTING: Failed to process dependency ${download.name}`);
               vscode.window.showErrorMessage(`Failed to process dependency ${download.name}. Check output for details.`);
@@ -351,7 +380,7 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
             output.appendLine(`[SETUP] Installing ${selectedEntry.name} toolchain...`);
             for (const download of selectedEntry.downloads) {
               progress.report({ increment: 2, message: `Processing toolchain ${download.name}...` });
-              const result = await processDownloadWithValidation(download, config, context, output);
+              const result = await processDownloadWithValidation(download, config, context, output, allAddedPaths);
               if (!result) {
                 output.appendLine(`[SETUP] ABORTING: Failed to process toolchain ${download.name}`);
                 vscode.window.showErrorMessage(`Failed to process toolchain ${download.name}. Check output for details.`);
@@ -373,6 +402,28 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
 
       // Save configuration
       await GlobalConfigManager.save(context, config);
+
+      // Save detected tool paths to settings if they're not already set
+      if (!SettingsManager.getPythonExecutable()) {
+        await SettingsManager.setPythonExecutable(suitablePython);
+      }
+      
+      // Save West executable path
+      const westPath = path.join(currentToolsDir, "env", platform === "win32" ? "Scripts" : "bin", platform === "win32" ? "west.exe" : "west");
+      if (!SettingsManager.getWestExecutable() && await fs.pathExists(westPath)) {
+        await SettingsManager.setWestExecutable(westPath);
+      }
+      
+      // Save ZEPHYR_BASE to dedicated setting if it was configured
+      const zephyrBase = SettingsManager.getEnvironmentVariable("ZEPHYR_BASE");
+      if (zephyrBase) {
+        await SettingsManager.setZephyrBase(zephyrBase);
+      }
+      
+      // Save all the paths that were added during setup
+      if (allAddedPaths.length > 0) {
+        await SettingsManager.setAllPaths(allAddedPaths);
+      }
 
       progress.report({ increment: 100 });
 

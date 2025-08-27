@@ -5,6 +5,7 @@
  */
 
 import * as vscode from "vscode";
+import * as path from "path";
 
 export class StatusBarManager {
   private static boardStatusBarItem: vscode.StatusBarItem;
@@ -44,7 +45,6 @@ export class StatusBarManager {
       
       if (project) {
         // Extract just the directory name from the full path for display
-        const path = require('path');
         displayProject = this.truncateText(path.basename(project), 25);
       }
       

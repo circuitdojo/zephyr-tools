@@ -12,6 +12,7 @@ import * as cp from "child_process";
 import { GlobalConfig } from "../types";
 import { DialogManager } from "../ui";
 import { initRepoCommand } from "./project-management";
+import { SettingsManager } from "../config/settings-manager";
 
 async function copyFilesRecursively(source: string, destination: string) {
   const files = fs.readdirSync(source);
@@ -98,11 +99,11 @@ export async function createProjectCommand(
   const exec = util.promisify(cp.exec);
 
   // Init git repo
-  await exec("git init " + appDest, { env: config.env });
+  await exec("git init " + appDest, { env: SettingsManager.buildEnvironmentForExecution() });
 
   // West init
   const initCmd = `west init -l ${appDest}`;
-  await exec(initCmd, { env: config.env, cwd: dest.fsPath });
+  await exec(initCmd, { env: SettingsManager.buildEnvironmentForExecution(), cwd: dest.fsPath });
 
   console.log("init_cmd: " + initCmd);
 

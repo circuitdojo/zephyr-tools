@@ -14,7 +14,7 @@ import { ProjectConfigManager } from "../config";
 import { QuickPickManager, DialogManager, OutputChannelManager, StatusBarManager } from "../ui";
 import { TaskManager } from "../tasks";
 import { installPythonDependencies } from "../environment";
-import { toolsDir, platform } from "../config";
+import { platform, SettingsManager } from "../config";
 
 export async function changeProjectCommand(
   config: GlobalConfig,
@@ -41,7 +41,7 @@ export async function changeProjectCommand(
 
   // Get manifest path
   const cmd = "west config manifest.path";
-  const result = await exec(cmd, { env: config.env, cwd: rootPath.fsPath });
+  const result = await exec(cmd, { env: SettingsManager.buildEnvironmentForExecution(), cwd: rootPath.fsPath });
   
   if (result.stderr) {
     output.append(result.stderr);
@@ -127,7 +127,7 @@ export async function initRepoCommand(
 
     // Options for Shell execution
     const shellOptions: vscode.ShellExecutionOptions = {
-      env: <{ [key: string]: string }>config.env,
+      env: <{ [key: string]: string }>SettingsManager.buildEnvironmentForExecution(),
       cwd: dest.fsPath,
     };
 
@@ -201,7 +201,7 @@ export async function initRepoCommand(
       const cmd = "west list -f {path:28}";
       output.appendLine(`[INIT] Running: ${cmd}`);
       
-      const result = await exec(cmd, { env: config.env, cwd: dest.fsPath });
+      const result = await exec(cmd, { env: SettingsManager.buildEnvironmentForExecution(), cwd: dest.fsPath });
       if (result.stderr) {
         output.append(result.stderr);
         output.show();
@@ -215,7 +215,7 @@ export async function initRepoCommand(
       output.appendLine(`[INIT] Determined zephyr base path: ${base}`);
 
       // Install python dependencies
-      const pythonenv = path.join(toolsDir, "env");
+      const pythonenv = path.join(SettingsManager.getToolsDirectory(), "env");
       const venvPython = platform === "win32" 
         ? path.join(pythonenv, "Scripts", "python.exe") 
         : path.join(pythonenv, "bin", "python");

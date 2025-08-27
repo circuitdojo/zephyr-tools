@@ -9,7 +9,7 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import * as cp from "child_process";
 import { GlobalConfig, Manifest, ManifestEntry, ManifestDownloadEntry } from "../types";
-import { toolsDir, arch, platform, pathdivider } from "../config";
+import { arch, platform, pathdivider, SettingsManager } from "../config";
 
 export interface ManifestValidationResult {
   isValid: boolean;
@@ -98,7 +98,7 @@ export class ManifestValidator {
     const componentName = download.name;
     
     // Calculate expected installation path
-    let installPath = path.join(toolsDir, download.name);
+    let installPath = path.join(SettingsManager.getToolsDirectory(), download.name);
     if (download.copy_to_subfolder) {
       installPath = path.join(installPath, download.copy_to_subfolder);
     }
@@ -135,7 +135,7 @@ export class ManifestValidator {
     if (download.env) {
       for (const envEntry of download.env) {
         const expectedValue = this.calculateExpectedEnvValue(envEntry, installPath);
-        const actualValue = config.env[envEntry.name];
+        const actualValue = SettingsManager.getEnvironmentVariable(envEntry.name);
         
         if (expectedValue && actualValue !== expectedValue) {
           result.warnings.push(`Environment variable ${envEntry.name} mismatch. Expected: ${expectedValue}, Actual: ${actualValue}`);
@@ -261,8 +261,8 @@ export class ManifestValidator {
     result: ManifestValidationResult
   ): Promise<void> {
     // Check for SDK environment variable to determine which toolchain is installed
-    const sdkInstallDir = config.env['ZEPHYR_SDK_INSTALL_DIR'];
-    const toolchainVariant = config.env['ZEPHYR_TOOLCHAIN_VARIANT'];
+    const sdkInstallDir = SettingsManager.getZephyrSdkInstallDir();
+    const toolchainVariant = SettingsManager.getZephyrToolchainVariant();
 
     if (!sdkInstallDir || !toolchainVariant) {
       result.warnings.push('Toolchain environment variables not found. Toolchain may not be properly configured.');
@@ -297,15 +297,9 @@ export class ManifestValidator {
     ];
 
     for (const envVar of requiredEnvVars) {
-      if (!config.env[envVar]) {
+      if (!SettingsManager.getEnvironmentVariable(envVar)) {
         result.warnings.push(`Missing environment variable: ${envVar}`);
       }
-    }
-
-    // Validate PATH contains expected directories
-    const pathEnv = config.env['PATH'];
-    if (!pathEnv || !pathEnv.includes(toolsDir)) {
-      result.warnings.push('PATH does not contain tools directory');
     }
   }
 
@@ -325,7 +319,7 @@ export class ManifestValidator {
         const process = cp.spawn(tool, ['--version'], { 
           stdio: 'pipe',
           timeout: 3000,
-          env: config.env
+          env: SettingsManager.buildEnvironmentForExecution()
         });
         
         await new Promise<void>((resolve, reject) => {
@@ -396,14 +390,15 @@ export class ManifestValidator {
     }
 
     // Check if tools directory exists
-    if (!(await fs.pathExists(toolsDir))) {
+    const toolsDirectory = SettingsManager.getToolsDirectory();
+    if (!(await fs.pathExists(toolsDirectory))) {
       return false;
     }
 
     // Check for key tools
     const keyTools = ['cmake', 'ninja'];
     for (const tool of keyTools) {
-      const toolPath = path.join(toolsDir, tool);
+      const toolPath = path.join(toolsDirectory, tool);
       if (!(await fs.pathExists(toolPath))) {
         return false;
       }

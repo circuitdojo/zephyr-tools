@@ -2,6 +2,41 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.0] - 2025-08-27
+
+Major Architecture Refactor - VS Code Settings Integration:
+
+**New Features:**
+- **VS Code Settings Integration**: Complete migration from hardcoded paths to VS Code settings API for proper persistence
+- **Path Reset Command**: Added `Zephyr Tools: Reset Paths` command for troubleshooting configuration issues
+- **Auto-Detection**: Intelligent auto-detection of Python, West, and Zephyr SDK installations
+- **Settings UI**: New configuration options in VS Code settings for customizing tool paths:
+  - `zephyr-tools.paths.toolsDirectory`: Custom tools directory location
+  - `zephyr-tools.paths.pythonExecutable`: Custom Python path
+  - `zephyr-tools.paths.zephyrBase`: Custom ZEPHYR_BASE path
+  - `zephyr-tools.paths.westExecutable`: Custom West path
+  - `zephyr-tools.paths.allPaths`: View all configured paths
+  - `zephyr-tools.environment.variables`: Custom environment variables
+
+**Architecture Improvements:**
+- **SettingsManager**: New centralized class for all path and environment configuration
+- **Workspace/Machine Scopes**: Proper support for workspace-specific and machine-wide settings
+- **Path Discovery**: Comprehensive tool discovery across standard installation locations
+- **Environment Building**: Unified environment variable construction through SettingsManager
+
+**Fixed:**
+- **Critical Circular Dependency**: Resolved circular dependency between `constants.ts` and `settings-manager.ts`
+- **Runtime Reference Error**: Fixed `currentToolsDir is not defined` error in setup command
+- **Incomplete Path Manager**: Completed `getStandardToolPaths()` implementation
+- **Import Consistency**: Converted all `require()` to ES6 `import` statements
+- **Manifest Paths**: Fixed trailing slashes in manifest.json suffix paths causing path issues
+- **Linux Toolchain**: Fixed inconsistent suffix handling for Linux toolchain entries
+
+**Breaking Changes:**
+- Path management now uses VS Code settings instead of global constants
+- Environment configuration moved from GlobalConfig to SettingsManager
+- All commands now use `SettingsManager.buildEnvironmentForExecution()` for environment setup
+
 ### [0.4.12] - 2025-08-21
 
 Project Creation Enhancement:

@@ -12,6 +12,7 @@ import { TaskManager } from "../tasks";
 import { changeBoardCommand } from "./board-management";
 import { changeProjectCommand } from "./project-management";
 import { EnvironmentUtils } from "../utils";
+import { SettingsManager } from "../config/settings-manager";
 export async function buildCommand(
   config: GlobalConfig,
   context: vscode.ExtensionContext,
@@ -35,11 +36,8 @@ export async function buildCommand(
     return;
   }
 
-  // Return if env is not set
-  if (config.env === undefined) {
-    console.log("Env is undefined!");
-    return;
-  }
+  // Build environment for execution using SettingsManager
+  const env = SettingsManager.buildEnvironmentForExecution();
 
   // Auto-prompt for board if undefined (replicates old extension behavior)
   if (project.board === undefined) {
@@ -79,7 +77,7 @@ export async function buildCommand(
 
   // Options for Shell Execution with normalized environment
   let options: vscode.ShellExecutionOptions = {
-    env: EnvironmentUtils.normalizeEnvironment(config.env),
+    env: EnvironmentUtils.normalizeEnvironment(env),
     cwd: project.target,
   };
 

@@ -41,8 +41,5 @@ export function getPlatformConfig(): PlatformConfig {
   }
 }
 
-// Important directories
-export const toolsDir = path.join(os.homedir(), TOOLS_FOLDER_NAME);
-
 // Path divider for the current platform
 export const pathdivider = getPlatformConfig().pathDivider;

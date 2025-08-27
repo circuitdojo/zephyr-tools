@@ -6,12 +6,14 @@
 
 import * as vscode from "vscode";
 import * as path from "path";
+import * as fs from "fs-extra";
 import { GlobalConfig, ProjectConfig } from "../types";
 import { ProjectConfigManager, ConfigValidator } from "../config";
 import { SerialPortManager, NewtmgrManager } from "../hardware";
 import { TaskManager } from "../tasks";
 import { monitorCommand } from "./monitor";
 import { PlatformUtils, EnvironmentUtils } from "../utils";
+import { SettingsManager } from "../config/settings-manager";
 
 
 export async function loadCommand(
@@ -32,7 +34,7 @@ export async function loadCommand(
 
   // Options for Shell Execution with normalized environment
   let options: vscode.ShellExecutionOptions = {
-    env: EnvironmentUtils.normalizeEnvironment(config.env),
+    env: EnvironmentUtils.normalizeEnvironment(SettingsManager.buildEnvironmentForExecution()),
     cwd: project.target,
   };
 
@@ -47,7 +49,6 @@ export async function loadCommand(
   let targetFile = "";
 
   // Check if build/boardName/dfu_application.zip_manifest.json exists
-  const fs = require('fs-extra');
   const manifestPath = path.join(project.target, "build", boardName, "dfu_application.zip_manifest.json");
   const manifestExists = await fs.pathExists(manifestPath);
 

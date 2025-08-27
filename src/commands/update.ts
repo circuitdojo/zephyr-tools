@@ -8,6 +8,7 @@ import * as vscode from "vscode";
 import { GlobalConfig } from "../types";
 import { ProjectConfigManager, ConfigValidator } from "../config";
 import { EnvironmentUtils } from "../utils";
+import { SettingsManager } from "../config/settings-manager";
 
 export async function updateCommand(
   config: GlobalConfig,
@@ -29,7 +30,7 @@ export async function updateCommand(
   }
   
   const options: vscode.ShellExecutionOptions = {
-    env: EnvironmentUtils.normalizeEnvironment(config.env),
+    env: EnvironmentUtils.normalizeEnvironment(SettingsManager.buildEnvironmentForExecution()),
     cwd: rootPaths[0].uri.fsPath,
   };
   

@@ -5,7 +5,7 @@
  */
 
 import * as vscode from "vscode";
-import { GlobalConfigManager, ProjectConfigManager } from "./config";
+import { GlobalConfigManager, ProjectConfigManager, SettingsManager } from "./config";
 import { TaskManager } from "./tasks";
 import { StatusBarManager, OutputChannelManager, DialogManager, SidebarWebviewProvider } from "./ui";
 import { PathManager } from "./environment";
@@ -39,6 +39,7 @@ import {
   revealBuildAssetCommand,
   openZephyrTerminalCommand
 } from "./commands";
+import { resetPaths, populateDetectedPaths } from "./commands/path-management";
 
 // Global configuration instance
 let globalConfig: GlobalConfig;
@@ -58,7 +59,19 @@ export async function activate(context: vscode.ExtensionContext) {
   globalConfig = await GlobalConfigManager.load(context);
 
   // Set up environment variable collection
-  setupEnvironmentVariables(context);
+  await setupEnvironmentVariables(context);
+
+  // Extension initialization complete
+
+  // Auto-detect and populate ZEPHYR_BASE if not set
+  if (!SettingsManager.getZephyrBase()) {
+    const detectedZephyrBase = await SettingsManager.detectZephyrBase();
+    if (detectedZephyrBase) {
+      await SettingsManager.setZephyrBase(detectedZephyrBase);
+      // Also update the environment
+      context.environmentVariableCollection.replace("ZEPHYR_BASE", detectedZephyrBase);
+    }
+  }
 
   // Initialize status bar
   StatusBarManager.initializeStatusBarItems(context);
@@ -92,11 +105,14 @@ async function updateStatusBarFromConfig(context: vscode.ExtensionContext): Prom
   }
 }
 
-function setupEnvironmentVariables(context: vscode.ExtensionContext): void {
+async function setupEnvironmentVariables(context: vscode.ExtensionContext): Promise<void> {
   context.environmentVariableCollection.persistent = true;
   
   // Restore PATH modifications if previously set up
-  PathManager.restorePaths(globalConfig, context);
+  await PathManager.restorePaths(globalConfig, context);
+  
+  // Set up environment paths (ZEPHYR_BASE, ZEPHYR_SDK_INSTALL_DIR, etc.)
+  await PathManager.setupEnvironmentPaths(context, globalConfig);
 }
 
 function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWebviewProvider): void {
@@ -316,6 +332,11 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
     vscode.commands.registerCommand("zephyr-tools.reveal-build-asset", async (filePath: string) => {
       await revealBuildAssetCommand(globalConfig, context, filePath);
     })
+  );
+
+  // Path management command
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.reset-paths", resetPaths)
   );
 
   // Zephyr terminal command

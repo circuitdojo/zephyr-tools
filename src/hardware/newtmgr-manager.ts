@@ -9,6 +9,7 @@ import * as cp from "child_process";
 import { GlobalConfig } from "../types";
 import { OutputChannelManager } from "../ui";
 import { PlatformUtils } from "../utils";
+import { SettingsManager } from "../config/settings-manager";
 
 /**
  * Manages newtmgr connection profiles and operations
@@ -29,7 +30,7 @@ export class NewtmgrManager {
     try {
       const tools = PlatformUtils.getToolExecutables();
       const cmd = `${tools.newtmgr} conn add ${this.PROFILE_NAME} type=serial connstring="dev=${port},baud=${baud}"`;
-      const result = await exec(cmd, { env: config.env });
+      const result = await exec(cmd, { env: SettingsManager.buildEnvironmentForExecution() });
       
       if (result.stderr) {
         const output = OutputChannelManager.getChannel();
@@ -54,7 +55,7 @@ export class NewtmgrManager {
     try {
       const tools = PlatformUtils.getToolExecutables();
       const cmd = `${tools.newtmgr} conn show`;
-      const result = await exec(cmd, { env: config.env });
+      const result = await exec(cmd, { env: SettingsManager.buildEnvironmentForExecution() });
       
       if (result.stderr) {
         const output = OutputChannelManager.getChannel();
@@ -85,7 +86,7 @@ export class NewtmgrManager {
     
     try {
       const tools = PlatformUtils.getToolExecutables();
-      await exec(`${tools.newtmgr} version`, { env: config.env });
+      await exec(`${tools.newtmgr} version`, { env: SettingsManager.buildEnvironmentForExecution() });
       return true;
     } catch (error) {
       return false;

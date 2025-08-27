@@ -7,7 +7,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { GlobalConfig } from "../types";
-import { toolsDir, getPlatformConfig } from "../config";
+import { getPlatformConfig, SettingsManager } from "../config";
 
 export async function openZephyrTerminalCommand(
   config: GlobalConfig,
@@ -18,22 +18,49 @@ export async function openZephyrTerminalCommand(
     return;
   }
 
-  const pythonenv = path.join(toolsDir, "env");
+  const pythonenv = path.join(SettingsManager.getToolsDirectory(), "env");
   const platformConfig = getPlatformConfig();
   const pathDivider = platformConfig.pathDivider;
   
-  // Create environment with Python virtual environment activated
-  const terminalEnv = { ...config.env };
+  // Start with system environment (including system PATH)
+  const terminalEnv: { [key: string]: string } = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value !== undefined) {
+      terminalEnv[key] = value;
+    }
+  }
+  
+  // Add all configured environment variables from settings
+  const envVars = SettingsManager.getEnvironmentVariables();
+  for (const [key, value] of Object.entries(envVars)) {
+    if (value) {
+      terminalEnv[key] = value;
+    }
+  }
   
   // Set VIRTUAL_ENV path
   terminalEnv["VIRTUAL_ENV"] = pythonenv;
   
-  // Prepend Python environment paths to PATH
-  const scriptsPath = path.join(pythonenv, "Scripts");
-  const binPath = path.join(pythonenv, "bin");
+  // Get all configured paths from settings
+  const allPaths = SettingsManager.getAllPaths();
   
-  // Add both Scripts (Windows) and bin (Unix) paths - one will be ignored depending on platform
-  terminalEnv["PATH"] = `${scriptsPath}${pathDivider}${binPath}${pathDivider}${terminalEnv["PATH"]}`;
+  // Build the complete PATH by prepending all tool paths
+  let pathComponents: string[] = [];
+  
+  // Add Python environment paths first
+  pathComponents.push(path.join(pythonenv, "Scripts"));
+  pathComponents.push(path.join(pythonenv, "bin"));
+  
+  // Add all saved tool paths
+  pathComponents = pathComponents.concat(allPaths);
+  
+  // Add the existing PATH from environment
+  if (terminalEnv["PATH"]) {
+    pathComponents.push(terminalEnv["PATH"]);
+  }
+  
+  // Join all path components
+  terminalEnv["PATH"] = pathComponents.filter(p => p).join(pathDivider);
 
   // Create terminal with the configured environment
   const terminal = vscode.window.createTerminal({
@@ -45,6 +72,6 @@ export async function openZephyrTerminalCommand(
   // Show the terminal
   terminal.show();
   
-  // Optional: Display activation confirmation
-  terminal.sendText("echo 'Zephyr environment activated'");
+  // Show success notification instead of echo
+  vscode.window.showInformationMessage("Zephyr environment activated");
 }

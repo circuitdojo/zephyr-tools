@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.4.12",
+  "version": "0.5.0",
   "license": "Apache-2.0",
   "publisher": "circuitdojo",
   "icon": "img/bulb.png",
@@ -42,7 +42,8 @@
     "onCommand:zephyr-tools.change-runner",
     "onCommand:zephyr-tools.change-sysbuild",
     "onCommand:zephyr-tools.change-probe-rs-settings",
-    "onCommand:zephyr-tools.open-zephyr-terminal"
+    "onCommand:zephyr-tools.open-zephyr-terminal",
+    "onCommand:zephyr-tools.reset-paths"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -142,6 +143,10 @@
       {
         "command": "zephyr-tools.open-zephyr-terminal",
         "title": "Zephyr Tools: Open Zephyr Terminal"
+      },
+      {
+        "command": "zephyr-tools.reset-paths",
+        "title": "Zephyr Tools: Reset Paths"
       }
     ],
     "viewsContainers": {
@@ -162,6 +167,50 @@
           "when": ""
         }
       ]
+    },
+    "configuration": {
+      "title": "Zephyr Tools",
+      "properties": {
+        "zephyr-tools.paths.toolsDirectory": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to Zephyr tools directory (default: ~/.zephyrtools)",
+          "scope": "machine-overridable"
+        },
+        "zephyr-tools.paths.pythonExecutable": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to Python executable (auto-detected if empty)",
+          "scope": "machine-overridable"
+        },
+        "zephyr-tools.paths.zephyrBase": {
+          "type": "string",
+          "default": "",
+          "description": "Custom ZEPHYR_BASE path (auto-detected if empty)",
+          "scope": "workspace"
+        },
+        "zephyr-tools.paths.westExecutable": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to West executable (auto-detected if empty)",
+          "scope": "machine-overridable"
+        },
+        "zephyr-tools.paths.allPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "All paths added to PATH environment by Zephyr Tools",
+          "scope": "machine"
+        },
+        "zephyr-tools.environment.variables": {
+          "type": "object",
+          "default": {},
+          "description": "Environment variables for Zephyr Tools",
+          "scope": "machine"
+        }
+      }
     }
   },
   "scripts": {

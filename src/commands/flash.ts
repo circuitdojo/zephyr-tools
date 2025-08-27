@@ -6,6 +6,7 @@
 
 import * as vscode from "vscode";
 import * as path from "path";
+import * as fs from "fs-extra";
 import { GlobalConfig } from "../types";
 import { ProjectConfigManager, ConfigValidator } from "../config";
 import { SerialPortManager, ProbeManager } from "../hardware";
@@ -15,6 +16,7 @@ import { changeBoardCommand } from "./board-management";
 import { changeProjectCommand } from "./project-management";
 import { ProjectConfig } from "../types";
 import { PlatformUtils, EnvironmentUtils } from "../utils";
+import { SettingsManager } from "../config/settings-manager";
 
 
 export async function flashCommand(
@@ -59,7 +61,7 @@ export async function flashCommand(
 
   // Options for Shell Execution with normalized environment
   let options: vscode.ShellExecutionOptions = {
-    env: EnvironmentUtils.normalizeEnvironment(config.env),
+    env: EnvironmentUtils.normalizeEnvironment(SettingsManager.buildEnvironmentForExecution()),
     cwd: project.target,
   };
 
@@ -241,7 +243,7 @@ export async function flashProbeRsCommand(
   }
 
   // Create shell options with normalized environment
-  const shellOptions = EnvironmentUtils.createShellOptions(config.env, project.target);
+  const shellOptions = EnvironmentUtils.createShellOptions(SettingsManager.buildEnvironmentForExecution(), project.target);
   const options: vscode.ShellExecutionOptions = shellOptions;
 
   const taskName = "Zephyr Tools: Flash with probe-rs";
@@ -254,7 +256,6 @@ export async function flashProbeRsCommand(
   let hexFilePath = "";
   
   // Check if merged.hex exists in zephyr subdirectory first
-  const fs = require('fs-extra');
   if (await fs.pathExists(path.join(project.target!, hexFilePathZephyr))) {
     hexFilePath = hexFilePathZephyr;
   }
@@ -425,7 +426,7 @@ async function handleProbeRsProbeSelection(
   config: GlobalConfig
 ): Promise<void> {
   // Use normalized environment from config
-  const normalizedEnv = EnvironmentUtils.normalizeEnvironment(config.env);
+  const normalizedEnv = EnvironmentUtils.normalizeEnvironment(SettingsManager.buildEnvironmentForExecution());
   const availableProbes = await ProbeManager.getAvailableProbes(normalizedEnv);
   if (!availableProbes || availableProbes.length === 0) {
     vscode.window.showErrorMessage("No debug probes found. Please connect a probe and try again.");
