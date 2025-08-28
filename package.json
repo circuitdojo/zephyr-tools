@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "license": "Apache-2.0",
   "publisher": "circuitdojo",
   "icon": "img/bulb.png",
@@ -98,7 +98,7 @@
       },
       {
         "command": "zephyr-tools.setup-newtmgr",
-        "title": "Zephyr Tools: Setup Newtmgr"
+        "title": "Zephyr Tools: Newtmgr Settings"
       },
       {
         "command": "zephyr-tools.setup-monitor",
@@ -232,6 +232,24 @@
           "type": "boolean",
           "default": false,
           "description": "Enable --verify flag to verify memory after flashing",
+          "scope": "workspace"
+        },
+        "zephyr-tools.serial.port": {
+          "type": "string",
+          "default": "",
+          "description": "Serial port for monitoring and flashing (auto-detected if empty)",
+          "scope": "workspace"
+        },
+        "zephyr-tools.serial.saveLogsToFile": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable saving serial monitor output to log files",
+          "scope": "workspace"
+        },
+        "zephyr-tools.newtmgr.baudRate": {
+          "type": "number",
+          "default": 1000000,
+          "description": "Default baud rate for newtmgr connections",
           "scope": "workspace"
         }
       }

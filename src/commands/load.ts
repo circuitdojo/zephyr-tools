@@ -208,15 +208,15 @@ export async function loadAndMonitorCommand(
     await loadCommand(config, context);
 
     // Step 3: Set up serial port if not configured
-    if (!project.port) {
-      const port = await SerialPortManager.selectPort(config);
+    let port = SettingsManager.getSerialPort();
+    if (!port) {
+      port = await SerialPortManager.selectPort(config);
       if (!port) {
         vscode.window.showErrorMessage("Error obtaining serial port for monitoring.");
         return;
       }
       
-      project.port = port;
-      await ProjectConfigManager.save(context, project);
+      await SettingsManager.setSerialPort(port);
     }
 
     // Step 4: Start monitoring
@@ -238,8 +238,6 @@ export async function setupNewtmgrCommand(
     return;
   }
 
-  const project = await ProjectConfigManager.load(context);
-
   try {
     // Check if newtmgr is installed
     if (!(await NewtmgrManager.isInstalled(config))) {
@@ -247,41 +245,123 @@ export async function setupNewtmgrCommand(
       return;
     }
 
-    // Get serial port
-    const port = await SerialPortManager.selectPort(config);
-    if (!port) {
-      vscode.window.showErrorMessage("Error obtaining serial port.");
-      return;
-    }
+    // Show current settings
+    const currentPort = SettingsManager.getSerialPort();
+    const currentBaud = SettingsManager.getNewtmgrBaudRate();
+    const currentPortDisplay = currentPort ? `Port: ${currentPort}` : "No port configured";
+    const currentBaudDisplay = `Baud: ${currentBaud}`;
 
-    // Get baud rate (with default)
-    const baud = await vscode.window.showInputBox({
-      prompt: "Enter baud rate",
-      value: "1000000",
-      placeHolder: "1000000",
-      validateInput: (value) => {
-        const num = parseInt(value);
-        return isNaN(num) || num <= 0 ? "Please enter a valid baud rate" : null;
+    // Options for what to change
+    const changeOptions = [
+      {
+        label: "Configure Port",
+        description: currentPortDisplay,
+        action: "port"
+      },
+      {
+        label: "Configure Baud Rate",
+        description: currentBaudDisplay,
+        action: "baud"
+      },
+      {
+        label: "Configure Both",
+        description: "Set up port and baud rate",
+        action: "both"
+      },
+      {
+        label: "Test Connection",
+        description: "Create newtmgr profile with current settings",
+        action: "test"
       }
+    ];
+
+    const selectedOption = await vscode.window.showQuickPick(changeOptions, {
+      title: "Configure Newtmgr Settings",
+      placeHolder: "What would you like to do?",
+      ignoreFocusOut: true,
     });
 
-    if (!baud) {
-      vscode.window.showErrorMessage("Error obtaining serial baud.");
-      return;
+    if (!selectedOption) {
+      return; // User canceled
     }
 
-    // Save port to project
-    project.port = port;
-    await ProjectConfigManager.save(context, project);
+    let port = currentPort;
+    let baudStr = currentBaud.toString();
 
-    // Create newtmgr connection profile
-    const success = await NewtmgrManager.setupConnection(config, port, baud);
-    if (!success) {
-      vscode.window.showErrorMessage("Failed to configure newtmgr connection profile.");
-      return;
+    switch (selectedOption.action) {
+      case "port":
+        const newPort = await SerialPortManager.selectPort(config);
+        if (newPort) {
+          port = newPort;
+          await SettingsManager.setSerialPort(port);
+          vscode.window.showInformationMessage(`Serial port updated to: ${port}`);
+        }
+        break;
+      
+      case "baud":
+        const newBaud = await vscode.window.showInputBox({
+          prompt: "Enter baud rate",
+          value: baudStr,
+          placeHolder: baudStr,
+          validateInput: (value) => {
+            const num = parseInt(value);
+            return isNaN(num) || num <= 0 ? "Please enter a valid baud rate" : null;
+          }
+        });
+        if (newBaud) {
+          baudStr = newBaud;
+          await SettingsManager.setNewtmgrBaudRate(parseInt(newBaud));
+          vscode.window.showInformationMessage(`Baud rate updated to: ${newBaud}`);
+        }
+        break;
+      
+      case "both":
+        const newPortBoth = await SerialPortManager.selectPort(config);
+        if (!newPortBoth) {
+          return;
+        }
+        port = newPortBoth;
+        
+        const newBaudBoth = await vscode.window.showInputBox({
+          prompt: "Enter baud rate",
+          value: baudStr,
+          placeHolder: baudStr,
+          validateInput: (value) => {
+            const num = parseInt(value);
+            return isNaN(num) || num <= 0 ? "Please enter a valid baud rate" : null;
+          }
+        });
+        if (!newBaudBoth) {
+          return;
+        }
+        baudStr = newBaudBoth;
+        
+        // Save both settings
+        await SettingsManager.setSerialPort(port);
+        await SettingsManager.setNewtmgrBaudRate(parseInt(baudStr));
+        vscode.window.showInformationMessage(`Newtmgr settings updated: ${port} @ ${baudStr} baud`);
+        break;
+      
+      case "test":
+        // Test with current settings
+        break;
     }
 
-    vscode.window.showInformationMessage("Newtmgr successfully configured.");
+    // If action was test or we just configured settings, create the connection profile
+    if (selectedOption.action === "test" || selectedOption.action === "both") {
+      if (!port) {
+        vscode.window.showErrorMessage("No serial port configured. Please configure port first.");
+        return;
+      }
+
+      // Create newtmgr connection profile
+      const success = await NewtmgrManager.setupConnection(config, port, baudStr);
+      if (success) {
+        vscode.window.showInformationMessage("Newtmgr connection profile created successfully.");
+      } else {
+        vscode.window.showErrorMessage("Failed to create newtmgr connection profile.");
+      }
+    }
   } catch (error) {
     vscode.window.showErrorMessage(`Failed to configure newtmgr: ${error}`);
   }

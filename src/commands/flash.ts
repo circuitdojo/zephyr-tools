@@ -152,15 +152,15 @@ export async function flashAndMonitorCommand(
     await flashCommand(config, context, sidebarProvider);
 
     // Step 2: Set up serial port if not configured
-    if (!project.port) {
-      const port = await SerialPortManager.selectPort(config);
+    let port = SettingsManager.getSerialPort();
+    if (!port) {
+      port = await SerialPortManager.selectPort(config);
       if (!port) {
         vscode.window.showErrorMessage("Error obtaining serial port for monitoring.");
         return;
       }
       
-      project.port = port;
-      await ProjectConfigManager.save(context, project);
+      await SettingsManager.setSerialPort(port);
     }
 
     // Step 3: Start monitoring
@@ -189,15 +189,15 @@ export async function flashProbeRsAndMonitorCommand(
     await flashProbeRsCommand(config, context);
 
     // Step 2: Set up serial port if not configured
-    if (!project.port) {
-      const port = await SerialPortManager.selectPort(config);
+    let port = SettingsManager.getSerialPort();
+    if (!port) {
+      port = await SerialPortManager.selectPort(config);
       if (!port) {
         vscode.window.showErrorMessage("Error obtaining serial port for monitoring.");
         return;
       }
       
-      project.port = port;
-      await ProjectConfigManager.save(context, project);
+      await SettingsManager.setSerialPort(port);
     }
 
     // Step 3: Start monitoring

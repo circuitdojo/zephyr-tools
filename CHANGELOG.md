@@ -2,6 +2,24 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.2] - 2025-08-27
+
+**New Features:**
+- **Serial & Newtmgr Settings Migration**: Migrated all serial and newtmgr configuration to VS Code settings for better persistence and discoverability
+- **Enhanced Settings Management**: All hardware configuration now managed through VS Code settings instead of project config
+- **Improved Newtmgr UI**: Updated "Setup Newtmgr" command to "Newtmgr Settings" with menu options to configure port, baud rate, or test connection
+
+**Settings Added:**
+- `zephyr-tools.serial.port`: Serial port for monitoring and flashing
+- `zephyr-tools.serial.saveLogsToFile`: Enable saving serial monitor output to log files  
+- `zephyr-tools.newtmgr.baudRate`: Default baud rate for newtmgr connections
+
+**Technical Changes:**
+- Removed serial/newtmgr settings from ProjectConfig (port, saveSerialLogs)
+- Added SettingsManager methods for all serial and newtmgr configuration
+- Updated all monitor, flash, and load commands to use VS Code settings
+- Improved settings persistence across sessions
+
 ### [0.5.1] - 2025-08-27
 
 **New Features:**

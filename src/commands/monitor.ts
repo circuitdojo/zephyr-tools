@@ -24,15 +24,16 @@ export async function monitorCommand(
   }
 
   // Set port if necessary
-  if (!project.port) {
-    project.port = await SerialPortManager.selectPort(config);
-    if (!project.port) {
+  let port = SettingsManager.getSerialPort();
+  if (!port) {
+    port = await SerialPortManager.selectPort(config);
+    if (!port) {
       vscode.window.showErrorMessage("Error obtaining serial port.");
       return;
     }
 
     // Save settings
-    await ProjectConfigManager.save(context, project);
+    await SettingsManager.setSerialPort(port);
   }
 
   // Options for Shell Execution with normalized environment
@@ -44,9 +45,9 @@ export async function monitorCommand(
   // Tasks
   let taskName = "Zephyr Tools: Serial Monitor";
 
-  // Command to run - conditionally include --save based on project setting
-  const saveFlag = project.saveSerialLogs === true ? ' --save' : '';
-  let cmd = `zephyr-tools --port ${project.port} --follow${saveFlag}`;
+  // Command to run - conditionally include --save based on setting
+  const saveFlag = SettingsManager.getSerialSaveLogsToFile() ? ' --save' : '';
+  let cmd = `zephyr-tools --port ${port} --follow${saveFlag}`;
   let exec = new vscode.ShellExecution(cmd, options);
 
   // Task
@@ -75,8 +76,6 @@ export async function setupMonitorCommand(
     return;
   }
 
-  const project = await ProjectConfigManager.load(context);
-
   // Get serial settings
   const port = await SerialPortManager.selectPort(config);
   if (!port) {
@@ -84,12 +83,11 @@ export async function setupMonitorCommand(
     return;
   }
 
-  // Set port in project
-  project.port = port;
-  await ProjectConfigManager.save(context, project);
+  // Save to settings
+  await SettingsManager.setSerialPort(port);
 
   // Message output
-  vscode.window.showInformationMessage(`Serial monitor set to use ${project.port}`);
+  vscode.window.showInformationMessage(`Serial monitor set to use ${port}`);
 }
 
 export async function toggleSerialLoggingCommand(
@@ -101,10 +99,8 @@ export async function toggleSerialLoggingCommand(
     return;
   }
 
-  const project = await ProjectConfigManager.load(context);
-  
   // Show dropdown with Enable/Disable options
-  const currentStatus = project.saveSerialLogs ? 'Enabled' : 'Disabled';
+  const currentStatus = SettingsManager.getSerialSaveLogsToFile() ? 'Enabled' : 'Disabled';
   
   const loggingOptions = [
     {
@@ -130,11 +126,11 @@ export async function toggleSerialLoggingCommand(
   }
 
   // Only update if the value changed
-  if (project.saveSerialLogs !== selectedOption.value) {
-    project.saveSerialLogs = selectedOption.value;
-    await ProjectConfigManager.save(context, project);
+  const currentValue = SettingsManager.getSerialSaveLogsToFile();
+  if (currentValue !== selectedOption.value) {
+    await SettingsManager.setSerialSaveLogsToFile(selectedOption.value);
     
-    const status = project.saveSerialLogs ? 'enabled' : 'disabled';
+    const status = selectedOption.value ? 'enabled' : 'disabled';
     vscode.window.showInformationMessage(`Serial logging ${status}`);
   }
 }
@@ -148,17 +144,16 @@ export async function changeSerialSettingsCommand(
     return;
   }
 
-  const project = await ProjectConfigManager.load(context);
-
   // Show current settings
-  const currentPort = project.port ? `Port: ${project.port}` : "No port configured";
-  const loggingStatus = project.saveSerialLogs ? "Logging: Enabled" : "Logging: Disabled";
+  const currentPort = SettingsManager.getSerialPort();
+  const currentPortDisplay = currentPort ? `Port: ${currentPort}` : "No port configured";
+  const loggingStatus = SettingsManager.getSerialSaveLogsToFile() ? "Logging: Enabled" : "Logging: Disabled";
 
   // Options for what to change
   const changeOptions = [
     {
       label: "Change Serial Port",
-      description: currentPort,
+      description: currentPortDisplay,
       action: "port"
     },
     {

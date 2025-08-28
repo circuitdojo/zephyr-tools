@@ -251,4 +251,36 @@ export class SettingsManager {
     await config.update("probeRs.verify", enabled, vscode.ConfigurationTarget.Workspace);
   }
 
+  // Serial port settings
+  static getSerialPort(): string | undefined {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    return config.get<string>("serial.port") || undefined;
+  }
+
+  static async setSerialPort(port: string): Promise<void> {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    await config.update("serial.port", port, vscode.ConfigurationTarget.Workspace);
+  }
+
+  static getSerialSaveLogsToFile(): boolean {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    return config.get<boolean>("serial.saveLogsToFile") || false;
+  }
+
+  static async setSerialSaveLogsToFile(enabled: boolean): Promise<void> {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    await config.update("serial.saveLogsToFile", enabled, vscode.ConfigurationTarget.Workspace);
+  }
+
+  // Newtmgr settings
+  static getNewtmgrBaudRate(): number {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    return config.get<number>("newtmgr.baudRate") || 1000000;
+  }
+
+  static async setNewtmgrBaudRate(baudRate: number): Promise<void> {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    await config.update("newtmgr.baudRate", baudRate, vscode.ConfigurationTarget.Workspace);
+  }
+
 }
