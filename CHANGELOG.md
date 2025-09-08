@@ -2,6 +2,11 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.3] - 2025-09-08
+
+**Updates:**
+- **Updated zephyr-tools CLI**: Updated to zephyr-tools-cli v0.1.8 across all platforms
+
 ### [0.5.2] - 2025-08-27
 
 **New Features:**

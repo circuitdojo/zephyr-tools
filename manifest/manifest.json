@@ -1,14 +1,14 @@
 {
-  "version": 16,
+  "version": 17,
   "win32": [
     {
       "arch": "x64",
       "downloads": [
         {
           "name": "zephyr-tools",
-          "filename": "zephyr-tools-0.1.7-x86_64-pc-windows-msvc.zip",
-          "url": "https://github.com/circuitdojo/zephyr-tools-cli/releases/download/0.1.7/zephyr-tools-0.1.7-x86_64-pc-windows-msvc.zip",
-          "md5": "ab0154c2923f7f89ec025edd020785e4"
+          "filename": "zephyr-tools-v0.1.8-x86_64-pc-windows-msvc.zip",
+          "url": "https://github.com/circuitdojo/zephyr-tools-cli/releases/download/v0.1.8/zephyr-tools-v0.1.8-x86_64-pc-windows-msvc.zip",
+          "md5": "d0653425c90e9a3f5ed5fd56e4e59a89"
         },
         {
           "name": "newtmgr",
@@ -116,9 +116,9 @@
       "downloads": [
         {
           "name": "zephyr-tools",
-          "filename": "zephyr-tools-0.1.7-x86_64-apple-darwin.tar.gz",
-          "url": "https://github.com/circuitdojo/zephyr-tools-cli/releases/download/0.1.7/zephyr-tools-0.1.7-x86_64-apple-darwin.tar.gz",
-          "md5": "a2eaad10e8f4e29708a9bfe4193a61ed"
+          "filename": "zephyr-tools-v0.1.8-x86_64-apple-darwin.tar.gz",
+          "url": "https://github.com/circuitdojo/zephyr-tools-cli/releases/download/v0.1.8/zephyr-tools-v0.1.8-x86_64-apple-darwin.tar.gz",
+          "md5": "0f968752f2da3fb8c396e0fc98102f8a"
         },
         {
           "name": "newtmgr",
@@ -219,9 +219,9 @@
       "downloads": [
         {
           "name": "zephyr-tools",
-          "filename": "zephyr-tools-0.1.7-aarch64-apple-darwin.tar.gz",
-          "url": "https://github.com/circuitdojo/zephyr-tools-cli/releases/download/0.1.7/zephyr-tools-0.1.7-aarch64-apple-darwin.tar.gz",
-          "md5": "8649a82eb65f83d90b937d3065764bbc"
+          "filename": "zephyr-tools-v0.1.8-aarch64-apple-darwin.tar.gz",
+          "url": "https://github.com/circuitdojo/zephyr-tools-cli/releases/download/v0.1.8/zephyr-tools-v0.1.8-aarch64-apple-darwin.tar.gz",
+          "md5": "cc81adc6fe41f35534b47b403ac0d16f"
         },
         {
           "name": "newtmgr",
@@ -318,9 +318,9 @@
       "downloads": [
         {
           "name": "zephyr-tools",
-          "filename": "zephyr-tools-0.1.7-x86_64-unknown-linux-gnu.tar.gz",
-          "url": "https://github.com/circuitdojo/zephyr-tools-cli/releases/download/0.1.7/zephyr-tools-0.1.7-x86_64-unknown-linux-gnu.tar.gz",
-          "md5": "efca3005895e1437193b3b03f9abf561"
+          "filename": "zephyr-tools-v0.1.8-x86_64-unknown-linux-gnu.tar.gz",
+          "url": "https://github.com/circuitdojo/zephyr-tools-cli/releases/download/v0.1.8/zephyr-tools-v0.1.8-x86_64-unknown-linux-gnu.tar.gz",
+          "md5": "9d82bc3ac9e62b69d09f4218015cf892"
         },
         {
           "name": "newtmgr",
