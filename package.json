@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "license": "Apache-2.0",
   "publisher": "circuitdojo",
   "icon": "img/bulb.png",
@@ -14,6 +14,12 @@
     "type": "git",
     "url": "https://github.com/circuitdojo/zephyr-tools.git"
   },
+  "unresolvedDependencies": [
+    "ms-vscode.cpptools-extension-pack",
+    "nordic-semiconductor.nrf-devicetree",
+    "nordic-semiconductor.nrf-kconfig",
+    "probe-rs.probe-rs-debugger"
+  ],
   "categories": [
     "Other"
   ],
@@ -43,7 +49,9 @@
     "onCommand:zephyr-tools.change-sysbuild",
     "onCommand:zephyr-tools.change-probe-rs-settings",
     "onCommand:zephyr-tools.open-zephyr-terminal",
-    "onCommand:zephyr-tools.reset-paths"
+    "onCommand:zephyr-tools.reset-paths",
+    "onCommand:zephyr-tools.create-debug-config",
+    "onCommand:zephyr-tools.debug-now"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -147,6 +155,14 @@
       {
         "command": "zephyr-tools.reset-paths",
         "title": "Zephyr Tools: Reset Paths"
+      },
+      {
+        "command": "zephyr-tools.create-debug-config",
+        "title": "Zephyr Tools: Create Debug Configuration"
+      },
+      {
+        "command": "zephyr-tools.debug-now",
+        "title": "Zephyr Tools: Debug Now"
       }
     ],
     "viewsContainers": {

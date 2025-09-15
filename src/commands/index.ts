@@ -16,3 +16,4 @@ export * from './clean';
 export * from './update';
 export * from './build-assets';
 export * from './terminal';
+export * from './debug';

@@ -371,6 +371,10 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
                 <span class="action-icon">🔄</span>
                 <span class="action-text">Update Dependencies</span>
               </button>
+              <button class="action-btn tertiary" data-command="zephyr-tools.debug-now">
+                <span class="action-icon">🐞</span>
+                <span class="action-text">Debug Now</span>
+              </button>
             </div>
           </div>
 

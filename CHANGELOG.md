@@ -2,6 +2,24 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.4] - 2025-09-15
+
+New debugging workflow and quality-of-life improvements:
+
+**Added:**
+- Create Debug Configuration command to auto-generate a probe-rs launch configuration
+- Debug Now command to generate/update config and immediately start a session
+- Sidebar "Debug Now" button under Quick Actions
+- probe-rs debugger listed as a companion via extensionPack
+
+**Improved:**
+- Robust ELF discovery with clear priority; selects a single core to match probe-rs requirements
+- Edge-case handling: prompts to Install/Enable probe-rs debugger if missing/disabled (avoids unsupported debug type modal)
+- When no ELF is found, offers "Build Now" and aborts cleanly
+
+**Notes:**
+- The generated config uses type `probe-rs-debug`, request `attach`, and `${workspaceFolder}` paths.
+
 ### [0.5.3] - 2025-09-08
 
 **Updates:**

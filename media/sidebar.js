@@ -420,6 +420,10 @@ function showReadyState(config, project, buildAssets) {
           <span class="action-icon">🔄</span>
           <span class="action-text">Update Dependencies</span>
         </button>
+        <button class="action-btn tertiary" data-command="zephyr-tools.debug-now">
+          <span class="action-icon">🐞</span>
+          <span class="action-text">Debug Now</span>
+        </button>
         <button class="action-btn tertiary" data-command="zephyr-tools.open-zephyr-terminal">
           <span class="action-icon">🪁</span>
           <span class="action-text">Open Zephyr Terminal</span>

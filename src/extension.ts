@@ -345,6 +345,30 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
       await openZephyrTerminalCommand(globalConfig, context);
     })
   );
+
+  // Debug configuration command
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.create-debug-config", async () => {
+      if (!globalConfig.isSetup) {
+        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
+        return;
+      }
+      const { createDebugConfigurationCommand } = await import('./commands/debug');
+      await createDebugConfigurationCommand(globalConfig, context);
+    })
+  );
+
+  // Debug now command: updates config and starts debugger
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.debug-now", async () => {
+      if (!globalConfig.isSetup) {
+        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
+        return;
+      }
+      const { debugNowCommand } = await import('./commands/debug');
+      await debugNowCommand(globalConfig, context);
+    })
+  );
 }
 
 async function handlePendingTasks(context: vscode.ExtensionContext): Promise<void> {
