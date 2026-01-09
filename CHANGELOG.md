@@ -2,6 +2,12 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.6] - 2026-01-09
+
+**Added:**
+- Terminal profile provider to enable selecting "Zephyr Terminal" directly from VS Code terminal dropdown
+- Refactored terminal environment setup into reusable function for better maintainability
+
 ### [0.5.5] - 2026-01-09
 
 **Added:**

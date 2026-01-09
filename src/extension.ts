@@ -41,6 +41,7 @@ import {
   openZephyrTerminalCommand
 } from "./commands";
 import { resetPaths, populateDetectedPaths } from "./commands/path-management";
+import { ZephyrTerminalProfileProvider } from "./providers";
 
 // Global configuration instance
 let globalConfig: GlobalConfig;
@@ -88,6 +89,14 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Register all commands
   registerCommands(context, sidebarProvider);
+
+  // Register terminal profile provider
+  context.subscriptions.push(
+    vscode.window.registerTerminalProfileProvider(
+      "zephyr-tools.terminal-profile",
+      new ZephyrTerminalProfileProvider(globalConfig)
+    )
+  );
 
   // Handle pending tasks
   await handlePendingTasks(context);

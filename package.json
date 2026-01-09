@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "license": "Apache-2.0",
   "publisher": "circuitdojo",
   "icon": "img/bulb.png",
@@ -186,6 +186,15 @@
           "id": "zephyrToolsSidebar",
           "name": "Project",
           "when": ""
+        }
+      ]
+    },
+    "terminal": {
+      "profiles": [
+        {
+          "id": "zephyr-tools.terminal-profile",
+          "title": "Zephyr Terminal",
+          "icon": "$(terminal)"
         }
       ]
     },
