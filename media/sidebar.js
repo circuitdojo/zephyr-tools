@@ -379,6 +379,11 @@ function showReadyState(config, project, buildAssets) {
           <span class="status-value" id="sysbuild-value">Loading...</span>
           <span class="status-edit">✏️</span>
         </div>
+        <div class="status-item" data-command="zephyr-tools.change-extra-conf-files">
+          <span class="status-label">Conf Files:</span>
+          <span class="status-value" id="conf-files-value">Loading...</span>
+          <span class="status-edit">✏️</span>
+        </div>
       </div>
     </div>
 
@@ -498,6 +503,21 @@ function updateReadyStateValues(config, project) {
   if (sysbuildElement) {
     sysbuildElement.textContent = project.sysbuild ? 'Enabled' : 'Disabled';
     sysbuildElement.classList.toggle('loading', false);
+  }
+
+  // Update conf files value
+  const confFilesElement = document.getElementById('conf-files-value');
+  if (confFilesElement) {
+    if (project.extraConfFiles && project.extraConfFiles.length > 0) {
+      const count = project.extraConfFiles.length;
+      const fileNames = project.extraConfFiles.map(f => f.split('/').pop()).join(', ');
+      confFilesElement.textContent = `${count} selected`;
+      confFilesElement.title = fileNames; // Show full list on hover
+    } else {
+      confFilesElement.textContent = 'Default';
+      confFilesElement.title = 'Using default configuration (prj.conf)';
+    }
+    confFilesElement.classList.toggle('loading', false);
   }
 }
 

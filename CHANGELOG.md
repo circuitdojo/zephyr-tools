@@ -2,6 +2,14 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.5] - 2026-01-09
+
+**Added:**
+- Extra conf file selection for builds via `-DEXTRA_CONF_FILE` parameter
+- Multi-select interface to choose from detected .conf files or add files manually
+- "Conf Files" setting in Project Settings sidebar and status bar
+- Command: `Zephyr Tools: Change Extra Conf Files`
+
 ### [0.5.4] - 2025-09-15
 
 New debugging workflow and quality-of-life improvements:

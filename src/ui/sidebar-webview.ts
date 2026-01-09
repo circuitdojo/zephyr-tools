@@ -332,6 +332,11 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
                 <span class="status-value" id="sysbuild-value">Loading...</span>
                 <span class="status-edit">✏️</span>
               </div>
+              <div class="status-item" data-command="zephyr-tools.change-extra-conf-files">
+                <span class="status-label">Conf Files:</span>
+                <span class="status-value" id="conf-files-value">Loading...</span>
+                <span class="status-edit">✏️</span>
+              </div>
             </div>
           </div>
 

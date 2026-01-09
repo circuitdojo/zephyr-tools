@@ -10,6 +10,7 @@ import * as path from "path";
 export class StatusBarManager {
   private static boardStatusBarItem: vscode.StatusBarItem;
   private static projectStatusBarItem: vscode.StatusBarItem;
+  private static extraConfFilesStatusBarItem: vscode.StatusBarItem;
 
   static initializeStatusBarItems(context: vscode.ExtensionContext): void {
     // Create board status bar item with higher priority for more space
@@ -19,6 +20,14 @@ export class StatusBarManager {
     this.boardStatusBarItem.tooltip = "Click to change board";
     this.boardStatusBarItem.show();
     context.subscriptions.push(this.boardStatusBarItem);
+
+    // Create extra conf files status bar item
+    this.extraConfFilesStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 199);
+    this.extraConfFilesStatusBarItem.command = "zephyr-tools.change-extra-conf-files";
+    this.extraConfFilesStatusBarItem.text = "$(file) Default";
+    this.extraConfFilesStatusBarItem.tooltip = "Click to change configuration files";
+    this.extraConfFilesStatusBarItem.show();
+    context.subscriptions.push(this.extraConfFilesStatusBarItem);
 
     // Create project status bar item
     this.projectStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
@@ -42,16 +51,30 @@ export class StatusBarManager {
   static updateProjectStatusBar(project?: string): void {
     if (this.projectStatusBarItem) {
       let displayProject = "No Project";
-      
+
       if (project) {
         // Extract just the directory name from the full path for display
         displayProject = this.truncateText(path.basename(project), 25);
       }
-      
+
       this.projectStatusBarItem.text = `$(folder) ${displayProject}`;
       this.projectStatusBarItem.tooltip = project
         ? `Project: ${project}\nClick to change project`
         : "Click to select a project";
+    }
+  }
+
+  static updateExtraConfFilesStatusBar(extraConfFiles?: string[]): void {
+    if (this.extraConfFilesStatusBarItem) {
+      if (!extraConfFiles || extraConfFiles.length === 0) {
+        this.extraConfFilesStatusBarItem.text = "$(file) Default";
+        this.extraConfFilesStatusBarItem.tooltip = "Using default configuration (prj.conf)\nClick to add extra conf files";
+      } else {
+        const count = extraConfFiles.length;
+        const fileNames = extraConfFiles.map(f => path.basename(f)).join(', ');
+        this.extraConfFilesStatusBarItem.text = `$(file) ${count} conf${count > 1 ? 's' : ''}`;
+        this.extraConfFilesStatusBarItem.tooltip = `Extra conf files:\n${fileNames}\nClick to change configuration files`;
+      }
     }
   }
 
@@ -65,6 +88,9 @@ export class StatusBarManager {
   static dispose(): void {
     if (this.boardStatusBarItem) {
       this.boardStatusBarItem.dispose();
+    }
+    if (this.extraConfFilesStatusBarItem) {
+      this.extraConfFilesStatusBarItem.dispose();
     }
     if (this.projectStatusBarItem) {
       this.projectStatusBarItem.dispose();

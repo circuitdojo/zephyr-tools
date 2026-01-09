@@ -12,6 +12,7 @@ export interface ProjectConfig {
   runner?: string;
   runnerParams?: string;
   sysbuild?: boolean;
+  extraConfFiles?: string[]; // Array of relative paths to extra .conf files
 }
 
 export interface ZephyrTask {

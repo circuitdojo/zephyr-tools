@@ -91,7 +91,13 @@ export async function buildCommand(
   let cmd = `west build -b ${project.board}${pristine ? " -p" : ""} -d ${buildPath}${
     project.sysbuild ? " --sysbuild" : ""
   }`;
-  
+
+  // Add EXTRA_CONF_FILE parameter if extra conf files are selected
+  if (project.extraConfFiles && project.extraConfFiles.length > 0) {
+    const confFileList = project.extraConfFiles.join(';');
+    cmd += ` -- -DEXTRA_CONF_FILE="${confFileList}"`;
+  }
+
   let exec = new vscode.ShellExecution(cmd, options);
 
   // Task

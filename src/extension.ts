@@ -30,6 +30,7 @@ import {
   changeBoardCommand,
   changeRunnerCommand,
   changeSysBuildCommand,
+  changeExtraConfFilesCommand,
   changeProbeRsSettingsCommand,
   createProjectCommand,
   cleanCommand,
@@ -290,6 +291,13 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.change-sysbuild", async () => {
       await changeSysBuildCommand(globalConfig, context);
+    })
+  );
+
+  // Extra conf files management
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.change-extra-conf-files", async () => {
+      await changeExtraConfFilesCommand(globalConfig, context);
     })
   );
 
