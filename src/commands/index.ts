@@ -12,6 +12,7 @@ export * from './monitor';
 export * from './project-management';
 export * from './board-management';
 export * from './conf-file-management';
+export * from './overlay-file-management';
 export * from './create-project';
 export * from './clean';
 export * from './update';

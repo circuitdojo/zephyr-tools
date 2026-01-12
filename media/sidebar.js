@@ -384,6 +384,11 @@ function showReadyState(config, project, buildAssets) {
           <span class="status-value" id="conf-files-value">Loading...</span>
           <span class="status-edit">✏️</span>
         </div>
+        <div class="status-item" data-command="zephyr-tools.change-extra-overlay-files">
+          <span class="status-label">Overlay Files:</span>
+          <span class="status-value" id="overlay-files-value">Loading...</span>
+          <span class="status-edit">✏️</span>
+        </div>
       </div>
     </div>
 
@@ -518,6 +523,21 @@ function updateReadyStateValues(config, project) {
       confFilesElement.title = 'Using default configuration (prj.conf)';
     }
     confFilesElement.classList.toggle('loading', false);
+  }
+
+  // Update overlay files value
+  const overlayFilesElement = document.getElementById('overlay-files-value');
+  if (overlayFilesElement) {
+    if (project.extraOverlayFiles && project.extraOverlayFiles.length > 0) {
+      const count = project.extraOverlayFiles.length;
+      const fileNames = project.extraOverlayFiles.map(f => f.split('/').pop()).join(', ');
+      overlayFilesElement.textContent = `${count} selected`;
+      overlayFilesElement.title = fileNames; // Show full list on hover
+    } else {
+      overlayFilesElement.textContent = 'Default';
+      overlayFilesElement.title = 'Using default overlay configuration';
+    }
+    overlayFilesElement.classList.toggle('loading', false);
   }
 }
 

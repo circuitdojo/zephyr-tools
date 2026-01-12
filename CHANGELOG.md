@@ -2,6 +2,14 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.7] - 2026-01-12
+
+**Added:**
+- Extra overlay file selection for builds via `-DDTC_OVERLAY_FILE` parameter
+- Multi-select interface to choose from detected .overlay files or add files manually
+- "Overlay Files" setting in Project Settings sidebar and status bar
+- Command: `Zephyr Tools: Change Extra Overlay Files`
+
 ### [0.5.6] - 2026-01-09
 
 **Added:**

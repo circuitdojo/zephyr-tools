@@ -31,6 +31,7 @@ import {
   changeRunnerCommand,
   changeSysBuildCommand,
   changeExtraConfFilesCommand,
+  changeExtraOverlayFilesCommand,
   changeProbeRsSettingsCommand,
   createProjectCommand,
   cleanCommand,
@@ -307,6 +308,13 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.change-extra-conf-files", async () => {
       await changeExtraConfFilesCommand(globalConfig, context);
+    })
+  );
+
+  // Extra overlay files management
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.change-extra-overlay-files", async () => {
+      await changeExtraOverlayFilesCommand(globalConfig, context);
     })
   );
 

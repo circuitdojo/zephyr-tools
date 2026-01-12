@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "license": "Apache-2.0",
   "publisher": "circuitdojo",
   "icon": "img/bulb.png",
@@ -48,6 +48,7 @@
     "onCommand:zephyr-tools.change-runner",
     "onCommand:zephyr-tools.change-sysbuild",
     "onCommand:zephyr-tools.change-extra-conf-files",
+    "onCommand:zephyr-tools.change-extra-overlay-files",
     "onCommand:zephyr-tools.change-probe-rs-settings",
     "onCommand:zephyr-tools.open-zephyr-terminal",
     "onCommand:zephyr-tools.reset-paths",
@@ -148,6 +149,10 @@
       {
         "command": "zephyr-tools.change-extra-conf-files",
         "title": "Zephyr Tools: Change Extra Conf Files"
+      },
+      {
+        "command": "zephyr-tools.change-extra-overlay-files",
+        "title": "Zephyr Tools: Change Extra Overlay Files"
       },
       {
         "command": "zephyr-tools.change-probe-rs-settings",

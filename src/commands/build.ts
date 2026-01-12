@@ -92,10 +92,22 @@ export async function buildCommand(
     project.sysbuild ? " --sysbuild" : ""
   }`;
 
-  // Add EXTRA_CONF_FILE parameter if extra conf files are selected
-  if (project.extraConfFiles && project.extraConfFiles.length > 0) {
-    const confFileList = project.extraConfFiles.join(';');
-    cmd += ` -- -DEXTRA_CONF_FILE="${confFileList}"`;
+  // Add CMake parameters if extra files are selected
+  const hasExtraConfFiles = project.extraConfFiles && project.extraConfFiles.length > 0;
+  const hasExtraOverlayFiles = project.extraOverlayFiles && project.extraOverlayFiles.length > 0;
+
+  if (hasExtraConfFiles || hasExtraOverlayFiles) {
+    cmd += ' --';
+
+    if (hasExtraConfFiles) {
+      const confFileList = project.extraConfFiles!.join(';');
+      cmd += ` -DEXTRA_CONF_FILE="${confFileList}"`;
+    }
+
+    if (hasExtraOverlayFiles) {
+      const overlayFileList = project.extraOverlayFiles!.join(';');
+      cmd += ` -DDTC_OVERLAY_FILE="${overlayFileList}"`;
+    }
   }
 
   let exec = new vscode.ShellExecution(cmd, options);

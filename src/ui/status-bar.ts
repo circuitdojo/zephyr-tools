@@ -11,6 +11,7 @@ export class StatusBarManager {
   private static boardStatusBarItem: vscode.StatusBarItem;
   private static projectStatusBarItem: vscode.StatusBarItem;
   private static extraConfFilesStatusBarItem: vscode.StatusBarItem;
+  private static extraOverlayFilesStatusBarItem: vscode.StatusBarItem;
 
   static initializeStatusBarItems(context: vscode.ExtensionContext): void {
     // Create board status bar item with higher priority for more space
@@ -28,6 +29,14 @@ export class StatusBarManager {
     this.extraConfFilesStatusBarItem.tooltip = "Click to change configuration files";
     this.extraConfFilesStatusBarItem.show();
     context.subscriptions.push(this.extraConfFilesStatusBarItem);
+
+    // Create extra overlay files status bar item
+    this.extraOverlayFilesStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 198);
+    this.extraOverlayFilesStatusBarItem.command = "zephyr-tools.change-extra-overlay-files";
+    this.extraOverlayFilesStatusBarItem.text = "$(file) Default";
+    this.extraOverlayFilesStatusBarItem.tooltip = "Click to change overlay files";
+    this.extraOverlayFilesStatusBarItem.show();
+    context.subscriptions.push(this.extraOverlayFilesStatusBarItem);
 
     // Create project status bar item
     this.projectStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
@@ -78,6 +87,20 @@ export class StatusBarManager {
     }
   }
 
+  static updateExtraOverlayFilesStatusBar(extraOverlayFiles?: string[]): void {
+    if (this.extraOverlayFilesStatusBarItem) {
+      if (!extraOverlayFiles || extraOverlayFiles.length === 0) {
+        this.extraOverlayFilesStatusBarItem.text = "$(file) Default";
+        this.extraOverlayFilesStatusBarItem.tooltip = "Using default overlay configuration\nClick to add extra overlay files";
+      } else {
+        const count = extraOverlayFiles.length;
+        const fileNames = extraOverlayFiles.map(f => path.basename(f)).join(', ');
+        this.extraOverlayFilesStatusBarItem.text = `$(file) ${count} overlay${count > 1 ? 's' : ''}`;
+        this.extraOverlayFilesStatusBarItem.tooltip = `Extra overlay files:\n${fileNames}\nClick to change overlay files`;
+      }
+    }
+  }
+
   private static truncateText(text: string, maxLength: number): string {
     if (text.length <= maxLength) {
       return text;
@@ -91,6 +114,9 @@ export class StatusBarManager {
     }
     if (this.extraConfFilesStatusBarItem) {
       this.extraConfFilesStatusBarItem.dispose();
+    }
+    if (this.extraOverlayFilesStatusBarItem) {
+      this.extraOverlayFilesStatusBarItem.dispose();
     }
     if (this.projectStatusBarItem) {
       this.projectStatusBarItem.dispose();

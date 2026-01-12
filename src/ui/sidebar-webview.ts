@@ -337,6 +337,11 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
                 <span class="status-value" id="conf-files-value">Loading...</span>
                 <span class="status-edit">✏️</span>
               </div>
+              <div class="status-item" data-command="zephyr-tools.change-extra-overlay-files">
+                <span class="status-label">Overlay Files:</span>
+                <span class="status-value" id="overlay-files-value">Loading...</span>
+                <span class="status-edit">✏️</span>
+              </div>
             </div>
           </div>
 
