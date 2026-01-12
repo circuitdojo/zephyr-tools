@@ -60,10 +60,17 @@ export async function changeProjectCommand(
     console.log("Changing project to " + selectedProject);
     vscode.window.showInformationMessage(`Project changed to ${selectedProject}`);
     project.target = selectedProject;
+
+    // Clear conf and overlay files when switching projects
+    project.extraConfFiles = [];
+    project.extraOverlayFiles = [];
+
     await ProjectConfigManager.save(context, project);
-    
-    // Update status bar
+
+    // Update status bars
     StatusBarManager.updateProjectStatusBar(project.target);
+    StatusBarManager.updateExtraConfFilesStatusBar([]);
+    StatusBarManager.updateExtraOverlayFilesStatusBar([]);
   }
 }
 

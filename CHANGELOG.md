@@ -10,6 +10,9 @@ All notable changes to the "zephyr-tools" extension will be documented in this f
 - "Overlay Files" setting in Project Settings sidebar and status bar
 - Command: `Zephyr Tools: Change Extra Overlay Files`
 
+**Fixed:**
+- Clear conf and overlay file selections when switching projects to prevent stale file references
+
 ### [0.5.6] - 2026-01-09
 
 **Added:**
