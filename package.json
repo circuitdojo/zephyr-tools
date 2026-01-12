@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.5.7",
+  "version": "0.5.8",
   "license": "Apache-2.0",
   "publisher": "circuitdojo",
   "icon": "img/bulb.png",
@@ -14,10 +14,7 @@
     "type": "git",
     "url": "https://github.com/circuitdojo/zephyr-tools.git"
   },
-  "unresolvedDependencies": [
-    "ms-vscode.cpptools-extension-pack",
-    "nordic-semiconductor.nrf-devicetree",
-    "nordic-semiconductor.nrf-kconfig",
+  "extensionDependencies": [
     "probe-rs.probe-rs-debugger"
   ],
   "categories": [

@@ -2,6 +2,11 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.8] - 2026-01-12
+
+**Fixed:**
+- Added `probe-rs` debug extension as soft dependency
+
 ### [0.5.7] - 2026-01-12
 
 **Added:**
