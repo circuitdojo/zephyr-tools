@@ -8,6 +8,7 @@ import * as vscode from "vscode";
 import * as os from "os";
 import * as path from "path";
 import { TOOLS_FOLDER_NAME, getPlatformConfig } from "./constants";
+import { EnvironmentUtils } from "../utils/environment-utils";
 
 export class SettingsManager {
   private static readonly CONFIG_SECTION = "zephyr-tools";
@@ -167,13 +168,8 @@ export class SettingsManager {
 
   // Helper to build complete environment for command execution
   static buildEnvironmentForExecution(): { [key: string]: string } {
-    // Start with system environment
-    const env: { [key: string]: string } = {};
-    for (const [key, value] of Object.entries(process.env)) {
-      if (value !== undefined) {
-        env[key] = value;
-      }
-    }
+    // Start with normalized system environment (handles Windows PATH case sensitivity)
+    const env = EnvironmentUtils.getSystemEnvironment();
     
     // Add all configured environment variables from settings
     const envVars = this.getEnvironmentVariables();

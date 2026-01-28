@@ -8,6 +8,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { GlobalConfig } from "../types";
 import { getPlatformConfig, SettingsManager } from "../config";
+import { EnvironmentUtils } from "../utils/environment-utils";
 
 /**
  * Get terminal options configured for Zephyr development environment.
@@ -20,13 +21,8 @@ export function getZephyrTerminalOptions(): vscode.TerminalOptions | undefined {
   const platformConfig = getPlatformConfig();
   const pathDivider = platformConfig.pathDivider;
 
-  // Start with system environment (including system PATH)
-  const terminalEnv: { [key: string]: string } = {};
-  for (const [key, value] of Object.entries(process.env)) {
-    if (value !== undefined) {
-      terminalEnv[key] = value;
-    }
-  }
+  // Start with normalized system environment (handles Windows PATH case sensitivity)
+  const terminalEnv = EnvironmentUtils.getSystemEnvironment();
 
   // Add all configured environment variables from settings
   const envVars = SettingsManager.getEnvironmentVariables();

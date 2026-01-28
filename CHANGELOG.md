@@ -2,6 +2,11 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.9] - 2026-01-24
+
+**Fixed:**
+- Windows PATH environment variable handling: properly normalize PATH casing to prevent duplicate PATH/Path variables that caused Git and other executables to not be found
+
 ### [0.5.8] - 2026-01-12
 
 **Fixed:**
