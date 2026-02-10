@@ -92,11 +92,17 @@ export async function createDebugConfigurationCommand(
     return;
   }
 
-  // Sort by preference: app -> default -> tfm -> spm -> others
+  // Sort by preference: project name -> app -> default -> tfm -> spm -> others
+  // Extract project name from target path (e.g., "nfed/samples/mqtt" -> "mqtt")
+  const projectName = project.target.split(path.sep).pop() || "";
   const order = ["app", "default", "tfm", "spm"]; // earlier means lower coreIndex
   const entries = Array.from(elfSet.entries())
     .map(([fullPath, key]) => ({ fullPath, key }))
     .sort((a, b) => {
+      // Prioritize project name match above all else
+      if (a.key === projectName && b.key !== projectName) return -1;
+      if (b.key === projectName && a.key !== projectName) return 1;
+
       const ai = order.indexOf(a.key);
       const bi = order.indexOf(b.key);
       const av = ai === -1 ? Number.MAX_SAFE_INTEGER : ai;

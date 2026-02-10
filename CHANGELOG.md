@@ -2,6 +2,11 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.11] - 2026-02-10
+
+**Fixed:**
+- Debug configuration now correctly prioritizes project name when selecting ELF path (e.g., selects `mqtt/zephyr/zephyr.elf` instead of `mcuboot/zephyr/zephyr.elf` for mqtt projects)
+
 ### [0.5.10] - 2026-01-27
 
 **Changed:**
