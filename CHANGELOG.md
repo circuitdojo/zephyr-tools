@@ -2,6 +2,12 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.12] - 2026-02-11
+
+**Fixed:**
+- Virtual environment setup now automatically removes incompatible or corrupted existing environments before creating new one
+- Improved error messages during virtual environment creation to include detailed error information
+
 ### [0.5.11] - 2026-02-10
 
 **Fixed:**

@@ -8,12 +8,30 @@ import * as vscode from "vscode";
 import * as util from "util";
 import * as cp from "child_process";
 import * as path from "path";
+import * as fs from "fs";
 import { platform, getPlatformConfig, SettingsManager } from "../config";
 
 export async function createVirtualEnvironment(pythonCmd: string, env: { [key: string]: string | undefined }, output: vscode.OutputChannel): Promise<boolean> {
   const exec = util.promisify(cp.exec);
   const currentToolsDir = SettingsManager.getToolsDirectory();
   const pythonenv = path.join(currentToolsDir, "env");
+
+  // Check if virtual environment already exists
+  if (fs.existsSync(pythonenv)) {
+    output.appendLine(`[SETUP] Existing virtual environment found at ${pythonenv}`);
+    output.appendLine("[SETUP] Removing old virtual environment...");
+
+    try {
+      // Remove the existing directory
+      fs.rmSync(pythonenv, { recursive: true, force: true });
+      output.appendLine("[SETUP] Old virtual environment removed");
+    } catch (error) {
+      output.appendLine("[SETUP] Failed to remove old virtual environment");
+      output.appendLine(`[SETUP] Error: ${error}`);
+      output.appendLine("[SETUP] Please manually delete: " + pythonenv);
+      return false;
+    }
+  }
 
   try {
     const cmd = `${pythonCmd} -m venv "${pythonenv}"`;
@@ -24,6 +42,7 @@ export async function createVirtualEnvironment(pythonCmd: string, env: { [key: s
     return true;
   } catch (error) {
     output.appendLine("[SETUP] unable to setup virtualenv");
+    output.appendLine(`[SETUP] Error: ${error}`);
     console.error(error);
     return false;
   }
