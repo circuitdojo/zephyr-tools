@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.5.12",
+  "version": "0.5.13",
   "license": "Apache-2.0",
   "publisher": "circuitdojo",
   "icon": "img/bulb.png",
@@ -200,6 +200,17 @@
         }
       ]
     },
+    "taskDefinitions": [
+      {
+        "type": "zephyr-tools",
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "The command to execute"
+          }
+        }
+      }
+    ],
     "configuration": {
       "title": "Zephyr Tools",
       "properties": {

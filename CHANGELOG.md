@@ -2,6 +2,12 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.13] - 2026-02-20
+
+**Fixed:**
+- Registered `zephyr-tools` task type with VS Code to resolve "there is no registered task type 'zephyr-tools'" errors
+- Added `taskDefinitions` contribution point in package.json and task provider registration on activation
+
 ### [0.5.12] - 2026-02-11
 
 **Fixed:**

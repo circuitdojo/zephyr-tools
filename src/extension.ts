@@ -91,6 +91,14 @@ export async function activate(context: vscode.ExtensionContext) {
   // Register all commands
   registerCommands(context, sidebarProvider);
 
+  // Register task provider for zephyr-tools task type
+  context.subscriptions.push(
+    vscode.tasks.registerTaskProvider("zephyr-tools", {
+      provideTasks: () => [],
+      resolveTask: () => undefined,
+    })
+  );
+
   // Register terminal profile provider
   context.subscriptions.push(
     vscode.window.registerTerminalProfileProvider(
