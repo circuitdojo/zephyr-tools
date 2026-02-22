@@ -248,6 +248,14 @@ export async function initRepoCommand(
         project.isInit = true;
         project.isInitializing = false;
         await ProjectConfigManager.save(context, project);
+
+        // Write marker file so activation can detect if venv was recreated
+        try {
+          const venvPath = path.join(SettingsManager.getToolsDirectory(), "env");
+          fs.writeFileSync(path.join(venvPath, ".zephyr-init-complete"), new Date().toISOString());
+        } catch {
+          // Non-critical — marker is a best-effort optimization
+        }
       };
 
       // Start execution

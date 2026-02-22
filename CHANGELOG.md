@@ -2,6 +2,12 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.14] - 2026-02-22
+
+**Fixed:**
+- Detect when Python virtual environment has been recreated by setup and automatically reset project initialization flag so dependencies get reinstalled on next Init Repo
+- Write `.zephyr-init-complete` marker file in venv after successful dependency installation
+
 ### [0.5.13] - 2026-02-20
 
 **Fixed:**

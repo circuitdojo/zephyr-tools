@@ -5,6 +5,8 @@
  */
 
 import * as vscode from "vscode";
+import * as fs from "fs";
+import * as path from "path";
 import { GlobalConfigManager, ProjectConfigManager, SettingsManager } from "./config";
 import { TaskManager } from "./tasks";
 import { StatusBarManager, OutputChannelManager, DialogManager, SidebarWebviewProvider } from "./ui";
@@ -88,6 +90,9 @@ export async function activate(context: vscode.ExtensionContext) {
   // Load project config and update status bar
   await updateStatusBarFromConfig(context);
 
+  // Check if Python dependencies are still present in venv
+  await validateProjectDependencies(context);
+
   // Register all commands
   registerCommands(context, sidebarProvider);
 
@@ -121,6 +126,26 @@ async function updateStatusBarFromConfig(context: vscode.ExtensionContext): Prom
   } catch (error) {
     console.log('Error loading project config for status bar update:', error);
     // Status bar will show default values (No Board, No Project)
+  }
+}
+
+async function validateProjectDependencies(context: vscode.ExtensionContext): Promise<void> {
+  try {
+    const project = await ProjectConfigManager.load(context);
+    if (!project.isInit) {
+      return;
+    }
+
+    const venvPath = path.join(SettingsManager.getToolsDirectory(), "env");
+    const markerPath = path.join(venvPath, ".zephyr-init-complete");
+
+    if (!fs.existsSync(markerPath)) {
+      project.isInit = false;
+      await ProjectConfigManager.save(context, project);
+      console.log("Reset project init flag — Python dependencies marker missing from venv");
+    }
+  } catch {
+    // No workspace or config unavailable — nothing to validate
   }
 }
 
