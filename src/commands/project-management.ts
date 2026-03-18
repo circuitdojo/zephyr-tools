@@ -39,31 +39,39 @@ export async function changeProjectCommand(
 
   const exec = util.promisify(cp.exec);
 
-  // Get manifest path
-  const cmd = "west config manifest.path";
-  const result = await exec(cmd, { env: SettingsManager.buildEnvironmentForExecution(), cwd: rootPath.fsPath });
-  
-  if (result.stderr) {
-    output.append(result.stderr);
-    output.show();
-    return;
+  // Try to get manifest path (may fail if not in a west workspace)
+  let projectList: string[] = [];
+  try {
+    const cmd = "west config manifest.path";
+    const result = await exec(cmd, { env: SettingsManager.buildEnvironmentForExecution(), cwd: rootPath.fsPath });
+
+    if (!result.stderr) {
+      projectList = await getProjectList(vscode.Uri.joinPath(rootPath, result.stdout.trim()));
+      console.log("Available projects:", projectList);
+    }
+  } catch (e) {
+    // Not in a west workspace — browse option will still be available
+    console.log("No west workspace detected, skipping manifest project scan");
   }
 
-  // Find all CMakeLists.txt files with `project(` in them
-  const projectList = await getProjectList(vscode.Uri.joinPath(rootPath, result.stdout.trim()));
-  console.log("Available projects:", projectList);
-
-  // Turn that into a project selection
+  // Turn that into a project selection (browse option is always included)
   const selectedProject = await QuickPickManager.selectProject(projectList);
-  
-  if (selectedProject) {
-    console.log("Changing project to " + selectedProject);
-    vscode.window.showInformationMessage(`Project changed to ${selectedProject}`);
-    project.target = selectedProject;
 
-    // Clear conf and overlay files when switching projects
+  // Handle browse selection
+  let resolvedProject: string | undefined = selectedProject;
+  if (selectedProject === QuickPickManager.BROWSE_PROJECT_OPTION) {
+    resolvedProject = await browseForProject();
+  }
+
+  if (resolvedProject) {
+    console.log("Changing project to " + resolvedProject);
+    vscode.window.showInformationMessage(`Project changed to ${resolvedProject}`);
+    project.target = resolvedProject;
+
+    // Clear conf, overlay files, and CMake defines when switching projects
     project.extraConfFiles = [];
     project.extraOverlayFiles = [];
+    project.extraCMakeDefines = [];
 
     await ProjectConfigManager.save(context, project);
 
@@ -332,6 +340,37 @@ async function getProjectList(folder: vscode.Uri): Promise<string[]> {
   }
 
   return projects;
+}
+
+async function browseForProject(): Promise<string | undefined> {
+  const selected = await vscode.window.showOpenDialog({
+    canSelectFolders: true,
+    canSelectFiles: false,
+    canSelectMany: false,
+    openLabel: "Select Project",
+    title: "Select a Zephyr project directory",
+  });
+
+  if (!selected || selected.length === 0) {
+    return undefined;
+  }
+
+  const projectDir = selected[0].fsPath;
+
+  // Validate that the directory contains a CMakeLists.txt with project()
+  const cmakePath = path.join(projectDir, "CMakeLists.txt");
+  if (!await fs.pathExists(cmakePath)) {
+    vscode.window.showErrorMessage("Selected directory does not contain a CMakeLists.txt file.");
+    return undefined;
+  }
+
+  const contents = await fs.readFile(cmakePath, "utf-8");
+  if (!contents.includes("project(")) {
+    vscode.window.showErrorMessage("CMakeLists.txt does not contain a project() definition.");
+    return undefined;
+  }
+
+  return projectDir;
 }
 
 function getRootPath(): vscode.Uri | undefined {

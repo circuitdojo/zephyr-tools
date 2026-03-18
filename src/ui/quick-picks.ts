@@ -8,6 +8,8 @@
 import * as vscode from 'vscode';
 
 export class QuickPickManager {
+  static readonly BROWSE_PROJECT_OPTION = "$(folder-opened) Browse for project...";
+
   static async selectBoard(boards: string[]): Promise<string | undefined> {
     // Add custom board option at the beginning
     const CUSTOM_BOARD_OPTION = "$(edit) Enter custom board...";
@@ -37,8 +39,9 @@ export class QuickPickManager {
   }
 
   static async selectProject(projects: string[]): Promise<string | undefined> {
-    return await vscode.window.showQuickPick(projects, {
-      placeHolder: "Select a project",
+    const projectOptions = [this.BROWSE_PROJECT_OPTION, ...projects];
+    return await vscode.window.showQuickPick(projectOptions, {
+      placeHolder: "Select a project or browse for one",
       ignoreFocusOut: true,
     });
   }
