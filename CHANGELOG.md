@@ -2,6 +2,15 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.15] - 2026-03-17
+
+**Added:**
+- Custom CMake defines for builds via `-D` parameters (e.g., `-DCONFIG_FOO="bar"`)
+- "Change CMake Defines" command with add/manage/clear workflow
+- "CMake Defines" setting in Project Settings sidebar and status bar
+- "Browse for project..." option in project selection to open projects outside the west manifest directory
+- Graceful fallback when workspace is not a west workspace — browse option still available
+
 ### [0.5.14] - 2026-02-22
 
 **Fixed:**
