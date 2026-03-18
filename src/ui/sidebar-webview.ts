@@ -342,6 +342,11 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
                 <span class="status-value" id="overlay-files-value">Loading...</span>
                 <span class="status-edit">✏️</span>
               </div>
+              <div class="status-item" data-command="zephyr-tools.change-cmake-defines">
+                <span class="status-label">CMake Defines:</span>
+                <span class="status-value" id="cmake-defines-value">Loading...</span>
+                <span class="status-edit">✏️</span>
+              </div>
             </div>
           </div>
 

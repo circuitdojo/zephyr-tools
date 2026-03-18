@@ -12,6 +12,7 @@ export class StatusBarManager {
   private static projectStatusBarItem: vscode.StatusBarItem;
   private static extraConfFilesStatusBarItem: vscode.StatusBarItem;
   private static extraOverlayFilesStatusBarItem: vscode.StatusBarItem;
+  private static cmakeDefinesStatusBarItem: vscode.StatusBarItem;
 
   static initializeStatusBarItems(context: vscode.ExtensionContext): void {
     // Create board status bar item with higher priority for more space
@@ -37,6 +38,14 @@ export class StatusBarManager {
     this.extraOverlayFilesStatusBarItem.tooltip = "Click to change overlay files";
     this.extraOverlayFilesStatusBarItem.show();
     context.subscriptions.push(this.extraOverlayFilesStatusBarItem);
+
+    // Create CMake defines status bar item
+    this.cmakeDefinesStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 197);
+    this.cmakeDefinesStatusBarItem.command = "zephyr-tools.change-cmake-defines";
+    this.cmakeDefinesStatusBarItem.text = "$(symbol-constant) No Defines";
+    this.cmakeDefinesStatusBarItem.tooltip = "Click to add CMake defines";
+    this.cmakeDefinesStatusBarItem.show();
+    context.subscriptions.push(this.cmakeDefinesStatusBarItem);
 
     // Create project status bar item
     this.projectStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
@@ -101,6 +110,20 @@ export class StatusBarManager {
     }
   }
 
+  static updateCMakeDefinesStatusBar(defines?: string[]): void {
+    if (this.cmakeDefinesStatusBarItem) {
+      if (!defines || defines.length === 0) {
+        this.cmakeDefinesStatusBarItem.text = "$(symbol-constant) No Defines";
+        this.cmakeDefinesStatusBarItem.tooltip = "No extra CMake defines\nClick to add CMake defines";
+      } else {
+        const count = defines.length;
+        const defineNames = defines.map(d => d.split('=')[0]).join(', ');
+        this.cmakeDefinesStatusBarItem.text = `$(symbol-constant) ${count} define${count > 1 ? 's' : ''}`;
+        this.cmakeDefinesStatusBarItem.tooltip = `CMake defines:\n${defineNames}\nClick to change CMake defines`;
+      }
+    }
+  }
+
   private static truncateText(text: string, maxLength: number): string {
     if (text.length <= maxLength) {
       return text;
@@ -117,6 +140,9 @@ export class StatusBarManager {
     }
     if (this.extraOverlayFilesStatusBarItem) {
       this.extraOverlayFilesStatusBarItem.dispose();
+    }
+    if (this.cmakeDefinesStatusBarItem) {
+      this.cmakeDefinesStatusBarItem.dispose();
     }
     if (this.projectStatusBarItem) {
       this.projectStatusBarItem.dispose();

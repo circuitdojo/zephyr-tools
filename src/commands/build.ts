@@ -96,7 +96,9 @@ export async function buildCommand(
   const hasExtraConfFiles = project.extraConfFiles && project.extraConfFiles.length > 0;
   const hasExtraOverlayFiles = project.extraOverlayFiles && project.extraOverlayFiles.length > 0;
 
-  if (hasExtraConfFiles || hasExtraOverlayFiles) {
+  const hasCustomDefines = project.extraCMakeDefines && project.extraCMakeDefines.length > 0;
+
+  if (hasExtraConfFiles || hasExtraOverlayFiles || hasCustomDefines) {
     cmd += ' --';
 
     if (hasExtraConfFiles) {
@@ -107,6 +109,13 @@ export async function buildCommand(
     if (hasExtraOverlayFiles) {
       const overlayFileList = project.extraOverlayFiles!.join(';');
       cmd += ` -DDTC_OVERLAY_FILE="${overlayFileList}"`;
+    }
+
+    if (hasCustomDefines) {
+      for (const define of project.extraCMakeDefines!) {
+        // Escape double quotes so they survive ShellExecution
+        cmd += ` -D${define.replace(/"/g, '\\"')}`;
+      }
     }
   }
 

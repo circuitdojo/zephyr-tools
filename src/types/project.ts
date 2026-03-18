@@ -14,6 +14,7 @@ export interface ProjectConfig {
   sysbuild?: boolean;
   extraConfFiles?: string[]; // Array of relative paths to extra .conf files
   extraOverlayFiles?: string[]; // Array of relative paths to extra .overlay files
+  extraCMakeDefines?: string[]; // Array of KEY=VALUE strings for extra -D defines
 }
 
 export interface ZephyrTask {

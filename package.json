@@ -46,6 +46,7 @@
     "onCommand:zephyr-tools.change-sysbuild",
     "onCommand:zephyr-tools.change-extra-conf-files",
     "onCommand:zephyr-tools.change-extra-overlay-files",
+    "onCommand:zephyr-tools.change-cmake-defines",
     "onCommand:zephyr-tools.change-probe-rs-settings",
     "onCommand:zephyr-tools.open-zephyr-terminal",
     "onCommand:zephyr-tools.reset-paths",
@@ -150,6 +151,10 @@
       {
         "command": "zephyr-tools.change-extra-overlay-files",
         "title": "Zephyr Tools: Change Extra Overlay Files"
+      },
+      {
+        "command": "zephyr-tools.change-cmake-defines",
+        "title": "Zephyr Tools: Change CMake Defines"
       },
       {
         "command": "zephyr-tools.change-probe-rs-settings",

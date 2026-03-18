@@ -34,6 +34,7 @@ import {
   changeSysBuildCommand,
   changeExtraConfFilesCommand,
   changeExtraOverlayFilesCommand,
+  changeCMakeDefinesCommand,
   changeProbeRsSettingsCommand,
   createProjectCommand,
   cleanCommand,
@@ -348,6 +349,13 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.change-extra-overlay-files", async () => {
       await changeExtraOverlayFilesCommand(globalConfig, context);
+    })
+  );
+
+  // CMake defines management
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.change-cmake-defines", async () => {
+      await changeCMakeDefinesCommand(globalConfig, context);
     })
   );
 

@@ -389,6 +389,11 @@ function showReadyState(config, project, buildAssets) {
           <span class="status-value" id="overlay-files-value">Loading...</span>
           <span class="status-edit">✏️</span>
         </div>
+        <div class="status-item" data-command="zephyr-tools.change-cmake-defines">
+          <span class="status-label">CMake Defines:</span>
+          <span class="status-value" id="cmake-defines-value">Loading...</span>
+          <span class="status-edit">✏️</span>
+        </div>
       </div>
     </div>
 
@@ -538,6 +543,21 @@ function updateReadyStateValues(config, project) {
       overlayFilesElement.title = 'Using default overlay configuration';
     }
     overlayFilesElement.classList.toggle('loading', false);
+  }
+
+  // Update CMake defines value
+  const cmakeDefinesElement = document.getElementById('cmake-defines-value');
+  if (cmakeDefinesElement) {
+    if (project.extraCMakeDefines && project.extraCMakeDefines.length > 0) {
+      const count = project.extraCMakeDefines.length;
+      const defineNames = project.extraCMakeDefines.map(d => d.split('=')[0]).join(', ');
+      cmakeDefinesElement.textContent = `${count} define${count > 1 ? 's' : ''}`;
+      cmakeDefinesElement.title = defineNames;
+    } else {
+      cmakeDefinesElement.textContent = 'None';
+      cmakeDefinesElement.title = 'No extra CMake defines';
+    }
+    cmakeDefinesElement.classList.toggle('loading', false);
   }
 }
 
