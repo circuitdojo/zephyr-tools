@@ -8,7 +8,7 @@ import * as vscode from "vscode";
 import * as fs from "fs-extra";
 import * as path from "path";
 import { GlobalConfig, ProjectConfig } from "../types";
-import { ProjectConfigManager } from "../config";
+import { ProjectConfigManager, ProjectOverridesManager } from "../config";
 import { QuickPickManager, StatusBarManager } from "../ui";
 import { YamlParser, EnvironmentUtils } from "../utils";
 import { ProbeManager } from "../hardware";
@@ -60,10 +60,25 @@ export async function changeBoardCommand(
     console.log("Changing board to " + selectedBoard);
     vscode.window.showInformationMessage(`Board changed to ${selectedBoard}`);
     project.board = selectedBoard;
+
+    // Restore overrides for new board if available
+    if (project.target) {
+      const savedOverrides = await ProjectOverridesManager.load(project.target, selectedBoard);
+      if (savedOverrides) {
+        ProjectOverridesManager.applyOverrides(project, savedOverrides);
+      } else {
+        project.extraConfFiles = [];
+        project.extraOverlayFiles = [];
+        project.extraCMakeDefines = [];
+      }
+    }
+
     await ProjectConfigManager.save(context, project);
-    
+
     // Update status bar
     StatusBarManager.updateBoardStatusBar(project.board);
+    StatusBarManager.updateExtraConfFilesStatusBar(project.extraConfFiles ?? []);
+    StatusBarManager.updateExtraOverlayFilesStatusBar(project.extraOverlayFiles ?? []);
   }
 }
 

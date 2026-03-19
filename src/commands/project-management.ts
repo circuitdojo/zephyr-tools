@@ -10,7 +10,7 @@ import * as cp from "child_process";
 import * as fs from "fs-extra";
 import * as path from "path";
 import { GlobalConfig, ProjectConfig, ZephyrTask } from "../types";
-import { ProjectConfigManager } from "../config";
+import { ProjectConfigManager, ProjectOverridesManager } from "../config";
 import { QuickPickManager, DialogManager, OutputChannelManager, StatusBarManager } from "../ui";
 import { TaskManager } from "../tasks";
 import { installPythonDependencies } from "../environment";
@@ -68,17 +68,25 @@ export async function changeProjectCommand(
     vscode.window.showInformationMessage(`Project changed to ${resolvedProject}`);
     project.target = resolvedProject;
 
-    // Clear conf, overlay files, and CMake defines when switching projects
-    project.extraConfFiles = [];
-    project.extraOverlayFiles = [];
-    project.extraCMakeDefines = [];
+    // Try to restore saved overrides for this project+board combination
+    const savedOverrides = project.board
+      ? await ProjectOverridesManager.load(resolvedProject, project.board)
+      : undefined;
+
+    if (savedOverrides) {
+      ProjectOverridesManager.applyOverrides(project, savedOverrides);
+    } else {
+      project.extraConfFiles = [];
+      project.extraOverlayFiles = [];
+      project.extraCMakeDefines = [];
+    }
 
     await ProjectConfigManager.save(context, project);
 
     // Update status bars
     StatusBarManager.updateProjectStatusBar(project.target);
-    StatusBarManager.updateExtraConfFilesStatusBar([]);
-    StatusBarManager.updateExtraOverlayFilesStatusBar([]);
+    StatusBarManager.updateExtraConfFilesStatusBar(project.extraConfFiles ?? []);
+    StatusBarManager.updateExtraOverlayFilesStatusBar(project.extraOverlayFiles ?? []);
   }
 }
 

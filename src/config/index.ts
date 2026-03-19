@@ -7,6 +7,7 @@
 export { GlobalConfigManager } from './global-config';
 export { ProjectConfigManager } from './project-config';
 export { SettingsManager } from './settings-manager';
+export { ProjectOverridesManager } from './project-overrides';
 export { ConfigValidator } from './validation';
 export { ManifestValidator } from './manifest-validator';
 export * from './constants';

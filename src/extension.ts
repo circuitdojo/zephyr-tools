@@ -7,7 +7,7 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import { GlobalConfigManager, ProjectConfigManager, SettingsManager } from "./config";
+import { GlobalConfigManager, ProjectConfigManager, ProjectOverridesManager, SettingsManager } from "./config";
 import { TaskManager } from "./tasks";
 import { StatusBarManager, OutputChannelManager, DialogManager, SidebarWebviewProvider } from "./ui";
 import { PathManager } from "./environment";
@@ -93,6 +93,16 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Check if Python dependencies are still present in venv
   await validateProjectDependencies(context);
+
+  // Auto-save project overrides whenever config changes
+  context.subscriptions.push(
+    ProjectConfigManager.onDidChangeConfig(async () => {
+      const project = await ProjectConfigManager.load(context);
+      if (project.target && project.board) {
+        await ProjectOverridesManager.save(project.target, project.board, project);
+      }
+    })
+  );
 
   // Register all commands
   registerCommands(context, sidebarProvider);

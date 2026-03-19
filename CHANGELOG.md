@@ -2,6 +2,13 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.16] - 2026-03-19
+
+**Added:**
+- Per-project, per-board build override persistence via `.zephyr-overrides.json`
+- Automatically saves and restores conf files, overlay files, CMake defines, runner, and sysbuild settings when switching projects or boards
+- Overrides file lives in the project directory for portability across workspaces
+
 ### [0.5.15] - 2026-03-17
 
 **Added:**
