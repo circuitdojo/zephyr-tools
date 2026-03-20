@@ -83,6 +83,24 @@ export class ProjectOverridesManager {
   }
 
   /**
+   * Get all board names that have saved overrides for a project.
+   * Returns [] if file doesn't exist or on error.
+   */
+  static async getBoards(projectTarget: string): Promise<string[]> {
+    try {
+      const filePath = path.join(projectTarget, OVERRIDES_FILENAME);
+      if (!await fs.pathExists(filePath)) {
+        return [];
+      }
+      const content = await fs.readFile(filePath, "utf-8");
+      const allOverrides: Record<string, ProjectOverrides> = JSON.parse(content);
+      return Object.keys(allOverrides);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
    * Apply saved overrides onto a ProjectConfig.
    */
   static applyOverrides(config: ProjectConfig, overrides: ProjectOverrides): void {

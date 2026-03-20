@@ -53,8 +53,21 @@ export async function changeBoardCommand(
     }
   }
 
+  // Prioritize boards that have saved overrides for this project
+  let recentCount = 0;
+  if (project.target) {
+    const overridesBoards = await ProjectOverridesManager.getBoards(project.target);
+    if (overridesBoards.length > 0) {
+      const overridesSet = new Set(overridesBoards);
+      const recent = boards.filter(b => overridesSet.has(b));
+      const rest = boards.filter(b => !overridesSet.has(b));
+      boards = [...recent, ...rest];
+      recentCount = recent.length;
+    }
+  }
+
   // Prompt which board to use
-  const selectedBoard = await QuickPickManager.selectBoard(boards);
+  const selectedBoard = await QuickPickManager.selectBoard(boards, recentCount);
 
   if (selectedBoard) {
     console.log("Changing board to " + selectedBoard);

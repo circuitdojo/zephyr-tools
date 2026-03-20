@@ -10,17 +10,38 @@ import * as vscode from 'vscode';
 export class QuickPickManager {
   static readonly BROWSE_PROJECT_OPTION = "$(folder-opened) Browse for project...";
 
-  static async selectBoard(boards: string[]): Promise<string | undefined> {
+  static async selectBoard(boards: string[], recentCount?: number): Promise<string | undefined> {
     // Add custom board option at the beginning
     const CUSTOM_BOARD_OPTION = "$(edit) Enter custom board...";
-    const boardOptions = [CUSTOM_BOARD_OPTION, ...boards];
-    
-    const selected = await vscode.window.showQuickPick(boardOptions, {
+    const items: vscode.QuickPickItem[] = [{ label: CUSTOM_BOARD_OPTION }];
+
+    if (recentCount && recentCount > 0) {
+      // Add recent boards, then separator, then the rest
+      for (let i = 0; i < recentCount && i < boards.length; i++) {
+        items.push({ label: boards[i] });
+      }
+      if (recentCount < boards.length) {
+        items.push({ label: "Other boards", kind: vscode.QuickPickItemKind.Separator });
+        for (let i = recentCount; i < boards.length; i++) {
+          items.push({ label: boards[i] });
+        }
+      }
+    } else {
+      for (const board of boards) {
+        items.push({ label: board });
+      }
+    }
+
+    const selected = await vscode.window.showQuickPick(items, {
       placeHolder: "Select a board or enter custom",
       ignoreFocusOut: true,
     });
     
-    if (selected === CUSTOM_BOARD_OPTION) {
+    if (!selected) {
+      return undefined;
+    }
+
+    if (selected.label === CUSTOM_BOARD_OPTION) {
       // Show input box for custom board
       return await vscode.window.showInputBox({
         prompt: "Enter custom board identifier (e.g., stm32h747i_disco/stm32h747xx/m4)",
@@ -34,8 +55,8 @@ export class QuickPickManager {
         }
       });
     }
-    
-    return selected;
+
+    return selected.label;
   }
 
   static async selectProject(projects: string[]): Promise<string | undefined> {

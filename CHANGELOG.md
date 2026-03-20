@@ -2,6 +2,12 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.17] - 2026-03-20
+
+**Added:**
+- Previously-used boards are now prioritized at the top of the board selection list, with a separator before the remaining boards
+- Board history is derived from `.zephyr-overrides.json` — any board with saved overrides appears first
+
 ### [0.5.16] - 2026-03-19
 
 **Added:**
