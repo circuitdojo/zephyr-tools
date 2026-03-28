@@ -5,7 +5,7 @@
  */
 
 import * as vscode from "vscode";
-import { ProjectConfig, ZephyrTask } from "../types";
+import { BuildConfigSnapshot, ProjectConfig, ZephyrTask } from "../types";
 
 // Default project configuration
 export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
@@ -39,5 +39,13 @@ export class ProjectConfigManager {
 
   static async clearPendingTask(context: vscode.ExtensionContext): Promise<void> {
     await context.globalState.update(this.TASK_CONFIG_KEY, undefined);
+  }
+
+  static async loadBuildSnapshot(context: vscode.ExtensionContext, buildPath: string): Promise<BuildConfigSnapshot | undefined> {
+    return context.workspaceState.get(`zephyr.buildSnapshot.${buildPath}`);
+  }
+
+  static async saveBuildSnapshot(context: vscode.ExtensionContext, buildPath: string, snapshot: BuildConfigSnapshot): Promise<void> {
+    await context.workspaceState.update(`zephyr.buildSnapshot.${buildPath}`, snapshot);
   }
 }

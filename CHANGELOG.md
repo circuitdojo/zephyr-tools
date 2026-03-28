@@ -2,6 +2,14 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.18] - 2026-03-28
+
+**Improved:**
+- Incremental builds no longer trigger CMake reconfiguration when nothing has changed
+- Build command parses `CMakeCache.txt` to detect if `-b`, `-D`, and `--sysbuild` flags are needed
+- Only pristine builds, first builds, or config changes pass full flags — otherwise just `west build -d <build_dir>`
+- Removing a conf file, overlay file, or CMake define automatically triggers a pristine rebuild to clear stale cache entries
+
 ### [0.5.17] - 2026-03-20
 
 **Added:**

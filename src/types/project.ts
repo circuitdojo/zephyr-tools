@@ -17,6 +17,14 @@ export interface ProjectConfig {
   extraCMakeDefines?: string[]; // Array of KEY=VALUE strings for extra -D defines
 }
 
+export interface BuildConfigSnapshot {
+  board: string;
+  sysbuild: boolean;
+  extraConfFiles: string[];
+  extraOverlayFiles: string[];
+  extraCMakeDefines: string[];
+}
+
 export interface ZephyrTask {
   name?: string;
   data?: any;

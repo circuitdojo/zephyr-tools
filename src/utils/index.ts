@@ -8,3 +8,4 @@ export * from './environment-utils';
 export * from './platform-utils';
 export * from './path-utils';
 export * from './yaml-parser';
+export * from './cmake-cache';
