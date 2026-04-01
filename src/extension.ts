@@ -247,6 +247,26 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
     })
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.build-multi-pristine", async () => {
+      if (!globalConfig.isSetup) {
+        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
+        return;
+      }
+      await buildMultiCommand(globalConfig, context, true, sidebar);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.build-all-pristine", async () => {
+      if (!globalConfig.isSetup) {
+        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
+        return;
+      }
+      await buildAllCommand(globalConfig, context, true, sidebar);
+    })
+  );
+
   // Flash commands
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.flash", async () => {

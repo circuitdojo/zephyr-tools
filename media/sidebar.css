@@ -110,9 +110,9 @@
 }
 
 .action-btn.secondary {
-  background: var(--vscode-button-secondaryBackground);
-  color: var(--vscode-button-secondaryForeground);
-  border-color: var(--vscode-button-secondaryBackground);
+  background: var(--vscode-input-background);
+  color: var(--vscode-foreground);
+  border-color: var(--vscode-input-border, var(--vscode-input-background));
 }
 
 .action-btn.accent {

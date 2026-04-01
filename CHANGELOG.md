@@ -2,6 +2,15 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.21] - 2026-04-01
+
+**Added:**
+- "Build Multiple Boards (Pristine)" and "Build All Boards (Pristine)" commands
+
+**Fixed:**
+- Secondary button background in sidebar now visible (was transparent in webview context)
+- Removed multi/all build buttons from sidebar quick actions (available via command palette)
+
 ### [0.5.20] - 2026-04-01
 
 **Added:**
@@ -9,7 +18,6 @@ All notable changes to the "zephyr-tools" extension will be documented in this f
 - "Build All Boards" command — builds all boards with saved overrides in one action
 - "Add board..." option in multi-build picker to discover and add new boards inline
 - Deselecting a board from the multi-build picker removes it from `.zephyr-overrides.json`
-- Sidebar quick action buttons for Build Multi and Build All
 - Extracted reusable `buildForBoard()` function and `discoverBoards()` for board discovery
 
 ### [0.5.19] - 2026-04-01
