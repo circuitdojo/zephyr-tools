@@ -101,6 +101,24 @@ export class ProjectOverridesManager {
   }
 
   /**
+   * Remove a board's overrides from the overrides file.
+   */
+  static async remove(projectTarget: string, board: string): Promise<void> {
+    try {
+      const filePath = path.join(projectTarget, OVERRIDES_FILENAME);
+      if (!await fs.pathExists(filePath)) {
+        return;
+      }
+      const content = await fs.readFile(filePath, "utf-8");
+      const allOverrides: Record<string, ProjectOverrides> = JSON.parse(content);
+      delete allOverrides[board];
+      await fs.writeFile(filePath, JSON.stringify(allOverrides, null, 2));
+    } catch (e) {
+      console.error("Failed to remove project overrides:", e);
+    }
+  }
+
+  /**
    * Apply saved overrides onto a ProjectConfig.
    */
   static applyOverrides(config: ProjectConfig, overrides: ProjectOverrides): void {

@@ -16,6 +16,8 @@ import {
   setupCommand,
   buildCommand,
   buildPristineCommand,
+  buildMultiCommand,
+  buildAllCommand,
   flashCommand,
   flashProbeRsCommand,
   flashAndMonitorCommand,
@@ -222,6 +224,26 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
         return;
       }
       await buildPristineCommand(globalConfig, context, sidebar);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.build-multi", async () => {
+      if (!globalConfig.isSetup) {
+        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
+        return;
+      }
+      await buildMultiCommand(globalConfig, context, false, sidebar);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.build-all", async () => {
+      if (!globalConfig.isSetup) {
+        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
+        return;
+      }
+      await buildAllCommand(globalConfig, context, false, sidebar);
     })
   );
 

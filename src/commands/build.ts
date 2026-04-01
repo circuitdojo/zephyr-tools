@@ -8,11 +8,103 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { GlobalConfig, ProjectConfig, BuildConfigSnapshot } from "../types";
 import { ProjectConfigManager, ConfigValidator } from "../config";
-import { TaskManager } from "../tasks";
-import { changeBoardCommand } from "./board-management";
+import { ProjectOverridesManager, ProjectOverrides } from "../config/project-overrides";
+import { TaskManager, TaskManagerTaskOptions } from "../tasks";
+import { changeBoardCommand, discoverBoards } from "./board-management";
 import { changeProjectCommand } from "./project-management";
 import { EnvironmentUtils, readCMakeCache } from "../utils";
 import { SettingsManager } from "../config/settings-manager";
+import { QuickPickManager } from "../ui";
+
+/**
+ * Build a single board. Core reusable function used by both single and multi-build commands.
+ * Does NOT modify the active ProjectConfig — constructs a synthetic config from the provided board + overrides.
+ */
+export async function buildForBoard(
+  context: vscode.ExtensionContext,
+  board: string,
+  projectTarget: string,
+  overrides: ProjectOverrides,
+  pristine: boolean,
+  sidebarProvider?: any,
+  taskOptions?: Partial<TaskManagerTaskOptions>
+): Promise<void> {
+  // Construct synthetic project config without modifying workspace state
+  const project: ProjectConfig = {
+    isInit: true,
+    board,
+    target: projectTarget,
+    sysbuild: overrides.sysbuild,
+    extraConfFiles: overrides.extraConfFiles,
+    extraOverlayFiles: overrides.extraOverlayFiles,
+    extraCMakeDefines: overrides.extraCMakeDefines,
+  };
+
+  const env = SettingsManager.buildEnvironmentForExecution();
+
+  let options: vscode.ShellExecutionOptions = {
+    env: EnvironmentUtils.normalizeEnvironment(env),
+    cwd: projectTarget,
+  };
+
+  const boardBase = board.split("/")[0] ?? "";
+  const taskName = `Zephyr Tools: Build (${boardBase})`;
+  const buildPath = path.join("build", boardBase);
+
+  // Smart reconfiguration detection
+  const cacheDir = path.join(projectTarget, buildPath);
+  const cache = await readCMakeCache(cacheDir);
+  const currentSnapshot = createSnapshot(project);
+  const storedSnapshot = await ProjectConfigManager.loadBuildSnapshot(context, buildPath);
+
+  let cmd: string;
+  if (pristine || !cache) {
+    cmd = buildFullCommand(project, buildPath, pristine);
+  } else if (configHasAdditionsOrChanges(project, cache)) {
+    cmd = buildFullCommand(project, buildPath, false);
+  } else if (storedSnapshot && snapshotHasRemovals(currentSnapshot, storedSnapshot)) {
+    cmd = buildFullCommand(project, buildPath, true);
+  } else {
+    cmd = `west build -d ${buildPath}`;
+  }
+
+  let exec = new vscode.ShellExecution(cmd, options);
+
+  let task = new vscode.Task(
+    { type: "zephyr-tools", command: taskName, board },
+    vscode.TaskScope.Workspace,
+    taskName,
+    "zephyr-tools",
+    exec,
+  );
+
+  // Save snapshot before build
+  await ProjectConfigManager.saveBuildSnapshot(context, buildPath, currentSnapshot);
+
+  // Set up task completion listener to refresh sidebar
+  if (sidebarProvider) {
+    const processDisposable = vscode.tasks.onDidEndTaskProcess((event) => {
+      if (event.execution.task === task) {
+        setTimeout(() => {
+          if (typeof sidebarProvider.refresh === 'function') {
+            sidebarProvider.refresh();
+          }
+        }, 1000);
+        processDisposable.dispose();
+      }
+    });
+  }
+
+  await TaskManager.push(task, {
+    ignoreError: taskOptions?.ignoreError ?? false,
+    lastTask: taskOptions?.lastTask ?? true,
+    errorMessage: taskOptions?.errorMessage,
+    successMessage: taskOptions?.successMessage,
+    callback: taskOptions?.callback,
+    callbackData: taskOptions?.callbackData,
+  });
+}
+
 export async function buildCommand(
   config: GlobalConfig,
   context: vscode.ExtensionContext,
@@ -36,112 +128,30 @@ export async function buildCommand(
     return;
   }
 
-  // Build environment for execution using SettingsManager
-  const env = SettingsManager.buildEnvironmentForExecution();
-
-  // Auto-prompt for board if undefined (replicates old extension behavior)
+  // Auto-prompt for board if undefined
   if (project.board === undefined) {
     await changeBoardCommand(config, context);
-    
-    // Reload project config after changeBoardCommand
     project = await ProjectConfigManager.load(context);
-    
-    // Check again - if still undefined, show error and return
     if (project.board === undefined) {
       vscode.window.showErrorMessage("You must choose a board to continue.");
       return;
     }
   }
 
-  // Auto-prompt for project target if undefined (replicates old extension behavior)
+  // Auto-prompt for project target if undefined
   if (project.target === undefined) {
     await changeProjectCommand(config, context);
-    
-    // Reload project config after changeProjectCommand  
     project = await ProjectConfigManager.load(context);
-    
-    // Check again - if still undefined, show error and return
     if (project.target === undefined) {
       vscode.window.showErrorMessage("You must choose a project to build.");
       return;
     }
   }
 
-  // Get the active workspace root path
-  let rootPaths = vscode.workspace.workspaceFolders;
-  if (rootPaths === undefined) {
-    return;
-  }
-  
-  const rootPath = rootPaths[0].uri;
-
-  // Options for Shell Execution with normalized environment
-  let options: vscode.ShellExecutionOptions = {
-    env: EnvironmentUtils.normalizeEnvironment(env),
-    cwd: project.target,
-  };
-
-  // Tasks
-  let taskName = "Zephyr Tools: Build";
-
-  // Generate universal build path that works on windows & *nix
-  let buildPath = path.join("build", project.board?.split("/")[0] ?? "");
-
-  // Determine if reconfiguration is needed using hybrid detection:
-  // - CMakeCache.txt detects additions/changes (robust to out-of-band builds)
-  // - Workspace state snapshot detects removals (only way to clear stale cache)
-  const cacheDir = path.join(project.target!, buildPath);
-  const cache = await readCMakeCache(cacheDir);
-  const currentSnapshot = createSnapshot(project);
-  const storedSnapshot = await ProjectConfigManager.loadBuildSnapshot(context, buildPath);
-
-  let cmd: string;
-  if (pristine || !cache) {
-    // Pristine requested or first build (no CMakeCache.txt)
-    cmd = buildFullCommand(project, buildPath, pristine);
-  } else if (configHasAdditionsOrChanges(project, cache)) {
-    // Values added or changed — pass full flags, no pristine needed
-    cmd = buildFullCommand(project, buildPath, false);
-  } else if (storedSnapshot && snapshotHasRemovals(currentSnapshot, storedSnapshot)) {
-    // Values removed — must pristine to clear stale cache entries
-    cmd = buildFullCommand(project, buildPath, true);
-  } else {
-    // Nothing changed — true incremental build
-    cmd = `west build -d ${buildPath}`;
-  }
-
-  let exec = new vscode.ShellExecution(cmd, options);
-
-  // Task
-  let task = new vscode.Task(
-    { type: "zephyr-tools", command: taskName },
-    vscode.TaskScope.Workspace,
-    taskName,
-    "zephyr-tools",
-    exec,
-  );
-
   vscode.window.showInformationMessage(`Building for ${project.board}`);
 
-  // Save snapshot before build so removal detection works even if the build fails
-  await ProjectConfigManager.saveBuildSnapshot(context, buildPath, currentSnapshot);
-
-  // Set up task completion listener to refresh sidebar
-  if (sidebarProvider) {
-    const processDisposable = vscode.tasks.onDidEndTaskProcess((event) => {
-      if (event.execution.task === task) {
-        setTimeout(() => {
-          if (typeof sidebarProvider.refresh === 'function') {
-            sidebarProvider.refresh();
-          }
-        }, 1000);
-        processDisposable.dispose();
-      }
-    });
-  }
-
-  // Start execution
-  await vscode.tasks.executeTask(task);
+  const overrides = ProjectOverridesManager.extractOverrides(project);
+  await buildForBoard(context, project.board!, project.target!, overrides, pristine, sidebarProvider);
 }
 
 /**
@@ -270,4 +280,241 @@ export async function buildPristineCommand(
   sidebarProvider?: any
 ): Promise<void> {
   await buildCommand(config, context, true, sidebarProvider);
+}
+
+const ADD_BOARD_LABEL = "$(add) Add board...";
+
+/**
+ * Build the QuickPick items list from override boards.
+ */
+function buildBoardPickItems(overrideBoards: string[]): vscode.QuickPickItem[] {
+  const items: vscode.QuickPickItem[] = [
+    { label: ADD_BOARD_LABEL, alwaysShow: true },
+  ];
+  for (const board of overrideBoards) {
+    items.push({ label: board });
+  }
+  return items;
+}
+
+/**
+ * Show a multi-select quick pick of boards from overrides, with an option to add new boards.
+ * "Add board..." immediately opens the board discovery picker when selected.
+ * Returns the list of selected board names, or undefined if cancelled.
+ */
+async function showBoardMultiPick(
+  config: GlobalConfig,
+  context: vscode.ExtensionContext,
+  projectTarget: string
+): Promise<string[] | undefined> {
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const overrideBoards = await ProjectOverridesManager.getBoards(projectTarget);
+    const result = await showBoardPickerWithAddOption(context, projectTarget, overrideBoards);
+
+    if (result === "add-board") {
+      // User triggered "Add board..." — loop back to re-show with updated list
+      continue;
+    }
+
+    return result;
+  }
+}
+
+/**
+ * Shows the multi-select board picker using createQuickPick API.
+ * Returns selected board labels, undefined if cancelled, or "add-board" if the user
+ * triggered the add board flow (board was already added to overrides).
+ */
+function showBoardPickerWithAddOption(
+  context: vscode.ExtensionContext,
+  projectTarget: string,
+  overrideBoards: string[]
+): Promise<string[] | "add-board" | undefined> {
+  return new Promise((resolve) => {
+    const picker = vscode.window.createQuickPick();
+    picker.canSelectMany = true;
+    picker.placeholder = overrideBoards.length > 0
+      ? "Select boards to build (all selected by default)"
+      : "No boards configured yet — select 'Add board...' to get started";
+    picker.ignoreFocusOut = true;
+    picker.matchOnDescription = true;
+
+    const items = buildBoardPickItems(overrideBoards);
+    picker.items = items;
+
+    // Pre-select all board items (not the "Add board..." item)
+    picker.selectedItems = items.filter(i => i.label !== ADD_BOARD_LABEL);
+
+    let resolved = false;
+
+    picker.onDidChangeSelection(async (selected) => {
+      const addSelected = selected.some(s => s.label === ADD_BOARD_LABEL);
+      if (addSelected && !resolved) {
+        resolved = true;
+        picker.hide();
+
+        // Show board discovery picker immediately
+        const { boards, recentCount } = await discoverBoards(projectTarget);
+        const newBoard = await QuickPickManager.selectBoard(boards, recentCount);
+
+        if (newBoard && !overrideBoards.includes(newBoard)) {
+          const project = await ProjectConfigManager.load(context);
+          await ProjectOverridesManager.save(projectTarget, newBoard, {
+            ...project,
+            board: newBoard,
+          });
+        }
+
+        resolve("add-board");
+      }
+    });
+
+    picker.onDidAccept(async () => {
+      if (resolved) {
+        return;
+      }
+      resolved = true;
+
+      const selectedBoards = picker.selectedItems
+        .filter(s => s.label !== ADD_BOARD_LABEL)
+        .map(s => s.label);
+
+      picker.hide();
+
+      // Remove deselected boards from overrides
+      const deselected = overrideBoards.filter(b => !selectedBoards.includes(b));
+      for (const board of deselected) {
+        await ProjectOverridesManager.remove(projectTarget, board);
+      }
+
+      if (selectedBoards.length === 0) {
+        vscode.window.showWarningMessage("No boards selected.");
+        resolve(undefined);
+      } else {
+        resolve(selectedBoards);
+      }
+    });
+
+    picker.onDidHide(() => {
+      if (!resolved) {
+        resolve(undefined);
+      }
+      picker.dispose();
+    });
+
+    picker.show();
+  });
+}
+
+/**
+ * Build for multiple selected boards sequentially.
+ */
+export async function buildMultiCommand(
+  config: GlobalConfig,
+  context: vscode.ExtensionContext,
+  pristine: boolean = false,
+  sidebarProvider?: any
+): Promise<void> {
+  const setupValidation = await ConfigValidator.validateSetupState(config, context, false);
+  if (!setupValidation.isValid) {
+    vscode.window.showErrorMessage(setupValidation.error!);
+    return;
+  }
+
+  let project = await ProjectConfigManager.load(context);
+
+  const projectValidation = ConfigValidator.validateProjectInit(project);
+  if (!projectValidation.isValid) {
+    vscode.window.showErrorMessage(projectValidation.error!);
+    return;
+  }
+
+  // Auto-prompt for project target if undefined
+  if (project.target === undefined) {
+    await changeProjectCommand(config, context);
+    project = await ProjectConfigManager.load(context);
+    if (project.target === undefined) {
+      vscode.window.showErrorMessage("You must choose a project to build.");
+      return;
+    }
+  }
+
+  const selectedBoards = await showBoardMultiPick(config, context, project.target!);
+  if (!selectedBoards) {
+    return;
+  }
+
+  await buildBoards(context, project.target!, selectedBoards, pristine, sidebarProvider);
+}
+
+/**
+ * Build all boards that have saved overrides.
+ */
+export async function buildAllCommand(
+  config: GlobalConfig,
+  context: vscode.ExtensionContext,
+  pristine: boolean = false,
+  sidebarProvider?: any
+): Promise<void> {
+  const setupValidation = await ConfigValidator.validateSetupState(config, context, false);
+  if (!setupValidation.isValid) {
+    vscode.window.showErrorMessage(setupValidation.error!);
+    return;
+  }
+
+  let project = await ProjectConfigManager.load(context);
+
+  const projectValidation = ConfigValidator.validateProjectInit(project);
+  if (!projectValidation.isValid) {
+    vscode.window.showErrorMessage(projectValidation.error!);
+    return;
+  }
+
+  if (project.target === undefined) {
+    await changeProjectCommand(config, context);
+    project = await ProjectConfigManager.load(context);
+    if (project.target === undefined) {
+      vscode.window.showErrorMessage("You must choose a project to build.");
+      return;
+    }
+  }
+
+  const boards = await ProjectOverridesManager.getBoards(project.target!);
+  if (boards.length === 0) {
+    vscode.window.showErrorMessage(
+      "No board configurations saved. Use 'Zephyr Tools: Build Multiple Boards' to set up boards first."
+    );
+    return;
+  }
+
+  await buildBoards(context, project.target!, boards, pristine, sidebarProvider);
+}
+
+/**
+ * Build a list of boards sequentially via the TaskManager queue.
+ */
+async function buildBoards(
+  context: vscode.ExtensionContext,
+  projectTarget: string,
+  boards: string[],
+  pristine: boolean,
+  sidebarProvider?: any
+): Promise<void> {
+  const boardNames = boards.map(b => b.split("/")[0]).join(", ");
+  vscode.window.showInformationMessage(`Building for ${boards.length} board(s): ${boardNames}`);
+
+  for (let i = 0; i < boards.length; i++) {
+    const board = boards[i];
+    const isLast = i === boards.length - 1;
+    const overrides = await ProjectOverridesManager.load(projectTarget, board) ?? {
+      sysbuild: true,
+    };
+
+    await buildForBoard(context, board, projectTarget, overrides, pristine, sidebarProvider, {
+      ignoreError: true,
+      lastTask: isLast,
+      successMessage: isLast ? `Multi-build complete: ${boards.length} board(s)` : undefined,
+    });
+  }
 }

@@ -2,6 +2,16 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.20] - 2026-04-01
+
+**Added:**
+- "Build Multiple Boards" command — multi-select picker to build for several boards sequentially
+- "Build All Boards" command — builds all boards with saved overrides in one action
+- "Add board..." option in multi-build picker to discover and add new boards inline
+- Deselecting a board from the multi-build picker removes it from `.zephyr-overrides.json`
+- Sidebar quick action buttons for Build Multi and Build All
+- Extracted reusable `buildForBoard()` function and `discoverBoards()` for board discovery
+
 ### [0.5.19] - 2026-04-01
 
 **Security:**

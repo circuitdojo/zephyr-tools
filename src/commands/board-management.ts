@@ -25,46 +25,7 @@ export async function changeBoardCommand(
     return;
   }
 
-  // Get the workspace root
-  const rootPaths = vscode.workspace.workspaceFolders;
-  if (!rootPaths) {
-    return;
-  }
-  const rootPath = rootPaths[0].uri;
-
-  let boards: string[] = [];
-
-  const files = await vscode.workspace.fs.readDirectory(rootPath);
-  for (const [file, type] of files) {
-    if (type === vscode.FileType.Directory) {
-      // Ignore folders that begin with .
-      if (file.startsWith(".")) {
-        continue;
-      }
-
-      // Get boards
-      const boardsDir = vscode.Uri.joinPath(rootPath, `${file}/boards`);
-
-      // Only check if path exists
-      if (fs.pathExistsSync(boardsDir.fsPath)) {
-        console.log("Searching boards dir: " + boardsDir.fsPath);
-        boards = boards.concat(await getBoardList(boardsDir));
-      }
-    }
-  }
-
-  // Prioritize boards that have saved overrides for this project
-  let recentCount = 0;
-  if (project.target) {
-    const overridesBoards = await ProjectOverridesManager.getBoards(project.target);
-    if (overridesBoards.length > 0) {
-      const overridesSet = new Set(overridesBoards);
-      const recent = boards.filter(b => overridesSet.has(b));
-      const rest = boards.filter(b => !overridesSet.has(b));
-      boards = [...recent, ...rest];
-      recentCount = recent.length;
-    }
-  }
+  const { boards, recentCount } = await discoverBoards(project.target);
 
   // Prompt which board to use
   const selectedBoard = await QuickPickManager.selectBoard(boards, recentCount);
@@ -93,6 +54,43 @@ export async function changeBoardCommand(
     StatusBarManager.updateExtraConfFilesStatusBar(project.extraConfFiles ?? []);
     StatusBarManager.updateExtraOverlayFilesStatusBar(project.extraOverlayFiles ?? []);
   }
+}
+
+/**
+ * Discover all available boards in the current workspace.
+ * Returns the board list and the count of recently-used boards (from overrides).
+ */
+export async function discoverBoards(projectTarget?: string): Promise<{ boards: string[]; recentCount: number }> {
+  const rootPaths = vscode.workspace.workspaceFolders;
+  if (!rootPaths) {
+    return { boards: [], recentCount: 0 };
+  }
+  const rootPath = rootPaths[0].uri;
+
+  let boards: string[] = [];
+  const files = await vscode.workspace.fs.readDirectory(rootPath);
+  for (const [file, type] of files) {
+    if (type === vscode.FileType.Directory && !file.startsWith(".")) {
+      const boardsDir = vscode.Uri.joinPath(rootPath, `${file}/boards`);
+      if (fs.pathExistsSync(boardsDir.fsPath)) {
+        boards = boards.concat(await getBoardList(boardsDir));
+      }
+    }
+  }
+
+  let recentCount = 0;
+  if (projectTarget) {
+    const overridesBoards = await ProjectOverridesManager.getBoards(projectTarget);
+    if (overridesBoards.length > 0) {
+      const overridesSet = new Set(overridesBoards);
+      const recent = boards.filter(b => overridesSet.has(b));
+      const rest = boards.filter(b => !overridesSet.has(b));
+      boards = [...recent, ...rest];
+      recentCount = recent.length;
+    }
+  }
+
+  return { boards, recentCount };
 }
 
 async function getBoardList(folder: vscode.Uri): Promise<string[]> {

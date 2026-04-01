@@ -411,6 +411,14 @@ function showReadyState(config, project, buildAssets) {
           <span class="action-icon">🔄</span>
           <span class="action-text">Build Pristine</span>
         </button>
+        <button class="action-btn tertiary" data-command="zephyr-tools.build-multi">
+          <span class="action-icon">🔨</span>
+          <span class="action-text">Build Multi</span>
+        </button>
+        <button class="action-btn tertiary" data-command="zephyr-tools.build-all">
+          <span class="action-icon">🔨</span>
+          <span class="action-text">Build All</span>
+        </button>
         <button class="action-btn tertiary" data-command="zephyr-tools.flash">
           <span class="action-icon">⚡</span>
           <span class="action-text">Flash</span>
