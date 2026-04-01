@@ -2,6 +2,13 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.19] - 2026-04-01
+
+**Security:**
+- Resolved all Dependabot security alerts (0 vulnerabilities remaining)
+- Updated yaml, glob, typed-rest-client, mocha, eslint, @typescript-eslint
+- Added npm overrides for serialize-javascript, diff, @tootallnate/once
+
 ### [0.5.18] - 2026-03-28
 
 **Improved:**

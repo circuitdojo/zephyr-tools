@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.5.18",
+  "version": "0.5.19",
   "license": "Apache-2.0",
   "publisher": "circuitdojo",
   "icon": "img/bulb.png",
@@ -322,12 +322,12 @@
     "@types/node": "^24.0.12",
     "@types/node-7z": "^2.1.10",
     "@types/vscode": "^1.101.0",
-    "@typescript-eslint/eslint-plugin": "^8.36.0",
-    "@typescript-eslint/parser": "^8.36.0",
+    "@typescript-eslint/eslint-plugin": "^8.58.0",
+    "@typescript-eslint/parser": "^8.58.0",
     "esbuild": "^0.25.6",
-    "eslint": "^9.30.1",
-    "glob": "^11.0.3",
-    "mocha": "^11.7.1",
+    "eslint": "^10.1.0",
+    "glob": "^13.0.6",
+    "mocha": "^11.7.5",
     "typescript": "^5.8.3",
     "vscode-test": "^1.6.1"
   },
@@ -336,7 +336,12 @@
     "fs-extra": "^11.3.0",
     "node-7z": "^3.0.0",
     "node-stream-zip": "^1.15.0",
-    "typed-rest-client": "^2.1.0",
-    "yaml": "^2.8.0"
+    "typed-rest-client": "^2.3.0",
+    "yaml": "^2.8.3"
+  },
+  "overrides": {
+    "serialize-javascript": ">=7.0.5",
+    "diff": ">=8.0.3",
+    "@tootallnate/once": ">=3.0.1"
   }
 }
