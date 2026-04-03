@@ -2,6 +2,13 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.22] - 2026-04-03
+
+**Fixed:**
+- Serial monitor no longer blocks build/flash/load tasks from executing
+- Opening serial monitor when one is already running now focuses the existing terminal instead of opening a duplicate
+- Load & Monitor command terminates existing monitor before loading to free the serial port
+
 ### [0.5.21] - 2026-04-01
 
 **Added:**

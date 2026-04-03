@@ -8,14 +8,46 @@ import * as vscode from "vscode";
 import { GlobalConfig, ProjectConfig } from "../types";
 import { ProjectConfigManager } from "../config";
 import { SerialPortManager } from "../hardware";
-import { TaskManager } from "../tasks";
 import { EnvironmentUtils } from "../utils";
 import { SettingsManager } from "../config/settings-manager";
+
+let activeMonitorExecution: vscode.TaskExecution | undefined;
+let activeMonitorDisposable: vscode.Disposable | undefined;
+
+export function terminateMonitor(): void {
+  if (activeMonitorExecution) {
+    activeMonitorExecution.terminate();
+    activeMonitorExecution = undefined;
+  }
+  if (activeMonitorDisposable) {
+    activeMonitorDisposable.dispose();
+    activeMonitorDisposable = undefined;
+  }
+}
+
+function focusExistingMonitor(): boolean {
+  if (!activeMonitorExecution) {
+    return false;
+  }
+  const terminal = vscode.window.terminals.find(t => t.name.includes("Serial Monitor"));
+  if (terminal) {
+    terminal.show();
+    return true;
+  }
+  // Stale reference - clean up
+  terminateMonitor();
+  return false;
+}
 
 export async function monitorCommand(
   config: GlobalConfig,
   context: vscode.ExtensionContext
 ): Promise<void> {
+  // If monitor is already running, just focus it
+  if (focusExistingMonitor()) {
+    return;
+  }
+
   const project = await ProjectConfigManager.load(context);
 
   if (!config.isSetup) {
@@ -59,11 +91,14 @@ export async function monitorCommand(
     exec,
   );
 
-  // Start execution
-  await TaskManager.push(task, {
-    ignoreError: false,
-    lastTask: true,
-    errorMessage: "Serial monitor error!",
+  // Start execution (outside TaskManager so it doesn't block the build/flash queue)
+  activeMonitorExecution = await vscode.tasks.executeTask(task);
+  activeMonitorDisposable = vscode.tasks.onDidEndTaskProcess(e => {
+    if (e.execution === activeMonitorExecution) {
+      activeMonitorExecution = undefined;
+      activeMonitorDisposable?.dispose();
+      activeMonitorDisposable = undefined;
+    }
   });
 }
 

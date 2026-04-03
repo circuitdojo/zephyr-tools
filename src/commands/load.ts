@@ -11,7 +11,7 @@ import { GlobalConfig, ProjectConfig } from "../types";
 import { ProjectConfigManager, ConfigValidator } from "../config";
 import { SerialPortManager, NewtmgrManager } from "../hardware";
 import { TaskManager } from "../tasks";
-import { monitorCommand } from "./monitor";
+import { monitorCommand, terminateMonitor } from "./monitor";
 import { PlatformUtils, EnvironmentUtils } from "../utils";
 import { SettingsManager } from "../config/settings-manager";
 
@@ -196,6 +196,9 @@ export async function loadAndMonitorCommand(
   }
 
   try {
+    // Terminate existing monitor to free the serial port
+    terminateMonitor();
+
     // Step 1: Verify newtmgr connection exists
     if (!(await NewtmgrManager.verifyConnection(config))) {
       vscode.window.showErrorMessage("Run `Zephyr Tools: Setup Newtmgr` before loading.");
