@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.5.22",
+  "version": "0.5.23",
   "license": "Apache-2.0",
   "publisher": "circuitdojo",
   "icon": "img/bulb.png",
@@ -31,6 +31,7 @@
     "onCommand:zephyr-tools.build-multi-pristine",
     "onCommand:zephyr-tools.build-all-pristine",
     "onCommand:zephyr-tools.change-board",
+    "onCommand:zephyr-tools.change-west-manifest",
     "onCommand:zephyr-tools.change-project",
     "onCommand:zephyr-tools.flash",
     "onCommand:zephyr-tools.flash-probe-rs",
@@ -91,6 +92,10 @@
       {
         "command": "zephyr-tools.change-board",
         "title": "Zephyr Tools: Change Board"
+      },
+      {
+        "command": "zephyr-tools.change-west-manifest",
+        "title": "Zephyr Tools: Change West Manifest"
       },
       {
         "command": "zephyr-tools.create-project",

@@ -2,6 +2,17 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.23] - 2026-04-08
+
+**Added:**
+- "Change West Manifest" command to switch between west manifest files
+- Auto-discovery of `west*.yml`/`west*.yaml` files across workspace directories
+- Browse option for selecting manifest files not in the auto-discovered list
+- Manifest display in sidebar Project Settings card showing directory and filename
+- Per-board manifest persistence in `.zephyr-overrides.json`
+- West config (`manifest.file` and `manifest.path`) automatically synced on manifest change, board switch, and project switch
+- Manifest settings read from west config after repo initialization
+
 ### [0.5.22] - 2026-04-03
 
 **Fixed:**

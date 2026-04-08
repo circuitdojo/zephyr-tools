@@ -93,6 +93,36 @@ export class DialogManager {
     });
   }
 
+  static async browseForManifest(): Promise<{ name: string; dir: string } | undefined> {
+    const selected = await vscode.window.showOpenDialog({
+      canSelectFolders: false,
+      canSelectFiles: true,
+      canSelectMany: false,
+      openLabel: "Select Manifest",
+      title: "Select a west manifest file",
+      filters: { "West manifest files": ["yml", "yaml"] },
+    });
+
+    if (!selected || selected.length === 0) {
+      return undefined;
+    }
+
+    const filePath = selected[0].fsPath;
+    const rootPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+
+    if (!rootPath || !filePath.startsWith(rootPath)) {
+      vscode.window.showErrorMessage("Manifest file must be inside the workspace.");
+      return undefined;
+    }
+
+    // Compute directory relative to workspace root
+    const relative = filePath.substring(rootPath.length + 1);
+    const parts = relative.split("/");
+    const name = parts.pop()!;
+    const dir = parts.join("/");
+    return { name, dir };
+  }
+
   static async selectBaudRate(baudList: string[], defaultBaud?: string): Promise<string | undefined> {
     const result = await vscode.window.showQuickPick(baudList, {
       title: "Pick your baud rate.",

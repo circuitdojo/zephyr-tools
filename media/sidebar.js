@@ -369,6 +369,11 @@ function showReadyState(config, project, buildAssets) {
           <span class="status-value" id="target-value">Loading...</span>
           <span class="status-edit">✏️</span>
         </div>
+        <div class="status-item" data-command="zephyr-tools.change-west-manifest">
+          <span class="status-label">Manifest:</span>
+          <span class="status-value" id="manifest-value">Loading...</span>
+          <span class="status-edit">✏️</span>
+        </div>
         <div class="status-item" data-command="zephyr-tools.change-runner">
           <span class="status-label">Runner:</span>
           <span class="status-value" id="runner-value">Loading...</span>
@@ -499,6 +504,15 @@ function updateReadyStateValues(config, project) {
     targetElement.classList.toggle('loading', false);
   }
   
+  // Update manifest value
+  const manifestElement = document.getElementById('manifest-value');
+  if (manifestElement) {
+    const file = project.manifest || 'west.yml';
+    const dir = project.manifestDir;
+    manifestElement.textContent = dir ? dir + '/' + file : file;
+    manifestElement.classList.toggle('loading', false);
+  }
+
   // Update runner value
   const runnerElement = document.getElementById('runner-value');
   if (runnerElement) {

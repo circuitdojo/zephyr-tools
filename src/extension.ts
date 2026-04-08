@@ -32,6 +32,7 @@ import {
   changeProjectCommand,
   initRepoCommand,
   changeBoardCommand,
+  changeManifestCommand,
   changeRunnerCommand,
   changeSysBuildCommand,
   changeExtraConfFilesCommand,
@@ -373,6 +374,13 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.change-project", async () => {
       await changeProjectCommand(globalConfig, context);
+    })
+  );
+
+  // Manifest management
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.change-west-manifest", async () => {
+      await changeManifestCommand(globalConfig, context);
     })
   );
 

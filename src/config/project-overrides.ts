@@ -17,6 +17,8 @@ export interface ProjectOverrides {
   extraConfFiles?: string[];
   extraOverlayFiles?: string[];
   extraCMakeDefines?: string[];
+  manifest?: string;
+  manifestDir?: string;
 }
 
 export class ProjectOverridesManager {
@@ -79,6 +81,8 @@ export class ProjectOverridesManager {
       extraConfFiles: config.extraConfFiles,
       extraOverlayFiles: config.extraOverlayFiles,
       extraCMakeDefines: config.extraCMakeDefines,
+      manifest: config.manifest,
+      manifestDir: config.manifestDir,
     };
   }
 
@@ -128,5 +132,7 @@ export class ProjectOverridesManager {
     if (overrides.extraConfFiles !== undefined) { config.extraConfFiles = overrides.extraConfFiles; }
     if (overrides.extraOverlayFiles !== undefined) { config.extraOverlayFiles = overrides.extraOverlayFiles; }
     if (overrides.extraCMakeDefines !== undefined) { config.extraCMakeDefines = overrides.extraCMakeDefines; }
+    if (overrides.manifest !== undefined) { config.manifest = overrides.manifest; }
+    if (overrides.manifestDir !== undefined) { config.manifestDir = overrides.manifestDir; }
   }
 }

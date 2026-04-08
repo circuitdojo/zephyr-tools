@@ -13,6 +13,7 @@ import { QuickPickManager, StatusBarManager } from "../ui";
 import { YamlParser, EnvironmentUtils } from "../utils";
 import { ProbeManager } from "../hardware";
 import { SettingsManager } from "../config/settings-manager";
+import { updateWestManifestConfig } from "./project-management";
 
 export async function changeBoardCommand(
   config: GlobalConfig,
@@ -40,6 +41,18 @@ export async function changeBoardCommand(
       const savedOverrides = await ProjectOverridesManager.load(project.target, selectedBoard);
       if (savedOverrides) {
         ProjectOverridesManager.applyOverrides(project, savedOverrides);
+
+        // Sync west config if manifest override was restored
+        if (savedOverrides.manifest) {
+          const rootPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+          if (rootPath) {
+            try {
+              await updateWestManifestConfig(rootPath, savedOverrides.manifest, savedOverrides.manifestDir);
+            } catch {
+              // Non-critical — west config sync is best-effort
+            }
+          }
+        }
       } else {
         project.extraConfFiles = [];
         project.extraOverlayFiles = [];

@@ -75,6 +75,15 @@ export async function changeProjectCommand(
 
     if (savedOverrides) {
       ProjectOverridesManager.applyOverrides(project, savedOverrides);
+
+      // Sync west config if manifest override was restored
+      if (savedOverrides.manifest) {
+        try {
+          await updateWestManifestConfig(rootPath.fsPath, savedOverrides.manifest, savedOverrides.manifestDir);
+        } catch {
+          // Non-critical — west config sync is best-effort
+        }
+      }
     } else {
       project.extraConfFiles = [];
       project.extraOverlayFiles = [];
@@ -156,6 +165,7 @@ export async function initRepoCommand(
 
     // Check if .west is already here
     const exists = await fs.pathExists(path.join(dest.fsPath, ".west"));
+    let manifest: string | undefined;
 
     if (!exists) {
       // Get repository URL
@@ -173,8 +183,8 @@ export async function initRepoCommand(
       // Ask for branch
       const branch = await DialogManager.getBranchName();
 
-      // TODO: determine choices for west.yml
-      const manifest = "west.yml";
+      // Use default manifest filename (repo not cloned yet, can't discover files)
+      manifest = "west.yml";
 
       // git clone to destination
       let cmd = `west init -m ${url} --mf ${manifest}`;
@@ -259,10 +269,32 @@ export async function initRepoCommand(
 
       // Final callback after pip install completes
       const done = async (data: any) => {
-        // Set the isInit flag
+        // Set the isInit flag and store manifest from west config
         const project = await ProjectConfigManager.load(context);
         project.isInit = true;
         project.isInitializing = false;
+
+        // Read actual manifest settings from west config
+        try {
+          const execFile = util.promisify(cp.execFile);
+          const westEnv = SettingsManager.buildEnvironmentForExecution();
+          const westCwd = dest.fsPath;
+
+          const fileResult = await execFile("west", ["config", "manifest.file"], { env: westEnv, cwd: westCwd });
+          if (fileResult.stdout.trim()) {
+            project.manifest = fileResult.stdout.trim();
+          }
+          const pathResult = await execFile("west", ["config", "manifest.path"], { env: westEnv, cwd: westCwd });
+          if (pathResult.stdout.trim()) {
+            project.manifestDir = pathResult.stdout.trim();
+          }
+        } catch {
+          // Fall back to what was passed to west init
+          if (manifest) {
+            project.manifest = manifest;
+          }
+        }
+
         await ProjectConfigManager.save(context, project);
 
         // Write marker file so activation can detect if venv was recreated
@@ -379,6 +411,145 @@ async function browseForProject(): Promise<string | undefined> {
   }
 
   return projectDir;
+}
+
+export async function changeManifestCommand(
+  config: GlobalConfig,
+  context: vscode.ExtensionContext
+): Promise<void> {
+  const project = await ProjectConfigManager.load(context);
+
+  if (!config.isSetup) {
+    vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
+    return;
+  }
+
+  const rootPath = vscode.workspace.workspaceFolders?.[0]?.uri;
+  if (!rootPath) {
+    return;
+  }
+
+  const { manifests, activeDir, activeFile } = await discoverManifests();
+  const selected = await QuickPickManager.selectManifest(manifests, activeFile ?? "west.yml", activeDir);
+
+  if (!selected) {
+    return;
+  }
+
+  let resolvedManifest: string | undefined;
+  let resolvedDir: string | undefined;
+  if (selected.label === QuickPickManager.BROWSE_MANIFEST_OPTION) {
+    const browsed = await DialogManager.browseForManifest();
+    if (browsed) {
+      resolvedManifest = browsed.name;
+      resolvedDir = browsed.dir;
+    }
+  } else {
+    resolvedManifest = selected.label;
+    resolvedDir = selected.manifestDir;
+  }
+
+  if (resolvedManifest) {
+    // Update west config with the new manifest file and path
+    await updateWestManifestConfig(rootPath.fsPath, resolvedManifest, resolvedDir);
+
+    project.manifest = resolvedManifest;
+    project.manifestDir = resolvedDir;
+    await ProjectConfigManager.save(context, project);
+    vscode.window.showInformationMessage(`Manifest changed to ${resolvedDir ? resolvedDir + "/" : ""}${resolvedManifest}`);
+  }
+}
+
+export interface ManifestItem {
+  name: string;
+  dir: string;
+}
+
+/**
+ * Update west config with the given manifest file and path.
+ * Exported so board/project switch can sync west config when restoring overrides.
+ */
+export async function updateWestManifestConfig(cwd: string, file: string, dir?: string): Promise<void> {
+  const execFile = util.promisify(cp.execFile);
+  const env = SettingsManager.buildEnvironmentForExecution();
+
+  await execFile("west", ["config", "manifest.file", file], { env, cwd });
+  await execFile("west", ["config", "manifest.path", dir || "."], { env, cwd });
+}
+
+/**
+ * Discover west manifest files (west*.yml / west*.yaml) across the workspace.
+ * First checks the active manifest repo via `west config manifest.path`,
+ * then scans all top-level directories for additional manifests.
+ */
+async function discoverManifests(): Promise<{ manifests: ManifestItem[]; activeDir?: string; activeFile?: string }> {
+  const rootPaths = vscode.workspace.workspaceFolders;
+  if (!rootPaths) {
+    return { manifests: [] };
+  }
+  const rootPath = rootPaths[0].uri;
+
+  const results: ManifestItem[] = [];
+  const seen = new Set<string>();
+
+  // Get the current manifest repo path and active manifest file from west config
+  let currentManifestDir: string | undefined;
+  let currentManifestFile: string | undefined;
+  try {
+    const exec = util.promisify(cp.exec);
+    const env = SettingsManager.buildEnvironmentForExecution();
+    const cwd = rootPath.fsPath;
+
+    const pathResult = await exec("west config manifest.path", { env, cwd });
+    if (!pathResult.stderr) {
+      currentManifestDir = pathResult.stdout.trim();
+    }
+
+    const fileResult = await exec("west config manifest.file", { env, cwd });
+    if (!fileResult.stderr) {
+      currentManifestFile = fileResult.stdout.trim();
+    }
+  } catch {
+    // Not in a west workspace
+  }
+
+  // Scan a directory for west*.yml files
+  const scanDir = async (dirPath: vscode.Uri, dirName: string) => {
+    try {
+      const files = await vscode.workspace.fs.readDirectory(dirPath);
+      for (const [name, type] of files) {
+        if (type === vscode.FileType.File && name.match(/^west.*\.(yml|yaml)$/i)) {
+          const key = `${dirName}/${name}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            results.push({ name, dir: dirName });
+          }
+        }
+      }
+    } catch {
+      // Directory not accessible
+    }
+  };
+
+  // Scan the active manifest repo first (top of list)
+  if (currentManifestDir) {
+    const manifestDirUri = vscode.Uri.joinPath(rootPath, currentManifestDir);
+    await scanDir(manifestDirUri, currentManifestDir);
+  }
+
+  // Scan all other top-level directories
+  try {
+    const topLevel = await vscode.workspace.fs.readDirectory(rootPath);
+    for (const [file, type] of topLevel) {
+      if (type === vscode.FileType.Directory && !file.startsWith(".") && file !== currentManifestDir) {
+        await scanDir(vscode.Uri.joinPath(rootPath, file), file);
+      }
+    }
+  } catch {
+    // Workspace not accessible
+  }
+
+  return { manifests: results, activeDir: currentManifestDir, activeFile: currentManifestFile };
 }
 
 function getRootPath(): vscode.Uri | undefined {

@@ -7,6 +7,10 @@
 
 import * as vscode from 'vscode';
 
+export interface ManifestQuickPickItem extends vscode.QuickPickItem {
+  manifestDir: string;
+}
+
 export class QuickPickManager {
   static readonly BROWSE_PROJECT_OPTION = "$(folder-opened) Browse for project...";
 
@@ -77,6 +81,24 @@ export class QuickPickManager {
   static async selectRunner(runners: string[]): Promise<string | undefined> {
     return await vscode.window.showQuickPick(runners, {
       placeHolder: "Select a runner",
+      ignoreFocusOut: true,
+    });
+  }
+
+  static readonly BROWSE_MANIFEST_OPTION = "$(folder-opened) Browse for manifest...";
+
+  static async selectManifest(manifests: { name: string; dir: string }[], currentManifest?: string, activeDir?: string): Promise<ManifestQuickPickItem | undefined> {
+    const items: ManifestQuickPickItem[] = [
+      { label: this.BROWSE_MANIFEST_OPTION, manifestDir: "" },
+      ...manifests.map(m => ({
+        label: m.name,
+        description: m.dir + (m.name === currentManifest && m.dir === activeDir ? " (current)" : ""),
+        manifestDir: m.dir,
+      })),
+    ];
+
+    return await vscode.window.showQuickPick(items, {
+      placeHolder: "Select a west manifest file",
       ignoreFocusOut: true,
     });
   }
