@@ -1,5 +1,5 @@
 {
-  "version": 18,
+  "version": 19,
   "win32": [
     {
       "arch": "x64",
@@ -34,6 +34,12 @@
           "filename": "probe-rs-tools-x86_64-pc-windows-msvc.zip",
           "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.29.1/probe-rs-tools-x86_64-pc-windows-msvc.zip",
           "md5": "ca52232aaa944e53fa27960f9d180470"
+        },
+        {
+          "name": "recovery",
+          "filename": "recovery-x86_64-windows.zip",
+          "url": "https://github.com/circuitdojo/recovery/releases/download/v0.2.2/recovery-x86_64-windows.zip",
+          "md5": "40fd8bf6df178a7b8f9bcdadd4013cf0"
         }
       ],
       "toolchains": [
@@ -242,6 +248,12 @@
           "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.29.1/probe-rs-tools-aarch64-apple-darwin.tar.xz",
           "md5": "7627fcd90b2a9399a535cef434767ee3",
           "suffix": "probe-rs-tools-aarch64-apple-darwin/"
+        },
+        {
+          "name": "recovery",
+          "filename": "recovery-aarch64-macos.tar.gz",
+          "url": "https://github.com/circuitdojo/recovery/releases/download/v0.2.2/recovery-aarch64-macos.tar.gz",
+          "md5": "34f03b399550c24cee8118c369d8e935"
         }
       ],
       "toolchains": [
@@ -345,8 +357,14 @@
           "name": "probe-rs",
           "filename": "probe-rs-tools-x86_64-unknown-linux-gnu.tar.xz",
           "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.29.1/probe-rs-tools-x86_64-unknown-linux-gnu.tar.xz",
-          "md5": "01be4d05d6b7ced308f43a0c55865f03", 
+          "md5": "01be4d05d6b7ced308f43a0c55865f03",
           "suffix": "probe-rs-tools-x86_64-unknown-linux-gnu/"
+        },
+        {
+          "name": "recovery",
+          "filename": "recovery-x86_64-linux.tar.gz",
+          "url": "https://github.com/circuitdojo/recovery/releases/download/v0.2.2/recovery-x86_64-linux.tar.gz",
+          "md5": "a9a3791aaf020cd9f7343f98a877b372"
         }
       ],
       "toolchains": [

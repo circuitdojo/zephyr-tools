@@ -22,6 +22,7 @@ import {
   flashProbeRsCommand,
   flashAndMonitorCommand,
   flashProbeRsAndMonitorCommand,
+  recoverDeviceCommand,
   loadCommand,
   loadAndMonitorCommand,
   setupNewtmgrCommand,
@@ -306,6 +307,17 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
         return;
       }
       await flashProbeRsAndMonitorCommand(globalConfig, context);
+    })
+  );
+
+  // Recovery command
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.recover-device", async () => {
+      if (!globalConfig.isSetup) {
+        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
+        return;
+      }
+      await recoverDeviceCommand(globalConfig, context);
     })
   );
 

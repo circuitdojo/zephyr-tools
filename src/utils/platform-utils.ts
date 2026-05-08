@@ -53,7 +53,8 @@ export class PlatformUtils {
     return {
       probeRs: `probe-rs${this.getExecutableExtension()}`,
       newtmgr: `newtmgr${this.getExecutableExtension()}`,
-      zephyrTools: `zephyr-tools${this.getExecutableExtension()}`
+      zephyrTools: `zephyr-tools${this.getExecutableExtension()}`,
+      recovery: `recovery${this.getExecutableExtension()}`
     };
   }
 }

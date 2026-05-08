@@ -2,7 +2,7 @@
   "name": "zephyr-tools",
   "displayName": "Circuit Dojo Zephyr SDK Tools",
   "description": "Used for building your Zephyr projects.",
-  "version": "0.5.23",
+  "version": "0.5.24",
   "license": "Apache-2.0",
   "publisher": "circuitdojo",
   "icon": "img/bulb.png",
@@ -37,6 +37,7 @@
     "onCommand:zephyr-tools.flash-probe-rs",
     "onCommand:zephyr-tools.flash-and-monitor",
     "onCommand:zephyr-tools.flash-probe-rs-and-monitor",
+    "onCommand:zephyr-tools.recover-device",
     "onCommand:zephyr-tools.setup-newtmgr",
     "onCommand:zephyr-tools.monitor",
     "onCommand:zephyr-tools.setup-monitor",
@@ -120,6 +121,10 @@
       {
         "command": "zephyr-tools.flash-probe-rs-and-monitor",
         "title": "Zephyr Tools: Flash with probe-rs and Monitor"
+      },
+      {
+        "command": "zephyr-tools.recover-device",
+        "title": "Zephyr Tools: Recover Device"
       },
       {
         "command": "zephyr-tools.load",
@@ -306,6 +311,12 @@
           "default": false,
           "description": "Enable --verify flag to verify memory after flashing",
           "scope": "workspace"
+        },
+        "zephyr-tools.recovery.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the nRF91xx recovery tool binary (used to unlock locked devices before flashing)",
+          "scope": "machine"
         },
         "zephyr-tools.serial.port": {
           "type": "string",

@@ -7,6 +7,8 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs-extra";
+import * as cp from "child_process";
+import * as util from "util";
 import { GlobalConfig } from "../types";
 import { ProjectConfigManager, ConfigValidator } from "../config";
 import { SerialPortManager, ProbeManager } from "../hardware";
@@ -17,6 +19,8 @@ import { changeProjectCommand } from "./project-management";
 import { ProjectConfig } from "../types";
 import { PlatformUtils, EnvironmentUtils } from "../utils";
 import { SettingsManager } from "../config/settings-manager";
+
+const execFile = util.promisify(cp.execFile);
 
 
 export async function flashCommand(
@@ -368,9 +372,19 @@ export async function flashProbeRsCommand(
 
   vscode.window.showInformationMessage(`Flashing with probe-rs for ${project.board} using chip: ${chipName}`);
 
+  // Run recovery --unlock-only before flashing (no-op if device is already unlocked)
+  const recoveryPath = getRecoveryBinaryPath();
+  if (recoveryPath) {
+    console.log("Running recovery --unlock-only before flash...");
+    const recovered = await runRecovery(options.env);
+    if (!recovered) {
+      return;
+    }
+  }
+
   // Execute the flash task and wait for completion
   const taskExecution = await vscode.tasks.executeTask(task);
-  
+
   // Create a promise that resolves when the task completes
   const taskCompletionPromise = new Promise<void>((resolve, reject) => {
     const disposable = vscode.tasks.onDidEndTask((e) => {
@@ -379,7 +393,7 @@ export async function flashProbeRsCommand(
         resolve();
       }
     });
-    
+
     const errorDisposable = vscode.tasks.onDidEndTaskProcess((e) => {
       if (e.execution === taskExecution && e.exitCode !== 0) {
         disposable.dispose();
@@ -388,25 +402,27 @@ export async function flashProbeRsCommand(
       }
     });
   });
-  
+
   try {
     // Wait for the flash task to complete
     await taskCompletionPromise;
-    
+
     console.log("Flash task completed successfully, now resetting device...");
-    
-    // Reset the device after successful programming
+
+    // Reset the device after successful programming (best-effort — firmware
+    // that immediately sleeps or locks the debug port will cause this to fail,
+    // which is fine since the device is already running the new firmware)
     let resetCmd = `${tools.probeRs} reset --chip ${chipName}`;
-    
+
     // Append --probe flag if probeId is available
     if (probeId) {
       resetCmd += ` --probe ${probeId}`;
     }
-    
+
     console.log("probe-rs reset command: " + resetCmd);
-    
+
     let resetExec = new vscode.ShellExecution(resetCmd, options);
-    
+
     let resetTask = new vscode.Task(
       { type: "zephyr-tools", command: "Zephyr Tools: Reset Device" },
       vscode.TaskScope.Workspace,
@@ -414,14 +430,114 @@ export async function flashProbeRsCommand(
       "zephyr-tools",
       resetExec,
     );
-    
+
     await vscode.tasks.executeTask(resetTask);
-    vscode.window.showInformationMessage("Device flashed and reset successfully!");
-    
+    vscode.window.showInformationMessage("Device flashed successfully!");
+
   } catch (error) {
     console.error("Flash task failed:", error);
     vscode.window.showErrorMessage("probe-rs flash error! Check that your probe is connected and the chip name is correct.");
   }
+}
+
+/**
+ * Resolve the path to the recovery binary.
+ * Checks the user setting first, then falls back to the tools directory.
+ */
+function getRecoveryBinaryPath(): string | undefined {
+  // Check user-configured path first
+  const configuredPath = SettingsManager.getRecoveryPath();
+  if (configuredPath && fs.pathExistsSync(configuredPath)) {
+    return configuredPath;
+  }
+
+  // Fall back to tools directory (installed via manifest)
+  const tools = PlatformUtils.getToolExecutables();
+  const toolsDir = SettingsManager.getToolsDirectory();
+  const manifestPath = path.join(toolsDir, "recovery", tools.recovery);
+  if (fs.pathExistsSync(manifestPath)) {
+    return manifestPath;
+  }
+
+  return undefined;
+}
+
+/**
+ * Run the recovery tool with --unlock-only to unlock a locked nRF91xx device.
+ * Returns true if the device was successfully unlocked.
+ */
+async function runRecovery(env?: { [key: string]: string | undefined }): Promise<boolean> {
+  const recoveryPath = getRecoveryBinaryPath();
+  if (!recoveryPath) {
+    vscode.window.showErrorMessage(
+      "Recovery tool not found. Run 'Zephyr Tools: Setup' to install it, or set the path in settings (zephyr-tools.recovery.path)."
+    );
+    return false;
+  }
+
+  try {
+    const { stdout, stderr } = await execFile(recoveryPath, ["--unlock-only"], {
+      timeout: 30000,
+      env: env as NodeJS.ProcessEnv,
+    });
+    console.log("Recovery stdout:", stdout);
+    if (stderr) {
+      console.log("Recovery stderr:", stderr);
+    }
+    return true;
+  } catch (error: any) {
+    console.error("Recovery failed:", error);
+    const message = error.stderr || error.message || "Unknown error";
+    vscode.window.showErrorMessage(`Device recovery failed: ${message}`);
+    return false;
+  }
+}
+
+/**
+ * Standalone command to recover a locked nRF91xx device.
+ */
+export async function recoverDeviceCommand(
+  config: GlobalConfig,
+  context: vscode.ExtensionContext
+): Promise<void> {
+  const recoveryPath = getRecoveryBinaryPath();
+  if (!recoveryPath) {
+    vscode.window.showErrorMessage(
+      "Recovery tool not found. Run 'Zephyr Tools: Setup' to install it, or set the path in settings (zephyr-tools.recovery.path)."
+    );
+    return;
+  }
+
+  const env = EnvironmentUtils.normalizeEnvironment(SettingsManager.buildEnvironmentForExecution());
+
+  const choice = await vscode.window.showQuickPick(
+    [
+      { label: "Unlock Only", description: "Unlock device without erasing (no-op if already unlocked)", flag: "--unlock-only" },
+      { label: "Erase and Unlock", description: "Full erase and unlock", flag: "--erase-only" },
+      { label: "Verify Lock Status", description: "Check if device is locked (read-only)", flag: "--verify" },
+    ],
+    { placeHolder: "Select recovery operation" }
+  );
+
+  if (!choice) {
+    return;
+  }
+
+  const options: vscode.ShellExecutionOptions = { env };
+  const cmd = `${recoveryPath} ${choice.flag}`;
+  const taskName = "Zephyr Tools: Recover Device";
+
+  const exec = new vscode.ShellExecution(cmd, options);
+  const task = new vscode.Task(
+    { type: "zephyr-tools", command: taskName },
+    vscode.TaskScope.Workspace,
+    taskName,
+    "zephyr-tools",
+    exec,
+  );
+
+  vscode.window.showInformationMessage(`Running device recovery: ${choice.label}`);
+  await vscode.tasks.executeTask(task);
 }
 
 /**

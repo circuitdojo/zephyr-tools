@@ -268,6 +268,17 @@ export class SettingsManager {
     await config.update("serial.saveLogsToFile", enabled, vscode.ConfigurationTarget.Workspace);
   }
 
+  // Recovery tool settings
+  static getRecoveryPath(): string | undefined {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    return config.get<string>("recovery.path") || undefined;
+  }
+
+  static async setRecoveryPath(recoveryPath: string): Promise<void> {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    await config.update("recovery.path", recoveryPath, vscode.ConfigurationTarget.Global);
+  }
+
   // Newtmgr settings
   static getNewtmgrBaudRate(): number {
     const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);

@@ -2,6 +2,22 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.24] - 2026-05-08
+
+**Added:**
+- "Recover Device" command for manually unlocking locked nRF91xx devices (unlock, erase, or verify lock status)
+- Automatic device recovery before probe-rs flash — runs `recovery --unlock-only` (no-op if already unlocked)
+- Recovery tool binary added to manifest for win32/x64, darwin/arm64, linux/x64 (v0.2.2)
+- `zephyr-tools.recovery.path` setting for custom recovery tool binary location
+
+**Fixed:**
+- Post-flash reset is now best-effort — no longer shows error for firmware that immediately sleeps or locks the debug port
+
+**Technical Changes:**
+- Manifest version bumped to 19
+- Added `recovery` to `PlatformUtils.getToolExecutables()`
+- Added `getRecoveryPath()`/`setRecoveryPath()` to SettingsManager
+
 ### [0.5.23] - 2026-04-08
 
 **Added:**
