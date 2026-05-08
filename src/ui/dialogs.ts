@@ -80,8 +80,8 @@ export class DialogManager {
       ignoreFocusOut: true,
     });
 
-    if (result === "Yes") return true;
-    if (result === "No") return false;
+    if (result === "Yes") {return true;}
+    if (result === "No") {return false;}
     return undefined;
   }
 

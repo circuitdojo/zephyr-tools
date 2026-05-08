@@ -5,7 +5,7 @@
  */
 
 import * as vscode from "vscode";
-import { GlobalConfig, ProjectConfig } from "../types";
+import { GlobalConfig } from "../types";
 import { ProjectConfigManager } from "../config";
 import { SerialPortManager } from "../hardware";
 import { EnvironmentUtils } from "../utils";
@@ -69,21 +69,21 @@ export async function monitorCommand(
   }
 
   // Options for Shell Execution with normalized environment
-  let options: vscode.ShellExecutionOptions = {
+  const options: vscode.ShellExecutionOptions = {
     env: EnvironmentUtils.normalizeEnvironment(SettingsManager.buildEnvironmentForExecution()),
     cwd: project.target,
   };
 
   // Tasks
-  let taskName = "Zephyr Tools: Serial Monitor";
+  const taskName = "Zephyr Tools: Serial Monitor";
 
   // Command to run - conditionally include --save based on setting
   const saveFlag = SettingsManager.getSerialSaveLogsToFile() ? ' --save' : '';
-  let cmd = `zephyr-tools --port ${port} --follow${saveFlag}`;
-  let exec = new vscode.ShellExecution(cmd, options);
+  const cmd = `zephyr-tools --port ${port} --follow${saveFlag}`;
+  const exec = new vscode.ShellExecution(cmd, options);
 
   // Task
-  let task = new vscode.Task(
+  const task = new vscode.Task(
     { type: "zephyr-tools", command: taskName },
     vscode.TaskScope.Workspace,
     taskName,
@@ -104,7 +104,7 @@ export async function monitorCommand(
 
 export async function setupMonitorCommand(
   config: GlobalConfig,
-  context: vscode.ExtensionContext
+  _context: vscode.ExtensionContext
 ): Promise<void> {
   if (!config.isSetup) {
     vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
@@ -127,7 +127,7 @@ export async function setupMonitorCommand(
 
 export async function toggleSerialLoggingCommand(
   config: GlobalConfig,
-  context: vscode.ExtensionContext
+  _context: vscode.ExtensionContext
 ): Promise<void> {
   if (!config.isSetup) {
     vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");

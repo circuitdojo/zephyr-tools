@@ -41,7 +41,7 @@ export interface ManifestEntry {
 }
 
 export interface Manifest {
-  version: Number;
+  version: number;
   win32: ManifestEntry[];
   darwin: ManifestEntry[];
   linux: ManifestEntry[];

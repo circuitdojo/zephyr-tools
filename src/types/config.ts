@@ -7,7 +7,7 @@
 export interface GlobalConfig {
   isSetup: boolean;
   isSetupInProgress: boolean;
-  manifestVersion: Number;
+  manifestVersion: number;
 }
 
 export interface ProbeInfo {

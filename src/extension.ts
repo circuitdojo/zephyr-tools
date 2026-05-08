@@ -11,7 +11,7 @@ import { GlobalConfigManager, ProjectConfigManager, ProjectOverridesManager, Set
 import { TaskManager } from "./tasks";
 import { StatusBarManager, OutputChannelManager, DialogManager, SidebarWebviewProvider } from "./ui";
 import { PathManager } from "./environment";
-import { GlobalConfig, ProjectConfig } from "./types";
+import { GlobalConfig } from "./types";
 import {
   setupCommand,
   buildCommand,
@@ -48,7 +48,7 @@ import {
   revealBuildAssetCommand,
   openZephyrTerminalCommand
 } from "./commands";
-import { resetPaths, populateDetectedPaths } from "./commands/path-management";
+import { resetPaths } from "./commands/path-management";
 import { ZephyrTerminalProfileProvider } from "./providers";
 
 // Global configuration instance
@@ -528,6 +528,7 @@ async function cleanupStaleProgressFlags(context: vscode.ExtensionContext): Prom
     // Clean up setup progress if setup is actually complete
     const globalConfig = await GlobalConfigManager.load(context);
     if (globalConfig.isSetupInProgress && globalConfig.isSetup) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const manifest = require("../manifest/manifest.json");
       if (globalConfig.manifestVersion === manifest.version) {
         console.log('Cleaning up stale setup progress flag - setup is already complete');

@@ -103,8 +103,8 @@ export class PathUtils {
   }
 
   static findCommonPath(paths: string[]): string {
-    if (paths.length === 0) return "";
-    if (paths.length === 1) return path.dirname(paths[0]);
+    if (paths.length === 0) {return "";}
+    if (paths.length === 1) {return path.dirname(paths[0]);}
 
     const resolvedPaths = paths.map(p => path.resolve(p));
     const splitPaths = resolvedPaths.map(p => p.split(path.sep));

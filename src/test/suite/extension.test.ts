@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import * as path from "path";
+// import * as path from "path";
 import * as os from "os";
 
 // You can import and use all API from the 'vscode' module

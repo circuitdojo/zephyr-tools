@@ -10,7 +10,7 @@ import * as fs from "fs-extra";
 import { SettingsManager } from "../config";
 import { GlobalConfig } from "../types";
 
-export async function populateDetectedPaths(config: GlobalConfig): Promise<void> {
+export async function populateDetectedPaths(_config: GlobalConfig): Promise<void> {
   try {
     const toolsDir = SettingsManager.getToolsDirectory();
     

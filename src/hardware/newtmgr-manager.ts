@@ -49,7 +49,7 @@ export class NewtmgrManager {
   /**
    * Verifies that the newtmgr connection profile exists
    */
-  static async verifyConnection(config: GlobalConfig): Promise<boolean> {
+  static async verifyConnection(_config: GlobalConfig): Promise<boolean> {
     const exec = util.promisify(cp.exec);
     
     try {
@@ -81,14 +81,14 @@ export class NewtmgrManager {
   /**
    * Checks if newtmgr is installed and available
    */
-  static async isInstalled(config: GlobalConfig): Promise<boolean> {
+  static async isInstalled(_config: GlobalConfig): Promise<boolean> {
     const exec = util.promisify(cp.exec);
     
     try {
       const tools = PlatformUtils.getToolExecutables();
       await exec(`${tools.newtmgr} version`, { env: SettingsManager.buildEnvironmentForExecution() });
       return true;
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }

@@ -4,11 +4,10 @@
  * @license Apache 2.0
  */
 
-import * as vscode from "vscode";
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as cp from "child_process";
-import { GlobalConfig, Manifest, ManifestEntry, ManifestDownloadEntry } from "../types";
+import { GlobalConfig, Manifest, ManifestEntry, ManifestDownloadEntry, ManifestEnvEntry } from "../types";
 import { arch, platform, pathdivider, SettingsManager } from "../config";
 
 export interface ManifestValidationResult {
@@ -23,6 +22,7 @@ export interface ManifestValidationResult {
  * of all tools and dependencies specified in the manifest
  */
 export class ManifestValidator {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   private static manifest: Manifest = require("../../manifest/manifest.json");
 
   /**
@@ -187,7 +187,7 @@ export class ManifestValidator {
           break;
         }
       }
-      if (executableFound) break;
+      if (executableFound) {break;}
     }
 
     if (!executableFound) {
@@ -225,7 +225,7 @@ export class ManifestValidator {
 
       let hasResponded = false;
 
-      process.on('exit', (code) => {
+      process.on('exit', (_code) => {
         if (!hasResponded) {
           hasResponded = true;
           // Most tools return 0 for version/help, but some might return non-zero
@@ -353,7 +353,7 @@ export class ManifestValidator {
   /**
    * Calculate expected environment variable value
    */
-  private static calculateExpectedEnvValue(envEntry: any, installPath: string): string | undefined {
+  private static calculateExpectedEnvValue(envEntry: ManifestEnvEntry, installPath: string): string | undefined {
     if (envEntry.value) {
       return envEntry.value;
     } else if (envEntry.usepath && !envEntry.append) {

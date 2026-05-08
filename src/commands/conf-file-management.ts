@@ -34,7 +34,7 @@ async function findConfFiles(baseDir: string): Promise<string[]> {
           confFiles.push(relativePath);
         }
       }
-    } catch (error) {
+    } catch {
       // Skip directories we can't read
       return;
     }

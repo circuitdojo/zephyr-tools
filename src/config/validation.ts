@@ -7,7 +7,7 @@
 import * as vscode from "vscode";
 import { GlobalConfig, ProjectConfig } from "../types";
 import { GlobalConfigManager } from "./global-config";
-import { ManifestValidator, ManifestValidationResult } from "./manifest-validator";
+import { ManifestValidator } from "./manifest-validator";
 
 export interface ValidationResult {
   isValid: boolean;
@@ -23,6 +23,7 @@ export class ConfigValidator {
    * Validates that the global config has a compatible manifest version
    */
   static validateManifestVersion(config: GlobalConfig): boolean {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const manifest = require("../../manifest/manifest.json");
     return config.manifestVersion === manifest.version;
   }
@@ -36,6 +37,7 @@ export class ConfigValidator {
     context?: vscode.ExtensionContext,
     performPhysicalValidation: boolean = true
   ): Promise<ValidationResult> {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const manifest = require("../../manifest/manifest.json");
     
     // Check manifest version first
@@ -100,6 +102,7 @@ export class ConfigValidator {
    * Quick validation without physical checks (for performance-critical paths)
    */
   static validateSetupStateQuick(config: GlobalConfig): ValidationResult {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const manifest = require("../../manifest/manifest.json");
     
     if (config.manifestVersion !== manifest.version) {

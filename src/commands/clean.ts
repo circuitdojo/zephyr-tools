@@ -9,7 +9,6 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import { GlobalConfig } from "../types";
 import { ProjectConfigManager, ConfigValidator } from "../config";
-import { DialogManager } from "../ui";
 
 export async function cleanCommand(
   config: GlobalConfig,

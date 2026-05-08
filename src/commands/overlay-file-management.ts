@@ -34,7 +34,7 @@ async function findOverlayFiles(baseDir: string): Promise<string[]> {
           overlayFiles.push(relativePath);
         }
       }
-    } catch (error) {
+    } catch {
       // Skip directories we can't read
       return;
     }

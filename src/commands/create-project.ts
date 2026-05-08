@@ -24,7 +24,7 @@ async function copyFilesRecursively(source: string, destination: string) {
     if (stats.isDirectory()) {
       console.log("making dir: " + destinationPath);
 
-      let exists = await fs.pathExists(destinationPath);
+      const exists = await fs.pathExists(destinationPath);
       if (!exists) {
         fs.mkdirSync(destinationPath);
       }

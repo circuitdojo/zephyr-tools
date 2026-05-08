@@ -90,7 +90,7 @@ export class YamlParser {
     return boards;
   }
 
-  static async parseGenericYaml<T = any>(file: string): Promise<T | null> {
+  static async parseGenericYaml<T = unknown>(file: string): Promise<T | null> {
     try {
       const contents = await vscode.workspace.openTextDocument(file).then(document => {
         return document.getText();
@@ -103,7 +103,7 @@ export class YamlParser {
     }
   }
 
-  static parseYamlString<T = any>(yamlString: string): T | null {
+  static parseYamlString<T = unknown>(yamlString: string): T | null {
     try {
       return yaml.parse(yamlString) as T;
     } catch (error) {
@@ -112,7 +112,7 @@ export class YamlParser {
     }
   }
 
-  static stringifyYaml(obj: any, options?: yaml.ToStringOptions): string {
+  static stringifyYaml(obj: unknown, options?: yaml.ToStringOptions): string {
     try {
       return yaml.stringify(obj, options);
     } catch (error) {
@@ -136,7 +136,7 @@ export class YamlParser {
   static async extractBoardArchitecture(file: string): Promise<string | null> {
     try {
       const parsed = await this.parseGenericYaml<BoardYamlRoot>(file);
-      if (!parsed) return null;
+      if (!parsed) {return null;}
 
       const board = parsed.board || (parsed.boards && parsed.boards[0]);
       if (board && board.socs && board.socs.length > 0) {
@@ -160,10 +160,10 @@ export class YamlParser {
   } | null> {
     try {
       const parsed = await this.parseGenericYaml<BoardYamlRoot>(file);
-      if (!parsed) return null;
+      if (!parsed) {return null;}
 
       const board = parsed.board || (parsed.boards && parsed.boards[0]);
-      if (!board || !board.socs || board.socs.length === 0) return null;
+      if (!board || !board.socs || board.socs.length === 0) {return null;}
 
       const soc = board.socs[0];
       

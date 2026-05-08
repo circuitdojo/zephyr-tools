@@ -13,7 +13,7 @@ import { GlobalConfig } from "../types";
 import { SettingsManager } from "../config/settings-manager";
 
 export class SerialPortManager {
-  static async getAvailablePorts(config: GlobalConfig): Promise<string[]> {
+  static async getAvailablePorts(_config: GlobalConfig): Promise<string[]> {
     const exec = util.promisify(cp.exec);
 
     try {

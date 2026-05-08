@@ -5,7 +5,6 @@
  */
 
 import * as os from "os";
-import * as path from "path";
 
 // Platform
 export const platform: NodeJS.Platform = os.platform();

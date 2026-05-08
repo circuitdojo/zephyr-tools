@@ -29,5 +29,5 @@ export interface BuildConfigSnapshot {
 
 export interface ZephyrTask {
   name?: string;
-  data?: any;
+  data?: unknown;
 }

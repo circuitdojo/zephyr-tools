@@ -66,7 +66,7 @@ export function getZephyrTerminalOptions(): vscode.TerminalOptions | undefined {
 
 export async function openZephyrTerminalCommand(
   config: GlobalConfig,
-  context: vscode.ExtensionContext
+  _context: vscode.ExtensionContext
 ): Promise<void> {
   if (!config.isSetup) {
     vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");

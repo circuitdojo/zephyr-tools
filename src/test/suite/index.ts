@@ -31,7 +31,7 @@ export function run(): Promise<void> {
           e(err);
         }
       })
-      .catch((err: any) => {
+      .catch((err: unknown) => {
         return e(err);
       });
   });

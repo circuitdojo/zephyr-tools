@@ -12,7 +12,6 @@ import * as util from "util";
 import { GlobalConfig } from "../types";
 import { ProjectConfigManager, ConfigValidator } from "../config";
 import { SerialPortManager, ProbeManager } from "../hardware";
-import { TaskManager } from "../tasks";
 import { monitorCommand } from "./monitor";
 import { changeBoardCommand } from "./board-management";
 import { changeProjectCommand } from "./project-management";
@@ -26,7 +25,7 @@ const execFile = util.promisify(cp.execFile);
 export async function flashCommand(
   config: GlobalConfig,
   context: vscode.ExtensionContext,
-  sidebarProvider?: any
+  sidebarProvider?: { refresh?(): void }
 ): Promise<void> {
   let project = await ProjectConfigManager.load(context);
 
@@ -64,16 +63,16 @@ export async function flashCommand(
   }
 
   // Options for Shell Execution with normalized environment
-  let options: vscode.ShellExecutionOptions = {
+  const options: vscode.ShellExecutionOptions = {
     env: EnvironmentUtils.normalizeEnvironment(SettingsManager.buildEnvironmentForExecution()),
     cwd: project.target,
   };
 
   // Tasks
-  let taskName = "Zephyr Tools: Flash";
+  const taskName = "Zephyr Tools: Flash";
 
   // Generate universal build path that works on windows & *nix
-  let buildPath = path.join("build", project.board?.split("/")[0] ?? "");
+  const buildPath = path.join("build", project.board?.split("/")[0] ?? "");
   let cmd = `west flash -d ${buildPath}`;
 
   // Add runner if it exists
@@ -95,10 +94,10 @@ export async function flashCommand(
 
   console.log("flash command: " + cmd);
 
-  let exec = new vscode.ShellExecution(cmd, options);
+  const exec = new vscode.ShellExecution(cmd, options);
 
   // Task
-  let task = new vscode.Task(
+  const task = new vscode.Task(
     { type: "zephyr-tools", command: taskName, isBackground: true },
     vscode.TaskScope.Workspace,
     taskName,
@@ -135,7 +134,7 @@ export async function flashCommand(
 export async function flashAndMonitorCommand(
   config: GlobalConfig,
   context: vscode.ExtensionContext,
-  sidebarProvider?: any
+  sidebarProvider?: { refresh?(): void }
 ): Promise<void> {
   // Check manifest version and setup state
   const validationResult = await ConfigValidator.validateSetupState(config, context, false);
@@ -187,7 +186,7 @@ export async function flashProbeRsAndMonitorCommand(
   }
 
   try {
-    const project = await ProjectConfigManager.load(context);
+    await ProjectConfigManager.load(context);
 
     // Step 1: Flash the device with probe-rs
     await flashProbeRsCommand(config, context);
@@ -359,10 +358,10 @@ export async function flashProbeRsCommand(
 
   console.log("probe-rs command: " + cmd);
 
-  let exec = new vscode.ShellExecution(cmd, options);
+  const exec = new vscode.ShellExecution(cmd, options);
 
   // Task
-  let task = new vscode.Task(
+  const task = new vscode.Task(
     { type: "zephyr-tools", command: taskName },
     vscode.TaskScope.Workspace,
     taskName,
@@ -421,9 +420,9 @@ export async function flashProbeRsCommand(
 
     console.log("probe-rs reset command: " + resetCmd);
 
-    let resetExec = new vscode.ShellExecution(resetCmd, options);
+    const resetExec = new vscode.ShellExecution(resetCmd, options);
 
-    let resetTask = new vscode.Task(
+    const resetTask = new vscode.Task(
       { type: "zephyr-tools", command: "Zephyr Tools: Reset Device" },
       vscode.TaskScope.Workspace,
       "Zephyr Tools: Reset Device",
@@ -485,9 +484,10 @@ async function runRecovery(env?: { [key: string]: string | undefined }): Promise
       console.log("Recovery stderr:", stderr);
     }
     return true;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Recovery failed:", error);
-    const message = error.stderr || error.message || "Unknown error";
+    const errObj = error as { stderr?: string; message?: string };
+    const message = errObj.stderr || errObj.message || "Unknown error";
     vscode.window.showErrorMessage(`Device recovery failed: ${message}`);
     return false;
   }
@@ -497,8 +497,8 @@ async function runRecovery(env?: { [key: string]: string | undefined }): Promise
  * Standalone command to recover a locked nRF91xx device.
  */
 export async function recoverDeviceCommand(
-  config: GlobalConfig,
-  context: vscode.ExtensionContext
+  _config: GlobalConfig,
+  _context: vscode.ExtensionContext
 ): Promise<void> {
   const recoveryPath = getRecoveryBinaryPath();
   if (!recoveryPath) {
@@ -546,7 +546,7 @@ export async function recoverDeviceCommand(
 async function handleProbeRsProbeSelection(
   project: ProjectConfig,
   context: vscode.ExtensionContext,
-  config: GlobalConfig
+  _config: GlobalConfig
 ): Promise<void> {
   // Use normalized environment from config
   const normalizedEnv = EnvironmentUtils.normalizeEnvironment(SettingsManager.buildEnvironmentForExecution());

@@ -31,7 +31,7 @@ export async function createDebugConfigurationCommand(
   const workspaceUri = rootFolders[0].uri;
 
   // Load project configuration
-  let project = await ProjectConfigManager.load(context);
+  const project = await ProjectConfigManager.load(context);
   if (!project.board || !project.target) {
     vscode.window.showErrorMessage("Select a board and project before creating a debug configuration.");
     return;
@@ -68,7 +68,7 @@ export async function createDebugConfigurationCommand(
       const probe = path.join(buildDir, child, "zephyr", "zephyr.elf");
       candidates.push({ key: child, fullPath: probe });
     }
-  } catch (e) {
+  } catch {
     // ignore read errors; build dir may not exist yet
   }
 
@@ -100,8 +100,8 @@ export async function createDebugConfigurationCommand(
     .map(([fullPath, key]) => ({ fullPath, key }))
     .sort((a, b) => {
       // Prioritize project name match above all else
-      if (a.key === projectName && b.key !== projectName) return -1;
-      if (b.key === projectName && a.key !== projectName) return 1;
+      if (a.key === projectName && b.key !== projectName) {return -1;}
+      if (b.key === projectName && a.key !== projectName) {return 1;}
 
       const ai = order.indexOf(a.key);
       const bi = order.indexOf(b.key);
@@ -122,7 +122,7 @@ export async function createDebugConfigurationCommand(
 
   // Compose debug configuration
   const configName = `${project.board} • App`;
-  const debugConfig: any = {
+  const debugConfig: Record<string, unknown> = {
     name: configName,
     type: "probe-rs-debug",
     request: "attach",
@@ -136,7 +136,7 @@ export async function createDebugConfigurationCommand(
 
   // Update launch configurations
   const launchCfg = vscode.workspace.getConfiguration("launch");
-  const existing = launchCfg.get<any[]>("configurations") || [];
+  const existing = launchCfg.get<Record<string, unknown>[]>("configurations") || [];
   const filtered = existing.filter(c => c.zephyrToolsId !== "zephyr-tools.probe-rs");
   filtered.push(debugConfig);
 
@@ -180,7 +180,7 @@ export async function debugNowCommand(
 
   // Verify the configuration exists before attempting to start
   const launchCfg = vscode.workspace.getConfiguration("launch");
-  const existing = launchCfg.get<any[]>("configurations") || [];
+  const existing = launchCfg.get<Record<string, unknown>[]>("configurations") || [];
   const hasConfig = existing.some(c => c && c.name === configName && c.type === 'probe-rs-debug');
   if (!hasConfig) {
     vscode.window.showWarningMessage("Debug configuration not found or incomplete. Build the project and try again.");
@@ -208,7 +208,7 @@ async function ensureProbeRsDebuggerInstalled(): Promise<boolean> {
   // Check if any extension (enabled) contributes the probe-rs debugger type
   const hasContrib = vscode.extensions.all.some(ext => {
     try {
-      const dbg = (ext.packageJSON?.contributes?.debuggers || []) as any[];
+      const dbg = (ext.packageJSON?.contributes?.debuggers || []) as Array<{ type?: string }>;
       return dbg.some(d => (d?.type || '').toLowerCase() === 'probe-rs-debug');
     } catch {
       return false;
@@ -231,7 +231,7 @@ async function ensureProbeRsDebuggerInstalled(): Promise<boolean> {
           if (reload === 'Reload') {
             await vscode.commands.executeCommand('workbench.action.reloadWindow');
           }
-        } catch (e) {
+        } catch {
           await vscode.env.openExternal(vscode.Uri.parse(`vscode:extension/${installId}`));
         }
       } else if (action === 'Open Marketplace') {

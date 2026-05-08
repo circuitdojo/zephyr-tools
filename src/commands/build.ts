@@ -26,7 +26,7 @@ export async function buildForBoard(
   projectTarget: string,
   overrides: ProjectOverrides,
   pristine: boolean,
-  sidebarProvider?: any,
+  sidebarProvider?: { refresh?(): void },
   taskOptions?: Partial<TaskManagerTaskOptions>
 ): Promise<void> {
   // Construct synthetic project config without modifying workspace state
@@ -42,7 +42,7 @@ export async function buildForBoard(
 
   const env = SettingsManager.buildEnvironmentForExecution();
 
-  let options: vscode.ShellExecutionOptions = {
+  const options: vscode.ShellExecutionOptions = {
     env: EnvironmentUtils.normalizeEnvironment(env),
     cwd: projectTarget,
   };
@@ -68,9 +68,9 @@ export async function buildForBoard(
     cmd = `west build -d ${buildPath}`;
   }
 
-  let exec = new vscode.ShellExecution(cmd, options);
+  const exec = new vscode.ShellExecution(cmd, options);
 
-  let task = new vscode.Task(
+  const task = new vscode.Task(
     { type: "zephyr-tools", command: taskName, board },
     vscode.TaskScope.Workspace,
     taskName,
@@ -109,7 +109,7 @@ export async function buildCommand(
   config: GlobalConfig,
   context: vscode.ExtensionContext,
   pristine: boolean = false,
-  sidebarProvider?: any
+  sidebarProvider?: { refresh?(): void }
 ): Promise<void> {
   // Validate setup state and manifest version
   const setupValidation = await ConfigValidator.validateSetupState(config, context, false);
@@ -277,7 +277,7 @@ function buildFullCommand(project: ProjectConfig, buildPath: string, pristine: b
 export async function buildPristineCommand(
   config: GlobalConfig,
   context: vscode.ExtensionContext,
-  sidebarProvider?: any
+  sidebarProvider?: { refresh?(): void }
 ): Promise<void> {
   await buildCommand(config, context, true, sidebarProvider);
 }
@@ -307,7 +307,7 @@ async function showBoardMultiPick(
   context: vscode.ExtensionContext,
   projectTarget: string
 ): Promise<string[] | undefined> {
-  // eslint-disable-next-line no-constant-condition
+   
   while (true) {
     const overrideBoards = await ProjectOverridesManager.getBoards(projectTarget);
     const result = await showBoardPickerWithAddOption(context, projectTarget, overrideBoards);
@@ -414,7 +414,7 @@ export async function buildMultiCommand(
   config: GlobalConfig,
   context: vscode.ExtensionContext,
   pristine: boolean = false,
-  sidebarProvider?: any
+  sidebarProvider?: { refresh?(): void }
 ): Promise<void> {
   const setupValidation = await ConfigValidator.validateSetupState(config, context, false);
   if (!setupValidation.isValid) {
@@ -455,7 +455,7 @@ export async function buildAllCommand(
   config: GlobalConfig,
   context: vscode.ExtensionContext,
   pristine: boolean = false,
-  sidebarProvider?: any
+  sidebarProvider?: { refresh?(): void }
 ): Promise<void> {
   const setupValidation = await ConfigValidator.validateSetupState(config, context, false);
   if (!setupValidation.isValid) {
@@ -499,7 +499,7 @@ async function buildBoards(
   projectTarget: string,
   boards: string[],
   pristine: boolean,
-  sidebarProvider?: any
+  sidebarProvider?: { refresh?(): void }
 ): Promise<void> {
   const boardNames = boards.map(b => b.split("/")[0]).join(", ");
   vscode.window.showInformationMessage(`Building for ${boards.length} board(s): ${boardNames}`);

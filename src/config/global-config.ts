@@ -6,7 +6,6 @@
 
 import * as vscode from "vscode";
 import { GlobalConfig } from "../types";
-import { EnvironmentUtils } from "../utils";
 
 export class GlobalConfigManager {
   private static readonly CONFIG_KEY = "zephyr.env";

@@ -61,7 +61,7 @@ export class PathManager {
       if (await fs.pathExists(toolsDirectory)) {
         // Get all subdirectories in tools directory
         const entries = await fs.readdir(toolsDirectory, { withFileTypes: true });
-        const toolDirs = entries.filter((entry: any) => entry.isDirectory()).map((entry: any) => entry.name);
+        const toolDirs = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
         
         // Standard Python virtual environment path
         const pythonEnvPath = path.join(toolsDirectory, "env");
@@ -74,7 +74,7 @@ export class PathManager {
         
         // Check each tool directory for executable paths
         for (const toolDir of toolDirs) {
-          if (toolDir === "env") continue; // Already handled above
+          if (toolDir === "env") {continue;} // Already handled above
           
           const toolPath = path.join(toolsDirectory, toolDir);
           
@@ -115,14 +115,14 @@ export class PathManager {
                   }
                 }
               }
-            } catch (error) {
+            } catch (_error) {
               // Ignore errors for individual paths
               continue;
             }
           }
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // If scanning fails, fall back to basic Python env path only
       const pythonEnvPath = path.join(toolsDirectory, "env");
       const binPath = path.join(pythonEnvPath, process.platform === "win32" ? "Scripts" : "bin");
@@ -132,7 +132,7 @@ export class PathManager {
     return paths;
   }
 
-  static async setupEnvironmentPaths(context: vscode.ExtensionContext, config: GlobalConfig): Promise<void> {
+  static async setupEnvironmentPaths(context: vscode.ExtensionContext, _config: GlobalConfig): Promise<void> {
     // Restore all environment variables from settings
     const envVars = SettingsManager.getEnvironmentVariables();
     for (const [key, value] of Object.entries(envVars)) {

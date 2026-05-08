@@ -7,7 +7,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs-extra";
-import { GlobalConfig, ProjectConfig } from "../types";
+import { GlobalConfig } from "../types";
 import { ProjectConfigManager, ConfigValidator } from "../config";
 import { SerialPortManager, NewtmgrManager } from "../hardware";
 import { TaskManager } from "../tasks";
@@ -33,13 +33,13 @@ export async function loadCommand(
   }
 
   // Options for Shell Execution with normalized environment
-  let options: vscode.ShellExecutionOptions = {
+  const options: vscode.ShellExecutionOptions = {
     env: EnvironmentUtils.normalizeEnvironment(SettingsManager.buildEnvironmentForExecution()),
     cwd: project.target,
   };
 
   // Tasks
-  let taskName = "Zephyr Tools: Load via Bootloader";
+  const taskName = "Zephyr Tools: Load via Bootloader";
 
   // Get reduced device name
   const boardName = project.board.split("/")[0];
@@ -63,6 +63,7 @@ export async function loadCommand(
     }
 
     // Unzip dfu_application.zip
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const unzip = require('node-stream-zip');
     const zip = new unzip.async({ file: dfuZip });
     await zip.extract(null, path.join(project.target, "build", boardName));
@@ -205,7 +206,7 @@ export async function loadAndMonitorCommand(
       return;
     }
 
-    const project = await ProjectConfigManager.load(context);
+    await ProjectConfigManager.load(context);
 
     // Step 2: Load via bootloader
     await loadCommand(config, context);

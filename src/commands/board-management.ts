@@ -7,7 +7,7 @@
 import * as vscode from "vscode";
 import * as fs from "fs-extra";
 import * as path from "path";
-import { GlobalConfig, ProjectConfig } from "../types";
+import { GlobalConfig } from "../types";
 import { ProjectConfigManager, ProjectOverridesManager } from "../config";
 import { QuickPickManager, StatusBarManager } from "../ui";
 import { YamlParser, EnvironmentUtils } from "../utils";
@@ -165,7 +165,7 @@ export async function changeRunnerCommand(
   }
   const rootPath = rootPaths[0].uri;
 
-  let runners: string[] = ["default"];
+  const runners: string[] = ["default"];
 
   // Get runners from $rootPath/zephyr/boards/common (correct runner names)
   const runnersDir = path.join(rootPath.fsPath, "zephyr", "boards", "common");
@@ -222,7 +222,7 @@ export async function changeRunnerCommand(
 
 export async function changeProbeRsSettingsCommand(
   config: GlobalConfig,
-  context: vscode.ExtensionContext
+  _context: vscode.ExtensionContext
 ): Promise<void> {
   if (!config.isSetup) {
     vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
@@ -301,7 +301,7 @@ export async function changeProbeRsSettingsCommand(
 }
 
 // Change probe selection
-async function changeProbeSelection(config: GlobalConfig) {
+async function changeProbeSelection(_config: GlobalConfig) {
   // Use normalized environment from config
   const normalizedEnv = EnvironmentUtils.normalizeEnvironment(SettingsManager.buildEnvironmentForExecution());
   const availableProbes = await ProbeManager.getAvailableProbes(normalizedEnv);
@@ -325,7 +325,7 @@ async function changeProbeSelection(config: GlobalConfig) {
 }
 
 // Change chip selection
-async function changeChipSelection(config: GlobalConfig) {
+async function changeChipSelection(_config: GlobalConfig) {
   // Use normalized environment from config
   const normalizedEnv = EnvironmentUtils.normalizeEnvironment(SettingsManager.buildEnvironmentForExecution());
   const chipName = await ProbeManager.getProbeRsChipName(normalizedEnv);

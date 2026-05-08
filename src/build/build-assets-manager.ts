@@ -83,7 +83,7 @@ export class BuildAssetsManager {
         if (!lastBuild || stats.mtime > lastBuild) {
           lastBuild = stats.mtime;
         }
-      } catch (error) {
+      } catch {
         // File doesn't exist, keep exists: false
       }
 
@@ -131,7 +131,7 @@ export class BuildAssetsManager {
    * e.g., "circuitdojo_feather_nrf9151/nrf9151/ns" -> "nrf9160" (based on common patterns)
    */
   private static extractChipName(board?: string): string {
-    if (!board) return "zephyr";
+    if (!board) {return "zephyr";}
     
     // For nRF91 series boards, the chip is typically nrf9160
     if (board.includes('nrf91')) {
@@ -152,7 +152,7 @@ export class BuildAssetsManager {
    * Format file size in human-readable format
    */
   public static formatFileSize(bytes: number): string {
-    if (bytes === 0) return "0 B";
+    if (bytes === 0) {return "0 B";}
     
     const k = 1024;
     const sizes = ["B", "KB", "MB", "GB"];

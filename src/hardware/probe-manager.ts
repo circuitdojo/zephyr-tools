@@ -45,7 +45,7 @@ export class ProbeManager {
   static async selectProbe(probes: ProbeInfo[]): Promise<ProbeInfo | undefined> {
     const probeItems = probes.map((probe, index) => {
       // Build the label with just probe name and ID
-      let label = `${probe.name} ID:${index}`;
+      const label = `${probe.name} ID:${index}`;
       
       // Build description with VID:PID:Serial information
       let description = '';

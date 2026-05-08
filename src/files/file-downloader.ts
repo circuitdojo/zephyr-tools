@@ -71,7 +71,7 @@ export class FileDownloader {
     const dest = path.join(this.downloadsdir, filename);
 
     // Make sure downloadsdir exists
-    let exists = await fs.pathExists(this.downloadsdir);
+    const exists = await fs.pathExists(this.downloadsdir);
     if (!exists) {
       console.log("downloadsdir not found");
       await fs.mkdirp(this.downloadsdir);

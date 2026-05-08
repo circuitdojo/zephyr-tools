@@ -18,7 +18,7 @@ export class ProjectScanner {
 
     while (queue.length > 0) {
       const file = queue.shift();
-      if (!file) break;
+      if (!file) {break;}
 
       if (file.name.includes("CMakeLists.txt")) {
         // Check the file content
@@ -159,7 +159,6 @@ export class ProjectScanner {
   }
 
   static async findSourceFiles(rootDir: string, extensions: string[] = ['.c', '.cpp', '.h', '.hpp']): Promise<string[]> {
-    const sourceFiles: string[] = [];
     const extensionPattern = new RegExp(`\\.(${extensions.map(ext => ext.replace('.', '')).join('|')})$`, 'i');
     
     return this.findFilesByPattern(rootDir, extensionPattern);

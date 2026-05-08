@@ -16,7 +16,7 @@ export class ZephyrTerminalProfileProvider implements vscode.TerminalProfileProv
   constructor(private config: GlobalConfig) {}
 
   provideTerminalProfile(
-    token: vscode.CancellationToken
+    _token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.TerminalProfile> {
     // Check if setup is complete
     if (!this.config.isSetup) {

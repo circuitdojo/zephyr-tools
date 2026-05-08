@@ -32,7 +32,7 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
+    _context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken,
   ) {
     this._view = webviewView;
@@ -280,7 +280,7 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
       if (this._view) {
         this._view.show?.(true); // true = focus the view
       }
-    } catch (error) {
+    } catch (_error) {
       // Silently fail if commands are not available
     }
   }

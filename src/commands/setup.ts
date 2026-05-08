@@ -24,6 +24,7 @@ import { arch, platform, pathdivider } from "../config";
 import { FileDownloader, ArchiveExtractor } from "../files";
 
 // Manifest data
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const manifest: Manifest = require("../../manifest/manifest.json");
 
 /**
@@ -207,10 +208,11 @@ async function processDownload(
       if (result.stderr) {
         output.append(result.stderr);
       }
-    } catch (error: any) {
-      output.appendLine(`[SETUP] Command failed: ${error.message}`);
-      if (error.stdout) output.append(error.stdout);
-      if (error.stderr) output.append(error.stderr);
+    } catch (error: unknown) {
+      const errObj = error as { message?: string; stdout?: string; stderr?: string };
+      output.appendLine(`[SETUP] Command failed: ${errObj.message}`);
+      if (errObj.stdout) {output.append(errObj.stdout);}
+      if (errObj.stderr) {output.append(errObj.stderr);}
       return false;
     }
   }
@@ -261,13 +263,13 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
   for (const element of platformManifest) {
     if (element.arch === arch) {
       // Get each "name" entry and present as choice to user
-      let choices: string[] = [];
-      for (let entry of element.toolchains) {
+      const choices: string[] = [];
+      for (const entry of element.toolchains) {
         choices.push(entry.name);
       }
 
       // Prompt user
-      let selection = await vscode.window.showQuickPick(choices, {
+      const selection = await vscode.window.showQuickPick(choices, {
         ignoreFocusOut: true,
         placeHolder: "Which toolchain would you like to install?",
       });
@@ -311,7 +313,7 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
       const currentToolsDir = SettingsManager.getToolsDirectory();
 
       // Check if directory in $HOME exists
-      let exists = await fs.pathExists(currentToolsDir);
+      const exists = await fs.pathExists(currentToolsDir);
       if (!exists) {
         console.log("toolsdir not found");
         await fs.mkdirp(currentToolsDir);
@@ -329,7 +331,7 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
       progress.report({ increment: 5 });
 
       // Find suitable Python version
-      let suitablePython = await findSuitablePython(output);
+      const suitablePython = await findSuitablePython(output);
       if (!suitablePython) {
         vscode.window.showErrorMessage("Python 3.10+ is required for Zephyr development. Check output for details.");
         return;

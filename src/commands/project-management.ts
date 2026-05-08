@@ -9,11 +9,10 @@ import * as util from "util";
 import * as cp from "child_process";
 import * as fs from "fs-extra";
 import * as path from "path";
-import { GlobalConfig, ProjectConfig, ZephyrTask } from "../types";
+import { GlobalConfig, ZephyrTask } from "../types";
 import { ProjectConfigManager, ProjectOverridesManager } from "../config";
 import { QuickPickManager, DialogManager, OutputChannelManager, StatusBarManager } from "../ui";
 import { TaskManager } from "../tasks";
-import { installPythonDependencies } from "../environment";
 import { platform, SettingsManager } from "../config";
 
 export async function changeProjectCommand(
@@ -49,7 +48,7 @@ export async function changeProjectCommand(
       projectList = await getProjectList(vscode.Uri.joinPath(rootPath, result.stdout.trim()));
       console.log("Available projects:", projectList);
     }
-  } catch (e) {
+  } catch {
     // Not in a west workspace — browse option will still be available
     console.log("No west workspace detected, skipping manifest project scan");
   }
@@ -118,7 +117,7 @@ export async function initRepoCommand(
   setTimeout(async () => {
     try {
       await vscode.commands.executeCommand('workbench.view.extension.zephyr-tools');
-    } catch (error) {
+    } catch {
       // Silently fail if commands are not available
     }
   }, 2000);
@@ -224,7 +223,7 @@ export async function initRepoCommand(
     );
 
     // Callback to run after west update completes
-    const westUpdateCallback = async (data: any) => {
+    const westUpdateCallback = async (_data: unknown) => {
       output.appendLine("[INIT] West update completed, determining zephyr base path...");
 
       // Get zephyr BASE
@@ -268,7 +267,7 @@ export async function initRepoCommand(
       );
 
       // Final callback after pip install completes
-      const done = async (data: any) => {
+      const done = async (_data: unknown) => {
         // Set the isInit flag and store manifest from west config
         const project = await ProjectConfigManager.load(context);
         project.isInit = true;
@@ -350,7 +349,7 @@ async function getProjectList(folder: vscode.Uri): Promise<string[]> {
 
   while (queue.length > 0) {
     const file = queue.shift();
-    if (!file) break;
+    if (!file) {break;}
 
     if (file.name.includes("CMakeLists.txt")) {
       // Check the file content

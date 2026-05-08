@@ -21,7 +21,7 @@ export async function updateCommand(
     return;
   }
   
-  const project = await ProjectConfigManager.load(context);
+  await ProjectConfigManager.load(context);
   const rootPaths = vscode.workspace.workspaceFolders;
   
   if (!rootPaths) {

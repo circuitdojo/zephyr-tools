@@ -6,7 +6,7 @@
 
 import * as vscode from "vscode";
 
-type TaskManagerCallback = (data: any) => void;
+type TaskManagerCallback = (data: unknown) => void;
 
 export interface TaskManagerTaskOptions {
   errorMessage?: string;
@@ -14,7 +14,7 @@ export interface TaskManagerTaskOptions {
   lastTask: boolean;
   successMessage?: string;
   callback?: TaskManagerCallback;
-  callbackData?: any;
+  callbackData?: unknown;
 }
 
 interface TaskManagerTask {
@@ -59,7 +59,7 @@ export class TaskManager {
         }
 
         // Execute next task
-        let next = this.tasks.shift();
+        const next = this.tasks.shift();
         if (next !== undefined) {
           this.currentOptions = next.options;
           this.current = await vscode.tasks.executeTask(next.task);

@@ -7,12 +7,11 @@
 import * as vscode from "vscode";
 import * as util from "util";
 import * as cp from "child_process";
-import { platform, getPlatformConfig } from "../config";
+import { platform } from "../config";
 
 // Function to find a suitable Python 3.10+ version
 export async function findSuitablePython(output: vscode.OutputChannel): Promise<string | null> {
   const exec = util.promisify(cp.exec);
-  const platformConfig = getPlatformConfig();
 
   // List of Python executables to try, in order of preference
   const pythonCandidates = platform === "win32" ? ["python", "python3", "py"] : ["python3", "python"];
@@ -39,7 +38,7 @@ export async function findSuitablePython(output: vscode.OutputChannel): Promise<
           output.appendLine(`[SETUP] Python ${version} is too old (requires >= 3.10)`);
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // Python executable not found or failed to run, continue to next candidate
       output.appendLine(`[SETUP] ${pythonCmd} not found or failed to execute`);
     }
@@ -65,7 +64,7 @@ export async function validatePythonInstallation(pythonCmd: string, env: { [key:
       showPythonInstallInstructions(output);
       return false;
     }
-  } catch (error) {
+  } catch (_error) {
     output.appendLine("[SETUP] python validation failed");
     showPythonInstallInstructions(output);
     return false;
@@ -83,7 +82,7 @@ export async function validatePipInstallation(pythonCmd: string, env: { [key: st
     output.append(result.stderr);
     output.appendLine("[SETUP] pip installed");
     return true;
-  } catch (error) {
+  } catch (_error) {
     output.appendLine("[SETUP] pip validation failed");
     showPipInstallInstructions(output);
     return false;
@@ -99,7 +98,7 @@ export async function validateVenvSupport(pythonCmd: string, env: { [key: string
     await exec(cmd, { env });
     output.appendLine("[SETUP] python3 venv OK");
     return true;
-  } catch (error) {
+  } catch (_error) {
     output.appendLine("[SETUP] venv validation failed");
     showVenvInstallInstructions(output);
     return false;
