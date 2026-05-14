@@ -2,6 +2,14 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.5.25] - 2026-05-14
+
+**Added:**
+- Show `log_dictionary.json` under Build Assets in the sidebar when present in the build output
+
+**Fixed:**
+- Build assets now discovered via file search instead of hardcoded chip path — fixes missing assets for native_sim, sysbuild, and other non-nRF91 board configurations
+
 ### [0.5.24] - 2026-05-08
 
 **Added:**
