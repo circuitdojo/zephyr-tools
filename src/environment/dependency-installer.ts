@@ -16,18 +16,29 @@ export async function createVirtualEnvironment(pythonCmd: string, env: { [key: s
   const currentToolsDir = SettingsManager.getToolsDirectory();
   const pythonenv = path.join(currentToolsDir, "env");
 
-  // Check if virtual environment already exists
   if (fs.existsSync(pythonenv)) {
-    output.appendLine(`[SETUP] Existing virtual environment found at ${pythonenv}`);
-    output.appendLine("[SETUP] Removing old virtual environment...");
+    const venvPython = platform === "win32"
+      ? path.join(pythonenv, "Scripts", "python.exe")
+      : path.join(pythonenv, "bin", "python");
+
+    if (fs.existsSync(venvPython)) {
+      output.appendLine(`[SETUP] Existing virtual environment found at ${pythonenv}, upgrading in place...`);
+      try {
+        const result = await exec(`${pythonCmd} -m venv --upgrade "${pythonenv}"`, { env });
+        output.append(result.stdout);
+        output.appendLine("[SETUP] Virtual environment upgraded");
+        return true;
+      } catch (error) {
+        output.appendLine(`[SETUP] Upgrade failed (${error}), recreating virtual environment...`);
+      }
+    } else {
+      output.appendLine("[SETUP] Virtual environment is broken, recreating...");
+    }
 
     try {
-      // Remove the existing directory
       fs.rmSync(pythonenv, { recursive: true, force: true });
-      output.appendLine("[SETUP] Old virtual environment removed");
     } catch (error) {
-      output.appendLine("[SETUP] Failed to remove old virtual environment");
-      output.appendLine(`[SETUP] Error: ${error}`);
+      output.appendLine(`[SETUP] Failed to remove old virtual environment: ${error}`);
       output.appendLine("[SETUP] Please manually delete: " + pythonenv);
       return false;
     }
@@ -38,10 +49,10 @@ export async function createVirtualEnvironment(pythonCmd: string, env: { [key: s
     output.appendLine(cmd);
     const result = await exec(cmd, { env });
     output.append(result.stdout);
-    output.appendLine("[SETUP] virtual python environment created");
+    output.appendLine("[SETUP] Virtual environment created");
     return true;
   } catch (error) {
-    output.appendLine("[SETUP] unable to setup virtualenv");
+    output.appendLine("[SETUP] Unable to create virtual environment");
     output.appendLine(`[SETUP] Error: ${error}`);
     console.error(error);
     return false;
