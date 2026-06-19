@@ -12,6 +12,7 @@ import { ProjectOverridesManager, ProjectOverrides } from "../config/project-ove
 import { TaskManager, TaskManagerTaskOptions } from "../tasks";
 import { changeBoardCommand, discoverBoards } from "./board-management";
 import { changeProjectCommand } from "./project-management";
+import { ensureCompatibleSdkInteractive } from "./install-sdk";
 import { EnvironmentUtils, readCMakeCache } from "../utils";
 import { SettingsManager } from "../config/settings-manager";
 import { QuickPickManager } from "../ui";
@@ -115,6 +116,13 @@ export async function buildCommand(
   const setupValidation = await ConfigValidator.validateSetupState(config, context, false);
   if (!setupValidation.isValid) {
     vscode.window.showErrorMessage(setupValidation.error!);
+    return;
+  }
+
+  // Verify a compatible SDK is active for the current Zephyr tree before building.
+  // Auto-switches to a compatible installed SDK, or prompts to install one. Catches
+  // version mismatches introduced by west update without waiting for CMake to fail.
+  if (!(await ensureCompatibleSdkInteractive(context))) {
     return;
   }
 
@@ -422,6 +430,10 @@ export async function buildMultiCommand(
     return;
   }
 
+  if (!(await ensureCompatibleSdkInteractive(context))) {
+    return;
+  }
+
   let project = await ProjectConfigManager.load(context);
 
   const projectValidation = ConfigValidator.validateProjectInit(project);
@@ -460,6 +472,10 @@ export async function buildAllCommand(
   const setupValidation = await ConfigValidator.validateSetupState(config, context, false);
   if (!setupValidation.isValid) {
     vscode.window.showErrorMessage(setupValidation.error!);
+    return;
+  }
+
+  if (!(await ensureCompatibleSdkInteractive(context))) {
     return;
   }
 

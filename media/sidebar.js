@@ -146,17 +146,17 @@ function generateBuildAssetsHtml(buildAssets) {
 
 // Update UI with project data
 function updateUI(data) {
-  const { state, config, project, buildAssets } = data;
+  const { state, config, project, buildAssets, sdkInstallDir } = data;
   console.log('Updating UI with data:', data);
   console.log('Build assets:', buildAssets);
-  
+
   // Handle different states
   switch (state.type) {
     case 'loading':
       showLoadingState();
       break;
     case 'setup-required':
-      showSetupRequiredState();
+      showSetupRequiredState(state.error);
       break;
     case 'project-required':
       showProjectRequiredState();
@@ -171,32 +171,42 @@ function updateUI(data) {
       showSetupInProgressState();
       break;
     case 'ready':
-      showReadyState(config, project, buildAssets);
+      showReadyState(config, project, buildAssets, sdkInstallDir);
       break;
     default:
       console.warn('Unknown state type:', state.type);
-      showReadyState(config, project, buildAssets); // fallback
+      showReadyState(config, project, buildAssets, sdkInstallDir); // fallback
   }
 }
 
 // Show setup required state
-function showSetupRequiredState() {
+function showSetupRequiredState(error) {
   const container = document.querySelector('.container');
   if (!container) return;
-  
+
+  // An SDK problem is resolved by installing/selecting an SDK, not by re-running
+  // the host-tools setup, so point the action at the dedicated Install SDK command.
+  const isSdkIssue = error && (error.includes('SDK version mismatch') || error.includes('SDK'));
+  const title = isSdkIssue ? '⚠️ SDK Required' : '⚠️ Setup Required';
+  const defaultMessage = 'Zephyr Tools needs to be set up before you can start building projects.';
+  const message = error || defaultMessage;
+  const actionCommand = isSdkIssue ? 'zephyr-tools.install-sdk' : 'zephyr-tools.setup';
+  const actionIcon = isSdkIssue ? '📦' : '🔧';
+  const actionText = isSdkIssue ? 'Install SDK' : 'Run Setup';
+
   container.innerHTML = `
     <div class="card setup-required">
-      <h3 class="card-title">⚠️ Setup Required</h3>
-      <p class="state-message">Zephyr Tools needs to be set up before you can start building projects.</p>
+      <h3 class="card-title">${title}</h3>
+      <p class="state-message">${message}</p>
       <div class="state-action">
-        <button class="action-btn primary" data-command="zephyr-tools.setup">
-          <span class="action-icon">🔧</span>
-          <span class="action-text">Run Setup</span>
+        <button class="action-btn primary" data-command="${actionCommand}">
+          <span class="action-icon">${actionIcon}</span>
+          <span class="action-text">${actionText}</span>
         </button>
       </div>
     </div>
   `;
-  
+
   // Re-setup event listeners for the new buttons
   setupEventListeners();
 }
@@ -346,7 +356,7 @@ function showSetupInProgressState() {
 }
 
 // Show ready state (original functionality)
-function showReadyState(config, project, buildAssets) {
+function showReadyState(config, project, buildAssets, sdkInstallDir) {
   const container = document.querySelector('.container');
   if (!container) return;
   
@@ -397,6 +407,11 @@ function showReadyState(config, project, buildAssets) {
         <div class="status-item" data-command="zephyr-tools.change-cmake-defines">
           <span class="status-label">CMake Defines:</span>
           <span class="status-value" id="cmake-defines-value">Loading...</span>
+          <span class="status-edit">✏️</span>
+        </div>
+        <div class="status-item" data-command="zephyr-tools.manage-sdks" title="Manage Zephyr SDKs">
+          <span class="status-label">SDK:</span>
+          <span class="status-value" id="sdk-value">Loading...</span>
           <span class="status-edit">✏️</span>
         </div>
       </div>
@@ -476,13 +491,13 @@ function showReadyState(config, project, buildAssets) {
   
   // Re-setup event listeners for the new buttons
   setupEventListeners();
-  
+
   // Update values with actual data
-  updateReadyStateValues(config, project);
+  updateReadyStateValues(config, project, sdkInstallDir);
 }
 
 // Update values in ready state
-function updateReadyStateValues(config, project) {
+function updateReadyStateValues(config, project, sdkInstallDir) {
   // Update board value
   const boardElement = document.getElementById('board-value');
   if (boardElement) {
@@ -572,6 +587,20 @@ function updateReadyStateValues(config, project) {
       cmakeDefinesElement.title = 'No extra CMake defines';
     }
     cmakeDefinesElement.classList.toggle('loading', false);
+  }
+
+  // Update SDK value — show the version folder name (e.g. "zephyr-sdk-1.0.0")
+  const sdkElement = document.getElementById('sdk-value');
+  if (sdkElement) {
+    if (sdkInstallDir) {
+      const sdkName = sdkInstallDir.split('/').pop() || sdkInstallDir;
+      sdkElement.textContent = sdkName;
+      sdkElement.title = sdkInstallDir;
+    } else {
+      sdkElement.textContent = 'Not configured';
+      sdkElement.title = 'Run setup to install an SDK';
+    }
+    sdkElement.classList.toggle('loading', false);
   }
 }
 

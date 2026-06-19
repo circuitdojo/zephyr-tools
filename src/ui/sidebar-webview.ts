@@ -5,7 +5,7 @@
  */
 
 import * as vscode from "vscode";
-import { GlobalConfigManager, ProjectConfigManager } from "../config";
+import { GlobalConfigManager, ProjectConfigManager, SettingsManager } from "../config";
 import { GlobalConfig, ProjectConfig } from "../types";
 import { BuildAssetsManager, BuildAssetsState } from "../build/build-assets-manager";
 
@@ -15,6 +15,7 @@ interface SidebarState {
   project: ProjectConfig;
   hasWorkspace: boolean;
   buildAssets?: BuildAssetsState;
+  error?: string;
 }
 
 export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
@@ -128,7 +129,8 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
           },
           config,
           project,
-          buildAssets
+          buildAssets,
+          sdkInstallDir: SettingsManager.getSdkInstallDir()
         }
       });
     }
@@ -157,7 +159,8 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
         type: 'setup-required',
         config,
         project,
-        hasWorkspace
+        hasWorkspace,
+        error: setupValidation.error
       };
     }
     

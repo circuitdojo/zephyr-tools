@@ -5,6 +5,7 @@
  */
 
 export * from './setup';
+export * from './install-sdk';
 export * from './build';
 export * from './flash';
 export * from './load';

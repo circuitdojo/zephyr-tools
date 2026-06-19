@@ -133,17 +133,29 @@ export class PathManager {
   }
 
   static async setupEnvironmentPaths(context: vscode.ExtensionContext, _config: GlobalConfig): Promise<void> {
-    // Restore all environment variables from settings
+    // Restore global environment variables from settings, but let the
+    // workspace-scoped SDK setting take precedence (handled below).
     const envVars = SettingsManager.getEnvironmentVariables();
     for (const [key, value] of Object.entries(envVars)) {
-      if (value) {
+      if (value && key !== "ZEPHYR_SDK_INSTALL_DIR") {
         context.environmentVariableCollection.replace(key, value);
       }
     }
-    
+
     // VIRTUAL_ENV should be based on current tools directory
     const pythonenv = path.join(SettingsManager.getToolsDirectory(), "env");
     context.environmentVariableCollection.replace("VIRTUAL_ENV", pythonenv);
+
+    // Apply workspace-scoped SDK install dir. getSdkInstallDir() reads the
+    // workspace setting first and falls back to the global env-var for existing
+    // setups, so this is always the right value for this workspace window.
+    const sdkInstallDir = SettingsManager.getSdkInstallDir();
+    if (sdkInstallDir) {
+      context.environmentVariableCollection.replace("ZEPHYR_SDK_INSTALL_DIR", sdkInstallDir);
+      const armPath = path.join(sdkInstallDir, "arm-zephyr-eabi", "bin");
+      const pathDivider = getPlatformConfig().pathDivider;
+      context.environmentVariableCollection.prepend("PATH", armPath + pathDivider);
+    }
   }
 }
 

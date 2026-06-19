@@ -23,6 +23,8 @@
   "activationEvents": [
     "onStartupFinished",
     "onCommand:zephyr-tools.setup",
+    "onCommand:zephyr-tools.install-sdk",
+    "onCommand:zephyr-tools.manage-sdks",
     "onCommand:zephyr-tools.create-project",
     "onCommand:zephyr-tools.build",
     "onCommand:zephyr-tools.build-pristine",
@@ -65,6 +67,14 @@
       {
         "command": "zephyr-tools.setup",
         "title": "Zephyr Tools: Setup"
+      },
+      {
+        "command": "zephyr-tools.install-sdk",
+        "title": "Zephyr Tools: Install SDK"
+      },
+      {
+        "command": "zephyr-tools.manage-sdks",
+        "title": "Zephyr Tools: Manage SDKs"
       },
       {
         "command": "zephyr-tools.build-pristine",
@@ -273,13 +283,19 @@
           "description": "Custom path to West executable (auto-detected if empty)",
           "scope": "machine-overridable"
         },
+        "zephyr-tools.paths.sdkInstallDir": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the active Zephyr SDK installation for this workspace (e.g. ~/.zephyrtools/toolchain/zephyr-sdk-1.0.0)",
+          "scope": "workspace"
+        },
         "zephyr-tools.paths.allPaths": {
           "type": "array",
           "items": {
             "type": "string"
           },
           "default": [],
-          "description": "All paths added to PATH environment by Zephyr Tools",
+          "description": "Non-SDK tool paths added to PATH by Zephyr Tools (cmake, ninja, probe-rs, etc.)",
           "scope": "machine"
         },
         "zephyr-tools.environment.variables": {

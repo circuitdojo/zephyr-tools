@@ -7,13 +7,15 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import { GlobalConfigManager, ProjectConfigManager, ProjectOverridesManager, SettingsManager } from "./config";
+import { GlobalConfigManager, ProjectConfigManager, ProjectOverridesManager, SettingsManager, ManifestValidator } from "./config";
 import { TaskManager } from "./tasks";
 import { StatusBarManager, OutputChannelManager, DialogManager, SidebarWebviewProvider } from "./ui";
 import { PathManager } from "./environment";
 import { GlobalConfig } from "./types";
 import {
   setupCommand,
+  installSdkCommand,
+  manageSdkCommand,
   buildCommand,
   buildPristineCommand,
   buildMultiCommand,
@@ -68,12 +70,8 @@ export async function activate(context: vscode.ExtensionContext) {
   // Reload global config in case it was modified during cleanup
   globalConfig = await GlobalConfigManager.load(context);
 
-  // Set up environment variable collection
-  await setupEnvironmentVariables(context);
-
-  // Extension initialization complete
-
-  // Auto-detect and populate ZEPHYR_BASE if not set
+  // Auto-detect and populate ZEPHYR_BASE if not set. Done before environment setup
+  // so SDK resolution below sees the correct Zephyr tree.
   if (!SettingsManager.getZephyrBase()) {
     const detectedZephyrBase = await SettingsManager.detectZephyrBase();
     if (detectedZephyrBase) {
@@ -82,6 +80,15 @@ export async function activate(context: vscode.ExtensionContext) {
       context.environmentVariableCollection.replace("ZEPHYR_BASE", detectedZephyrBase);
     }
   }
+
+  // Auto-select a compatible installed SDK for this workspace's Zephyr tree before
+  // building the environment, so PATH/ZEPHYR_SDK_INSTALL_DIR reflect the right SDK.
+  await ManifestValidator.checkSdkCompatibility().catch(console.error);
+
+  // Set up environment variable collection
+  await setupEnvironmentVariables(context);
+
+  // Extension initialization complete
 
   // Initialize status bar
   StatusBarManager.initializeStatusBarItems(context);
@@ -97,6 +104,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Check if Python dependencies are still present in venv
   await validateProjectDependencies(context);
+
+  // Check SDK version compatibility on activation (advisory — build commands enforce it hard).
+  validateToolchainVersion(context).catch(console.error);
 
   // Auto-save project overrides whenever config changes
   context.subscriptions.push(
@@ -164,6 +174,12 @@ async function validateProjectDependencies(context: vscode.ExtensionContext): Pr
   }
 }
 
+async function validateToolchainVersion(_context: vscode.ExtensionContext): Promise<void> {
+  // SDK compatibility is surfaced through the sidebar's physical validation
+  // ("SDK Update Required") and enforced at build time. A separate popup on
+  // every activation is redundant noise — the sidebar already shows what's wrong.
+}
+
 async function setupEnvironmentVariables(context: vscode.ExtensionContext): Promise<void> {
   context.environmentVariableCollection.persistent = true;
   
@@ -181,6 +197,20 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
       await setupCommand(context);
       // Reload global config after setup
       globalConfig = await GlobalConfigManager.load(context);
+    })
+  );
+
+  // Install SDK command — manages Zephyr SDK toolchains separately from setup.
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.install-sdk", async () => {
+      await installSdkCommand(context);
+    })
+  );
+
+  // Manage SDKs command — list/activate/uninstall installed Zephyr SDKs.
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.manage-sdks", async () => {
+      await manageSdkCommand(context);
     })
   );
 

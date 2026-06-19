@@ -142,12 +142,32 @@ export class SettingsManager {
   }
 
   // Convenience methods for specific environment variables
-  static getZephyrSdkInstallDir(): string | undefined {
+
+  // Workspace-scoped SDK install dir. Falls back to the legacy global env-var entry
+  // so existing setups continue to work until the user runs setup again.
+  static getSdkInstallDir(): string | undefined {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    const workspaceSetting = config.get<string>("paths.sdkInstallDir");
+    if (workspaceSetting) { return workspaceSetting; }
     return this.getEnvironmentVariable("ZEPHYR_SDK_INSTALL_DIR");
   }
 
-  static async setZephyrSdkInstallDir(path: string): Promise<void> {
-    await this.setEnvironmentVariable("ZEPHYR_SDK_INSTALL_DIR", path);
+  // Sets the workspace-scoped SDK install dir. Pass undefined to clear it (e.g. when
+  // the active SDK has been uninstalled and no replacement is available).
+  static async setSdkInstallDir(sdkPath: string | undefined): Promise<void> {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    const target = vscode.workspace.workspaceFolders
+      ? vscode.ConfigurationTarget.Workspace
+      : vscode.ConfigurationTarget.Global;
+    await config.update("paths.sdkInstallDir", sdkPath || undefined, target);
+  }
+
+  static getZephyrSdkInstallDir(): string | undefined {
+    return this.getSdkInstallDir();
+  }
+
+  static async setZephyrSdkInstallDir(sdkPath: string): Promise<void> {
+    await this.setSdkInstallDir(sdkPath);
   }
 
   static getZephyrToolchainVariant(): string | undefined {
@@ -202,7 +222,17 @@ export class SettingsManager {
     // Join path components with platform-appropriate separator
     const platformConfig = getPlatformConfig();
     env.PATH = pathComponents.filter(p => p).join(platformConfig.pathDivider);
-    
+
+    // Inject workspace-scoped SDK dir and prepend its ARM toolchain path.
+    // getSdkInstallDir() reads the workspace setting first, so this correctly
+    // overrides the legacy global env-var value when both are present.
+    const sdkDir = this.getSdkInstallDir();
+    if (sdkDir) {
+      env["ZEPHYR_SDK_INSTALL_DIR"] = sdkDir;
+      const armPath = path.join(sdkDir, "arm-zephyr-eabi", "bin");
+      env.PATH = armPath + platformConfig.pathDivider + env.PATH;
+    }
+
     return env;
   }
 

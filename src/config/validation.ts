@@ -49,11 +49,13 @@ export class ConfigValidator {
       };
     }
     
-    // Check basic setup flag
+    // Check basic setup flag. Try to give a specific reason (e.g. SDK mismatch)
+    // so the sidebar can show actionable context rather than a generic message.
     if (!config.isSetup) {
+      const sdkError = await ManifestValidator.checkSdkCompatibility();
       return {
         isValid: false,
-        error: "Run `Zephyr Tools: Setup` command first.",
+        error: sdkError ?? "Run `Zephyr Tools: Setup` command first.",
         details: ["Setup has not been completed"]
       };
     }
@@ -69,9 +71,11 @@ export class ConfigValidator {
           config.isSetup = false;
           await GlobalConfigManager.save(context, config);
           
+          const primaryError = physicalValidation.errors[0] ??
+            "Setup validation failed. Run `Zephyr Tools: Setup` command again.";
           return {
             isValid: false,
-            error: "Setup validation failed. Run `Zephyr Tools: Setup` command again.",
+            error: primaryError,
             details: [
               "Physical validation detected missing or corrupted components:",
               ...physicalValidation.errors,

@@ -7,218 +7,25 @@
 import * as vscode from "vscode";
 import * as fs from "fs-extra";
 import * as path from "path";
-import * as util from "util";
-import * as cp from "child_process";
-import { GlobalConfig, Manifest, ManifestEntry, ManifestToolchainEntry, ManifestDownloadEntry } from "../types";
+import { Manifest, ManifestEntry } from "../types";
 import { GlobalConfigManager, SettingsManager } from "../config";
-import { 
-  findSuitablePython, 
-  validateGitInstallation, 
+import {
+  findSuitablePython,
+  validateGitInstallation,
   createVirtualEnvironment,
   installWest,
   setupVirtualEnvironmentPaths
 } from "../environment";
 import { OutputChannelManager } from "../ui";
 import { TaskManager } from "../tasks";
-import { arch, platform, pathdivider } from "../config";
-import { FileDownloader, ArchiveExtractor } from "../files";
+import { arch, platform } from "../config";
+import { FileDownloader } from "../files";
+import { processDownloadWithValidation } from "./download-processor";
+import { ensureCompatibleSdkInteractive } from "./install-sdk";
 
 // Manifest data
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const manifest: Manifest = require("../../manifest/manifest.json");
-
-/**
- * Process a download entry with validation and error handling
- */
-async function processDownloadWithValidation(
-  download: ManifestDownloadEntry,
-  config: GlobalConfig,
-  context: vscode.ExtensionContext,
-  output: vscode.OutputChannel,
-  allAddedPaths: string[]
-): Promise<boolean> {
-  output.appendLine(`[SETUP] Starting processing: ${download.name}`);
-  output.appendLine(`[SETUP] URL: ${download.url}`);
-  output.appendLine(`[SETUP] Expected MD5: ${download.md5}`);
-
-  const result = await processDownload(download, config, context, output, allAddedPaths);
-
-  if (result) {
-    output.appendLine(`[SETUP] Successfully completed: ${download.name}`);
-  } else {
-    output.appendLine(`[SETUP] FAILED to process: ${download.name}`);
-  }
-
-  return result;
-}
-
-/**
- * Process a single download entry from the manifest
- */
-async function processDownload(
-  download: ManifestDownloadEntry,
-  config: GlobalConfig,
-  context: vscode.ExtensionContext,
-  output: vscode.OutputChannel,
-  allAddedPaths: string[]
-): Promise<boolean> {
-  const exec = util.promisify(cp.exec);
-
-  // Check if file already exists
-  let filepath: string | null = await FileDownloader.exists(download.filename);
-
-  // Download if doesn't exist or hash doesn't match
-  if (filepath === null || !(await FileDownloader.check(download.filename, download.md5))) {
-    output.appendLine(`[SETUP] downloading ${download.url}`);
-
-    try {
-      filepath = await FileDownloader.fetch(download.url);
-    } catch (error) {
-      output.appendLine(`[SETUP] Failed to download ${download.filename}: ${error}`);
-      return false;
-    }
-
-    // Check hash again
-    if (!(await FileDownloader.check(download.filename, download.md5))) {
-      output.appendLine(`[SETUP] Checksum mismatch for ${download.filename}`);
-      return false;
-    }
-  }
-
-  // Ensure filepath is not null
-  if (filepath === null) {
-    output.appendLine(`[SETUP] Critical error: filepath is null for ${download.filename}`);
-    return false;
-  }
-
-  // Determine target path - use settings-based tools directory
-  const currentToolsDir = SettingsManager.getToolsDirectory();
-  let copytopath = path.join(currentToolsDir, download.name);
-  output.appendLine(`[SETUP] Initial copytopath: ${copytopath}`);
-
-  // Add subfolder if specified
-  if (download.copy_to_subfolder) {
-    copytopath = path.join(copytopath, download.copy_to_subfolder);
-    output.appendLine(`[SETUP] Updated copytopath with subfolder: ${copytopath}`);
-  }
-
-  // Create target directory if it doesn't exist
-  if (!(await fs.pathExists(copytopath))) {
-    await fs.mkdirp(copytopath);
-    output.appendLine(`[SETUP] Created target directory: ${copytopath}`);
-  }
-
-  // Clear target directory if specified (default behavior)
-  if (download.clear_target !== false) {
-    try {
-      await fs.remove(copytopath);
-      await fs.mkdirp(copytopath);
-      output.appendLine(`[SETUP] Cleared and recreated target directory: ${copytopath}`);
-    } catch (error) {
-      output.appendLine(`[SETUP] Failed to prepare target directory: ${error}`);
-      return false;
-    }
-  } else {
-    output.appendLine(`[SETUP] Preserving existing target directory: ${copytopath}`);
-  }
-
-  // Extract archive based on file type
-  try {
-    if (download.url.includes(".zip") || download.url.includes(".7z") || download.url.includes(".tar")) {
-      output.appendLine(`[SETUP] Extracting ${filepath} to ${copytopath}`);
-      
-      const extractionSuccess = await ArchiveExtractor.extractArchive(filepath, copytopath);
-      if (!extractionSuccess) {
-        output.appendLine(`[SETUP] Archive extraction failed for ${download.name}`);
-        return false;
-      }
-    }
-  } catch (error) {
-    output.appendLine(`[SETUP] Extraction error for ${download.name}: ${error}`);
-    return false;
-  }
-
-  // Set up PATH environment variable
-  if (download.suffix) {
-    const setpath = path.join(copytopath, download.suffix);
-    
-    // Add to VS Code environment collection
-    context.environmentVariableCollection.prepend("PATH", setpath + pathdivider);
-    
-    // Track this path
-    allAddedPaths.push(setpath);
-    output.appendLine(`[SETUP] Added to PATH: ${setpath}`);
-  } else {
-    // If no suffix, assume the copytopath contains executables and should be added to PATH
-    
-    // Add to VS Code environment collection
-    context.environmentVariableCollection.prepend("PATH", copytopath + pathdivider);
-    
-    // Track this path
-    allAddedPaths.push(copytopath);
-    output.appendLine(`[SETUP] Added to PATH: ${copytopath}`);
-  }
-
-  // Set remaining environment variables in settings
-  for (const entry of download.env ?? []) {
-    let envValue: string;
-    if (entry.value) {
-      envValue = entry.value;
-    } else if (entry.usepath && !entry.append) {
-      envValue = path.join(copytopath, entry.suffix ?? "");
-    } else if (entry.usepath && entry.append) {
-      const existingValue = SettingsManager.getZephyrBase() || ""; // For ZEPHYR_BASE mainly
-      envValue = path.join(
-        copytopath,
-        (entry.suffix ?? "") + pathdivider + existingValue
-      );
-    } else {
-      continue;
-    }
-
-    // Save environment variable to settings
-    await SettingsManager.setEnvironmentVariable(entry.name, envValue);
-    
-    // Also save ZEPHYR_BASE to its dedicated setting
-    if (entry.name === "ZEPHYR_BASE") {
-      await SettingsManager.setZephyrBase(envValue);
-    }
-    
-    // Set environment variable in VS Code environment collection
-    context.environmentVariableCollection.replace(entry.name, envValue);
-    
-    output.appendLine(`[SETUP] Set ${entry.name}: ${envValue}`);
-  }
-
-  // Save configuration to disk
-  await GlobalConfigManager.save(context, config);
-
-  // Run any required commands
-  for (const entry of download.cmd ?? []) {
-    output.appendLine(`[SETUP] Running command: ${entry.cmd}`);
-
-    let cmd = entry.cmd;
-    if (entry.usepath) {
-      cmd = path.join(copytopath, entry.cmd);
-    }
-
-    try {
-      const result = await exec(cmd, { env: SettingsManager.buildEnvironmentForExecution() });
-      output.append(result.stdout);
-      if (result.stderr) {
-        output.append(result.stderr);
-      }
-    } catch (error: unknown) {
-      const errObj = error as { message?: string; stdout?: string; stderr?: string };
-      output.appendLine(`[SETUP] Command failed: ${errObj.message}`);
-      if (errObj.stdout) {output.append(errObj.stdout);}
-      if (errObj.stderr) {output.append(errObj.stderr);}
-      return false;
-    }
-  }
-
-  return true;
-}
 
 export async function setupCommand(context: vscode.ExtensionContext): Promise<void> {
   // Reset configuration
@@ -258,39 +65,9 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
     return;
   }
 
-  // Pre-select toolchain before showing progress
-  let selectedEntry: ManifestToolchainEntry | undefined;
-  for (const element of platformManifest) {
-    if (element.arch === arch) {
-      // Get each "name" entry and present as choice to user
-      const choices: string[] = [];
-      for (const entry of element.toolchains) {
-        choices.push(entry.name);
-      }
-
-      // Prompt user
-      const selection = await vscode.window.showQuickPick(choices, {
-        ignoreFocusOut: true,
-        placeHolder: "Which toolchain would you like to install?",
-      });
-
-      // Check if user canceled
-      if (selection === undefined) {
-        vscode.window.showErrorMessage("Zephyr Tools Setup canceled.");
-        return;
-      }
-
-      // Find the correct entry
-      selectedEntry = element.toolchains.find(element => element.name === selection);
-
-      if (selectedEntry === undefined) {
-        vscode.window.showErrorMessage("Unable to find toolchain entry.");
-        return;
-      }
-
-      break;
-    }
-  }
+  // Setup installs host tooling only. The Zephyr SDK is managed separately by the
+  // `Zephyr Tools: Install SDK` command, so multiple SDK versions can coexist and
+  // be selected per-workspace. We prompt to install one at the end of setup.
 
   // Show setup progress
   await vscode.window.withProgress(
@@ -362,10 +139,10 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
       // Initialize FileDownloader
       FileDownloader.init(path.join(currentToolsDir, "downloads"));
 
-      // Process platform dependencies and toolchain
+      // Process platform host dependencies (cmake, ninja, west tooling, etc.).
+      // The Zephyr SDK is installed separately via `Zephyr Tools: Install SDK`.
       for (const element of platformManifest) {
         if (element.arch === arch) {
-          // Process general dependencies first
           for (const download of element.downloads) {
             progress.report({ increment: 2, message: `Processing ${download.name}...` });
             const result = await processDownloadWithValidation(download, config, context, output, allAddedPaths);
@@ -375,21 +152,6 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
               return;
             }
             progress.report({ increment: 3, message: `Completed ${download.name}` });
-          }
-
-          // Process selected toolchain
-          if (selectedEntry) {
-            output.appendLine(`[SETUP] Installing ${selectedEntry.name} toolchain...`);
-            for (const download of selectedEntry.downloads) {
-              progress.report({ increment: 2, message: `Processing toolchain ${download.name}...` });
-              const result = await processDownloadWithValidation(download, config, context, output, allAddedPaths);
-              if (!result) {
-                output.appendLine(`[SETUP] ABORTING: Failed to process toolchain ${download.name}`);
-                vscode.window.showErrorMessage(`Failed to process toolchain ${download.name}. Check output for details.`);
-                return;
-              }
-              progress.report({ increment: 3, message: `Completed ${download.name}` });
-            }
           }
           break;
         }
@@ -422,7 +184,8 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
         await SettingsManager.setZephyrBase(zephyrBase);
       }
       
-      // Save all the paths that were added during setup
+      // Save host tool paths to global settings. SDK paths are added separately
+      // by the SDK installer and derived per-workspace at activation time.
       if (allAddedPaths.length > 0) {
         await SettingsManager.setAllPaths(allAddedPaths);
       }
@@ -432,6 +195,12 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
       vscode.window.showInformationMessage("Zephyr Tools setup complete!");
     }
   );
+
+  // Host tooling is ready — now make sure a compatible SDK is installed for this
+  // workspace's Zephyr tree, prompting the user to install one if needed.
+  if (config.isSetup) {
+    await ensureCompatibleSdkInteractive(context);
+  }
   } catch (error) {
     // Clear setup progress flag on any error
     config.isSetupInProgress = false;
