@@ -1,5 +1,5 @@
 {
-  "version": 19,
+  "version": 20,
   "win32": [
     {
       "arch": "x64",
@@ -8,41 +8,76 @@
           "name": "zephyr-tools",
           "filename": "zephyr-tools-v0.1.9-x86_64-pc-windows-msvc.zip",
           "url": "https://github.com/circuitdojo/zephyr-tools-cli/releases/download/v0.1.9/zephyr-tools-v0.1.9-x86_64-pc-windows-msvc.zip",
-          "md5": "553cdc729b6ad5f00584221673f7478a"
+          "sha256": "f6f7dc29cd7f8b289a75013ba62be456e7cd6767995cc50f1732730da5bd2efd"
         },
         {
           "name": "newtmgr",
           "filename": "newtmgr.zip",
           "url": "https://docs.jaredwolff.com/files/newtmgr/windows/newtmgr.zip",
-          "md5": "3ed9e43ff509a54fd5010c144e45697b"
+          "sha256": "cab66a70a5e5e976ff42289160193ba92103f9ef6148679371fc4d99c956a95c"
         },
         {
           "name": "ninja",
           "filename": "ninja-win.zip",
           "url": "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip",
-          "md5": "8dad6a63141d57aae277e68ef7658ca1"
+          "sha256": "bbde850d247d2737c5764c927d1071cbb1f1957dcabda4a130fa8547c12c695f"
         },
         {
           "name": "cmake",
           "filename": "cmake-3.22.0-windows-x86_64.zip",
           "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-windows-x86_64.zip",
-          "md5": "1a273903dcb295455b69af7c9c10efa2",
+          "sha256": "fcce74d1d7eaf825234c036702df3f0874dcd3cee8fdf90b56d0c7bfedd29465",
           "suffix": "cmake-3.22.0-windows-x86_64\\bin"
         },
         {
           "name": "probe-rs",
           "filename": "probe-rs-tools-x86_64-pc-windows-msvc.zip",
           "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.29.1/probe-rs-tools-x86_64-pc-windows-msvc.zip",
-          "md5": "ca52232aaa944e53fa27960f9d180470"
+          "sha256": "a1e220225cd09c9474fdf2db219adff4030074e6bdaf6e4f669ff97661d55413"
         },
         {
           "name": "recovery",
           "filename": "recovery-x86_64-windows.zip",
           "url": "https://github.com/circuitdojo/recovery/releases/download/v0.2.2/recovery-x86_64-windows.zip",
-          "md5": "40fd8bf6df178a7b8f9bcdadd4013cf0"
+          "sha256": "f45e0d1d557c40db298e0401c1b79c91315d129174b2f2829f8303bb8ea7ad4f"
         }
       ],
       "toolchains": [
+        {
+          "name": "zephyr-sdk-1.0.0",
+          "downloads": [
+            {
+              "name": "toolchain",
+              "filename": "zephyr-sdk-1.0.0_windows-x86_64_minimal.7z",
+              "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v1.0.0/zephyr-sdk-1.0.0_windows-x86_64_minimal.7z",
+              "sha256": "453659ea5a9fcc5e2fa3e731139b7268bb82907004dc8a24e382f937cf7d06a6",
+              "suffix": "zephyr-sdk-1.0.0\\arm-zephyr-eabi\\bin",
+              "env": [
+                {
+                  "name": "ZEPHYR_TOOLCHAIN_VARIANT",
+                  "value": "zephyr",
+                  "usepath": false,
+                  "append": false
+                },
+                {
+                  "name": "ZEPHYR_SDK_INSTALL_DIR",
+                  "suffix": "zephyr-sdk-1.0.0",
+                  "usepath": true,
+                  "append": false
+                }
+              ]
+            },
+            {
+              "name": "toolchain",
+              "filename": "toolchain_gnu_windows-x86_64_arm-zephyr-eabi.7z",
+              "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v1.0.0/toolchain_gnu_windows-x86_64_arm-zephyr-eabi.7z",
+              "sha256": "388edf8d788ab85a61e6f97305285f16b4dfe0ae196e9258c8c6dc9bcb9e6f4b",
+              "suffix": "zephyr-sdk-1.0.0\\arm-zephyr-eabi\\bin",
+              "clear_target": false,
+              "copy_to_subfolder": "zephyr-sdk-1.0.0"
+            }
+          ]
+        },
         {
           "name": "zephyr-sdk-0.16.4",
           "downloads": [
@@ -50,7 +85,7 @@
               "name": "toolchain",
               "filename": "zephyr-sdk-0.16.4_windows-x86_64_minimal.7z",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.4/zephyr-sdk-0.16.4_windows-x86_64_minimal.7z",
-              "md5": "fbf2ffa00c77227537514fa43075607f",
+              "sha256": "eed143e37739b090a80afcd25c44aa18d32d19481cbb307b9aeb066e72505a2f",
               "suffix": "zephyr-sdk-0.16.4\\arm-zephyr-eabi\\bin",
               "env": [
                 {
@@ -71,7 +106,7 @@
               "name": "toolchain",
               "filename": "toolchain_windows-x86_64_arm-zephyr-eabi.7z",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.4/toolchain_windows-x86_64_arm-zephyr-eabi.7z",
-              "md5": "37e3d358aae2ee055f34b97fd24aadd5",
+              "sha256": "2b994422722ee7d2685d877234d63b5ef601f93fa44b24a1462cae3e9649ea5f",
               "suffix": "zephyr-sdk-0.16.4\\arm-zephyr-eabi\\bin",
               "clear_target": false,
               "copy_to_subfolder": "zephyr-sdk-0.16.4"
@@ -85,7 +120,7 @@
               "name": "toolchain",
               "filename": "zephyr-sdk-0.15.1_windows-x86_64_minimal.zip",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.1/zephyr-sdk-0.15.1_windows-x86_64_minimal.zip",
-              "md5": "4c73427373995d1ac53412383a2f6610",
+              "sha256": "180dfab15c9df4304419260b05422cb6330570645d617cec1d98d21d85419c19",
               "suffix": "zephyr-sdk-0.15.1\\arm-zephyr-eabi\\bin",
               "env": [
                 {
@@ -106,7 +141,7 @@
               "name": "toolchain",
               "filename": "toolchain_windows-x86_64_arm-zephyr-eabi.zip",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.1/toolchain_windows-x86_64_arm-zephyr-eabi.zip",
-              "md5": "1786d58c03f3e380d683b1e5ded45131",
+              "sha256": "97acb97741d204bb34687ba6da5d63ec58fa9bf4d8e70854663c9481dc4f5234",
               "suffix": "zephyr-sdk-0.15.1\\arm-zephyr-eabi\\bin",
               "clear_target": false,
               "copy_to_subfolder": "zephyr-sdk-0.15.1"
@@ -124,32 +159,32 @@
           "name": "zephyr-tools",
           "filename": "zephyr-tools-v0.1.9-x86_64-apple-darwin.tar.gz",
           "url": "https://github.com/circuitdojo/zephyr-tools-cli/releases/download/v0.1.9/zephyr-tools-v0.1.9-x86_64-apple-darwin.tar.gz",
-          "md5": "6bf8a2da7b3f3ee6db0f2d581f5cdf02"
+          "sha256": "90f0bff8ac01635ddbcd9762778f63bf7249f603362c174d2c54e13120c480eb"
         },
         {
           "name": "newtmgr",
           "filename": "newtmgr.zip",
           "url": "https://docs.jaredwolff.com/files/newtmgr/darwin/newtmgr.zip",
-          "md5": "7a707d8e518d46d92758a7b1b87366ed"
+          "sha256": "06df73f872ba7dd9ed3b7a237d5c8f2595f68e663a8ebb4c9493f84c2e31ca95"
         },
         {
           "name": "ninja",
           "filename": "ninja-mac.zip",
           "url": "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-mac.zip",
-          "md5": "4ac3da15e1ace3a0f846021e018a3acd"
+          "sha256": "6fa359f491fac7e5185273c6421a000eea6a2f0febf0ac03ac900bd4d80ed2a5"
         },
         {
           "name": "cmake",
           "filename": "cmake-3.22.0-macos-universal.tar.gz",
           "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-macos-universal.tar.gz",
-          "md5": "438fc508b37b70a1d1bb112a4ffd4ad7",
+          "sha256": "84526401d8cc0a0b0551f2f899164e2fbc2c69cbc8573b67bfa7441bae7ad051",
           "suffix": "cmake-3.22.0-macos-universal/CMake.app/Contents/bin"
         },
         {
           "name": "probe-rs",
           "filename": "probe-rs-tools-x86_64-apple-darwin.tar.xz",
           "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.29.1/probe-rs-tools-x86_64-apple-darwin.tar.xz",
-          "md5": "453cd9dd049b8a2e80fb8eb61ac03993",
+          "sha256": "b6b8ccfd367ddf0ddcd04a23bc0e440087d49c333472b259fe79340fb63e119e",
           "suffix": "probe-rs-tools-x86_64-apple-darwin/"
         }
       ],
@@ -161,7 +196,7 @@
               "name": "toolchain",
               "filename": "zephyr-sdk-0.16.4_macos-x86_64_minimal.tar.xz",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.4/zephyr-sdk-0.16.4_macos-x86_64_minimal.tar.xz",
-              "md5": "4771443abfc72c1442a2cdf01034ab95",
+              "sha256": "5708f832dcefb6733f7a1ad90a1db7e396349760904e006f87b07dec3dc43f07",
               "suffix": "zephyr-sdk-0.16.4/arm-zephyr-eabi/bin",
               "env": [
                 {
@@ -193,7 +228,7 @@
               "name": "toolchain",
               "filename": "zephyr-sdk-0.15.1_macos-x86_64_minimal.tar.gz",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.1/zephyr-sdk-0.15.1_macos-x86_64_minimal.tar.gz",
-              "md5": "2e6900c9ea1d03fbf67cd784e18f53bf",
+              "sha256": "d0417d12a70d83eb7b9c02aa7ee72a3fc88dff1149d45add5185b67465c2267a",
               "suffix": "zephyr-sdk-0.15.1/arm-zephyr-eabi/bin",
               "env": [
                 {
@@ -227,36 +262,68 @@
           "name": "zephyr-tools",
           "filename": "zephyr-tools-v0.1.9-aarch64-apple-darwin.tar.gz",
           "url": "https://github.com/circuitdojo/zephyr-tools-cli/releases/download/v0.1.9/zephyr-tools-v0.1.9-aarch64-apple-darwin.tar.gz",
-          "md5": "ec8a186be2fb927ae63850284b6546f0"
+          "sha256": "ba36990f6b467ff8a75b23948b5b699a0f9f8edec609ad16b224d0dac6572acf"
         },
         {
           "name": "newtmgr",
           "filename": "newtmgr.zip",
           "url": "https://docs.jaredwolff.com/files/newtmgr/darwin/newtmgr.zip",
-          "md5": "7a707d8e518d46d92758a7b1b87366ed"
+          "sha256": "06df73f872ba7dd9ed3b7a237d5c8f2595f68e663a8ebb4c9493f84c2e31ca95"
         },
         {
           "name": "cmake",
           "filename": "cmake-3.22.0-macos-universal.tar.gz",
           "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-macos-universal.tar.gz",
-          "md5": "438fc508b37b70a1d1bb112a4ffd4ad7",
+          "sha256": "84526401d8cc0a0b0551f2f899164e2fbc2c69cbc8573b67bfa7441bae7ad051",
           "suffix": "cmake-3.22.0-macos-universal/CMake.app/Contents/bin"
         },
         {
           "name": "probe-rs",
           "filename": "probe-rs-tools-aarch64-apple-darwin.tar.xz",
           "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.29.1/probe-rs-tools-aarch64-apple-darwin.tar.xz",
-          "md5": "7627fcd90b2a9399a535cef434767ee3",
+          "sha256": "74af375061589671644cdfb7fd406b0346da736001f97f33f74d229d7fe5ef6f",
           "suffix": "probe-rs-tools-aarch64-apple-darwin/"
         },
         {
           "name": "recovery",
           "filename": "recovery-aarch64-macos.tar.gz",
           "url": "https://github.com/circuitdojo/recovery/releases/download/v0.2.2/recovery-aarch64-macos.tar.gz",
-          "md5": "34f03b399550c24cee8118c369d8e935"
+          "sha256": "888ab9ddd8c2b6ce8be9049ee534ad86ca0a979309db11bc7f5ce9cb11a20365"
         }
       ],
       "toolchains": [
+        {
+          "name": "zephyr-sdk-1.0.0",
+          "downloads": [
+            {
+              "name": "toolchain",
+              "filename": "zephyr-sdk-1.0.0_macos-aarch64_minimal.tar.xz",
+              "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v1.0.0/zephyr-sdk-1.0.0_macos-aarch64_minimal.tar.xz",
+              "sha256": "d69cf4dc72ee7faf41c563b27bfa451d38d407ad39fd515f64487a0c33207cdb",
+              "suffix": "zephyr-sdk-1.0.0/arm-zephyr-eabi/bin",
+              "env": [
+                {
+                  "name": "ZEPHYR_TOOLCHAIN_VARIANT",
+                  "value": "zephyr",
+                  "usepath": false,
+                  "append": false
+                },
+                {
+                  "name": "ZEPHYR_SDK_INSTALL_DIR",
+                  "suffix": "zephyr-sdk-1.0.0",
+                  "usepath": true,
+                  "append": false
+                }
+              ],
+              "cmd": [
+                {
+                  "cmd": "zephyr-sdk-1.0.0/setup.sh -t arm-zephyr-eabi",
+                  "usepath": true
+                }
+              ]
+            }
+          ]
+        },
         {
           "name": "zephyr-sdk-0.16.4",
           "downloads": [
@@ -264,7 +331,7 @@
               "name": "toolchain",
               "filename": "zephyr-sdk-0.16.4_macos-aarch64_minimal.tar.xz",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.4/zephyr-sdk-0.16.4_macos-aarch64_minimal.tar.xz",
-              "md5": "4aa2aa3b8313e04dd93a8bbee4b31754",
+              "sha256": "12adf6f80a3233df83f83f3872b4b8eec7b9b6024f97835c7741feeb19d0d94e",
               "suffix": "zephyr-sdk-0.16.4/arm-zephyr-eabi/bin",
               "env": [
                 {
@@ -296,7 +363,7 @@
               "name": "toolchain",
               "filename": "zephyr-sdk-0.15.1_macos-aarch64_minimal.tar.gz",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.1/zephyr-sdk-0.15.1_macos-aarch64_minimal.tar.gz",
-              "md5": "6b0d6e08ad5753a29d96df4d6ccfed72",
+              "sha256": "fc83bf6eb38ccf9f8cfde91bc69b0fa8c409cd5fd81c2511f36a178a461b8aa9",
               "suffix": "zephyr-sdk-0.15.1/arm-zephyr-eabi/bin",
               "env": [
                 {
@@ -332,42 +399,76 @@
           "name": "zephyr-tools",
           "filename": "zephyr-tools-v0.1.9-x86_64-unknown-linux-gnu.tar.gz",
           "url": "https://github.com/circuitdojo/zephyr-tools-cli/releases/download/v0.1.9/zephyr-tools-v0.1.9-x86_64-unknown-linux-gnu.tar.gz",
-          "md5": "492949a0a50ef64b95ccf5c890b82b5e"
+          "sha256": "e01ca1f4c47e73429405ccec49954f71bd2be9cef74f38b1393ae743033609df"
         },
         {
           "name": "newtmgr",
           "filename": "newtmgr.zip",
           "url": "https://docs.jaredwolff.com/files/newtmgr/linux/newtmgr.zip",
-          "md5": "9900ec263d39264787903688cdefeed1"
+          "sha256": "2c4c4037260af0709ae2ef541460a80c26768d34dfe43b87b41e9f646bd6c9fe"
         },
         {
           "name": "ninja",
           "filename": "ninja-linux.zip",
           "url": "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-linux.zip",
-          "md5": "817e12e06e2463aeb5cb4e1d19ced606"
+          "sha256": "763464859c7ef2ea3a0a10f4df40d2025d3bb9438fcb1228404640410c0ec22d"
         },
         {
           "name": "cmake",
           "filename": "cmake-3.22.0-linux-x86_64.tar.gz",
           "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-linux-x86_64.tar.gz",
-          "md5": "5537bbc683e364e5408a393a737f53a1",
+          "sha256": "dc73115520d13bb64202383d3df52bc3d6bbb8422ecc5b2c05f803491cb215b0",
           "suffix": "cmake-3.22.0-linux-x86_64/bin"
         },
         {
           "name": "probe-rs",
           "filename": "probe-rs-tools-x86_64-unknown-linux-gnu.tar.xz",
           "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.29.1/probe-rs-tools-x86_64-unknown-linux-gnu.tar.xz",
-          "md5": "01be4d05d6b7ced308f43a0c55865f03",
+          "sha256": "f2ccb2ee5058559d663a3a4d1947ca1ce80802546aadd48cf355455126ae9758",
           "suffix": "probe-rs-tools-x86_64-unknown-linux-gnu/"
         },
         {
           "name": "recovery",
           "filename": "recovery-x86_64-linux.tar.gz",
           "url": "https://github.com/circuitdojo/recovery/releases/download/v0.2.2/recovery-x86_64-linux.tar.gz",
-          "md5": "a9a3791aaf020cd9f7343f98a877b372"
+          "sha256": "e2322587ff9e783cd640fc00a2023a32605f29200be49e87d13cb141d61b9891"
         }
       ],
       "toolchains": [
+        {
+          "name": "zephyr-sdk-1.0.0",
+          "downloads": [
+            {
+              "name": "toolchain",
+              "filename": "zephyr-sdk-1.0.0_linux-x86_64_minimal.tar.xz",
+              "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v1.0.0/zephyr-sdk-1.0.0_linux-x86_64_minimal.tar.xz",
+              "sha256": "6b69a4b54b470e3aa21cdaf95cdc808431e8ca73a7b822a33a682e5b5d2c5512",
+              "suffix": "zephyr-sdk-1.0.0/arm-zephyr-eabi/bin",
+              "env": [
+                {
+                  "name": "ZEPHYR_TOOLCHAIN_VARIANT",
+                  "value": "zephyr",
+                  "usepath": false,
+                  "append": false
+                },
+                {
+                  "name": "ZEPHYR_SDK_INSTALL_DIR",
+                  "suffix": "zephyr-sdk-1.0.0",
+                  "usepath": true,
+                  "append": false
+                }
+              ]
+            },
+            {
+              "name": "toolchain",
+              "filename": "toolchain_gnu_linux-x86_64_arm-zephyr-eabi.tar.xz",
+              "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v1.0.0/toolchain_gnu_linux-x86_64_arm-zephyr-eabi.tar.xz",
+              "sha256": "4b467e2fb26307b464915d0c9a87e47ab4d94d560888f239a76eeb56b4d9011f",
+              "clear_target": false,
+              "copy_to_subfolder": "zephyr-sdk-1.0.0"
+            }
+          ]
+        },
         {
           "name": "zephyr-sdk-0.16.4",
           "downloads": [
@@ -375,7 +476,7 @@
               "name": "toolchain",
               "filename": "zephyr-sdk-0.16.4_linux-x86_64_minimal.tar.xz",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.4/zephyr-sdk-0.16.4_linux-x86_64_minimal.tar.xz",
-              "md5": "5f10ac5111476d4e069b52f07aa3f4d5",
+              "sha256": "3cb9d97f08fe75d52afddd3d48e74955a421b64214ccbdf49c5ad0e0d7530b2d",
               "suffix": "zephyr-sdk-0.16.4/arm-zephyr-eabi/bin",
               "env": [
                 {
@@ -396,7 +497,7 @@
               "name": "toolchain",
               "filename": "toolchain_linux-x86_64_arm-zephyr-eabi.tar.xz",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.4/toolchain_linux-x86_64_arm-zephyr-eabi.tar.xz",
-              "md5": "4386d940c085670fc54480eb7eaebff8",
+              "sha256": "2061e58534c57f98f1b05b557d9a5d0e1873ac38b310841562d360f9715f96fb",
               "clear_target": false,
               "copy_to_subfolder": "zephyr-sdk-0.16.4"
             }
@@ -409,7 +510,7 @@
               "name": "toolchain",
               "filename": "zephyr-sdk-0.15.1_linux-x86_64_minimal.tar.gz",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.1/zephyr-sdk-0.15.1_linux-x86_64_minimal.tar.gz",
-              "md5": "e74588785a291867feacf14134aaec61",
+              "sha256": "ee8bb764e53570bfdd93caff988d4460f9b4dd6570fd15a0d8f3e8ccaf816ac4",
               "suffix": "zephyr-sdk-0.15.1/arm-zephyr-eabi/bin",
               "env": [
                 {
@@ -430,7 +531,7 @@
               "name": "toolchain",
               "filename": "toolchain_linux-x86_64_arm-zephyr-eabi.tar.gz",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.1/toolchain_linux-x86_64_arm-zephyr-eabi.tar.gz",
-              "md5": "bf75b7db76bd5ad260be7e708e29c90d",
+              "sha256": "555cb14e89d55bfc4b89c07e836dbe198f0f054e747114bd56f97390b95dbfc9",
               "clear_target": false,
               "copy_to_subfolder": "zephyr-sdk-0.15.1"
             }
