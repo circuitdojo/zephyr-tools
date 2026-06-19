@@ -7,11 +7,23 @@
 import * as vscode from "vscode";
 import * as os from "os";
 import * as path from "path";
+import * as fs from "fs";
 import { TOOLS_FOLDER_NAME, getPlatformConfig } from "./constants";
 import { EnvironmentUtils } from "../utils/environment-utils";
 
 export class SettingsManager {
   private static readonly CONFIG_SECTION = "zephyr-tools";
+
+  // Resolves the ARM toolchain bin directory inside a Zephyr SDK, accounting for
+  // the layout change in SDK 1.0+ (GNU toolchains moved to <sdk>/gnu/<triple>);
+  // older SDKs keep them at <sdk>/<triple>.
+  static getSdkArmToolchainBin(sdkInstallDir: string): string {
+    const gnuPath = path.join(sdkInstallDir, "gnu", "arm-zephyr-eabi", "bin");
+    if (fs.existsSync(gnuPath)) {
+      return gnuPath;
+    }
+    return path.join(sdkInstallDir, "arm-zephyr-eabi", "bin");
+  }
 
   static getToolsDirectory(): string {
     const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
@@ -229,7 +241,7 @@ export class SettingsManager {
     const sdkDir = this.getSdkInstallDir();
     if (sdkDir) {
       env["ZEPHYR_SDK_INSTALL_DIR"] = sdkDir;
-      const armPath = path.join(sdkDir, "arm-zephyr-eabi", "bin");
+      const armPath = this.getSdkArmToolchainBin(sdkDir);
       env.PATH = armPath + platformConfig.pathDivider + env.PATH;
     }
 

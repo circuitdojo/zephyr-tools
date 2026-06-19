@@ -59,11 +59,11 @@ export class ManifestValidator {
       return result;
     }
 
-    // Validate core dependencies
+    // Validate core (host) dependencies. The Zephyr SDK is intentionally NOT
+    // validated here — it is managed separately (per-workspace, multiple versions)
+    // and its readiness is surfaced through checkSdkCompatibility, not by gating
+    // the host-tools setup flag.
     await this.validateDependencies(archEntry.downloads, config, result);
-
-    // Validate toolchain (need to determine which was installed)
-    await this.validateInstalledToolchain(archEntry, config, result);
 
     // Validate environment variables
     this.validateEnvironmentVariables(config, result);
@@ -252,46 +252,6 @@ export class ManifestValidator {
     });
   }
 
-  /**
-   * Validates the installed toolchain matches expected configuration
-   */
-  private static async validateInstalledToolchain(
-    archEntry: ManifestEntry,
-    config: GlobalConfig,
-    result: ManifestValidationResult
-  ): Promise<void> {
-    // Resolve the SDK for this workspace's Zephyr tree first. This auto-switches
-    // the workspace's selected SDK to a compatible installed version when needed,
-    // so the directory checks below operate on the correct (switched) SDK.
-    const sdkError = await ManifestValidator.checkSdkCompatibility();
-    if (sdkError) {
-      result.isValid = false;
-      result.errors.push(sdkError);
-    }
-
-    // Check for SDK environment variable to determine which toolchain is installed
-    const sdkInstallDir = SettingsManager.getZephyrSdkInstallDir();
-    const toolchainVariant = SettingsManager.getZephyrToolchainVariant();
-
-    if (!sdkInstallDir || !toolchainVariant) {
-      result.warnings.push('Toolchain environment variables not found. Toolchain may not be properly configured.');
-      return;
-    }
-
-    // Verify SDK directory exists
-    if (!(await fs.pathExists(sdkInstallDir))) {
-      result.isValid = false;
-      result.errors.push(`Zephyr SDK directory not found: ${sdkInstallDir}`);
-      result.missingComponents.push('toolchain');
-      return;
-    }
-
-    // Check for ARM toolchain specifically (most common)
-    const armToolchainPath = path.join(sdkInstallDir, 'arm-zephyr-eabi', 'bin');
-    if (!(await fs.pathExists(armToolchainPath))) {
-      result.warnings.push(`ARM toolchain directory not found: ${armToolchainPath}`);
-    }
-  }
 
   /**
    * Validates environment variables are correctly set
@@ -450,16 +410,42 @@ export class ManifestValidator {
       return `Zephyr SDK not found at configured path: ${sdkInstallDir}. Run setup to install the correct SDK.`;
     }
 
+    // Version is fine but the toolchain payload is missing/incomplete — distinguish
+    // this from a true version mismatch so the user knows to reinstall, not downgrade.
+    const minimumCompatible = await ManifestValidator.getSdkMinimumCompatibleVersion(sdkInstallDir);
+    if (
+      ManifestValidator.sdkVersionSatisfies(installed, required, minimumCompatible) &&
+      !(await ManifestValidator.sdkToolchainPresent(sdkInstallDir, installed))
+    ) {
+      return `Zephyr SDK ${installed} is installed but its toolchain is missing or incomplete. Install the SDK again to repair it.`;
+    }
+
     return `Zephyr SDK version mismatch: installed ${installed}, but this Zephyr requires >= ${required}. No compatible SDK is installed — run setup to install it.`;
   }
 
-  // Returns true if the SDK at the given path is installed and compatible with the
-  // requested Zephyr SDK version (accounting for the SDK's own minimum-compatible floor).
+  // Returns true if the SDK at the given path is installed, version-compatible with
+  // the requested Zephyr SDK version (accounting for the SDK's own minimum-compatible
+  // floor), AND has its toolchain payload actually present on disk.
   private static async isSdkCompatible(sdkInstallDir: string, required: string): Promise<boolean> {
     const installed = await ManifestValidator.getInstalledSdkVersion(sdkInstallDir);
     if (!installed) { return false; }
     const minimumCompatible = await ManifestValidator.getSdkMinimumCompatibleVersion(sdkInstallDir);
-    return ManifestValidator.sdkVersionSatisfies(installed, required, minimumCompatible);
+    if (!ManifestValidator.sdkVersionSatisfies(installed, required, minimumCompatible)) { return false; }
+    return ManifestValidator.sdkToolchainPresent(sdkInstallDir, installed);
+  }
+
+  // Verifies the ARM toolchain binaries are present where the SDK's CMake expects
+  // them. SDK 1.0+ moved GNU toolchains under <sdk>/gnu/<triple>; older SDKs keep
+  // them at <sdk>/<triple>. A version match alone is not enough — a "minimal" SDK
+  // can be installed with its sdk_version file but no toolchain, which only fails
+  // deep in CMake otherwise.
+  static async sdkToolchainPresent(sdkInstallDir: string, installedVersion?: string): Promise<boolean> {
+    const version = installedVersion ?? await ManifestValidator.getInstalledSdkVersion(sdkInstallDir);
+    const major = version ? Number(version.split('.')[0]) : 0;
+    const binPath = major >= 1
+      ? path.join(sdkInstallDir, 'gnu', 'arm-zephyr-eabi', 'bin')
+      : path.join(sdkInstallDir, 'arm-zephyr-eabi', 'bin');
+    return fs.pathExists(binPath);
   }
 
   // Scans the directory holding installed SDKs (siblings of the current SDK, or the
@@ -484,9 +470,10 @@ export class ManifestValidator {
       const installed = await ManifestValidator.getInstalledSdkVersion(candidatePath);
       if (!installed) { continue; }
       const minimumCompatible = await ManifestValidator.getSdkMinimumCompatibleVersion(candidatePath);
-      if (ManifestValidator.sdkVersionSatisfies(installed, required, minimumCompatible)) {
-        candidates.push({ path: candidatePath, version: installed });
-      }
+      if (!ManifestValidator.sdkVersionSatisfies(installed, required, minimumCompatible)) { continue; }
+      // Skip version-compatible SDKs whose toolchain payload is missing/incomplete.
+      if (!(await ManifestValidator.sdkToolchainPresent(candidatePath, installed))) { continue; }
+      candidates.push({ path: candidatePath, version: installed });
     }
 
     if (candidates.length === 0) { return undefined; }

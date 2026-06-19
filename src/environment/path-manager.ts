@@ -152,7 +152,7 @@ export class PathManager {
     const sdkInstallDir = SettingsManager.getSdkInstallDir();
     if (sdkInstallDir) {
       context.environmentVariableCollection.replace("ZEPHYR_SDK_INSTALL_DIR", sdkInstallDir);
-      const armPath = path.join(sdkInstallDir, "arm-zephyr-eabi", "bin");
+      const armPath = SettingsManager.getSdkArmToolchainBin(sdkInstallDir);
       const pathDivider = getPlatformConfig().pathDivider;
       context.environmentVariableCollection.prepend("PATH", armPath + pathDivider);
     }

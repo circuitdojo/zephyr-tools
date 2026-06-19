@@ -5,7 +5,7 @@
  */
 
 import * as vscode from "vscode";
-import { GlobalConfigManager, ProjectConfigManager, SettingsManager } from "../config";
+import { GlobalConfigManager, ProjectConfigManager, SettingsManager, ManifestValidator } from "../config";
 import { GlobalConfig, ProjectConfig } from "../types";
 import { BuildAssetsManager, BuildAssetsState } from "../build/build-assets-manager";
 
@@ -29,6 +29,17 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
     // Subscribe to configuration changes to refresh the webview
     ProjectConfigManager.onDidChangeConfig(() => this.refresh());
     GlobalConfigManager.onDidChangeConfig(() => this.refresh());
+
+    // The active SDK is a workspace setting (changed by auto-switch during a build,
+    // or by Install/Manage SDK), so refresh when it changes rather than waiting for
+    // the build to finish.
+    context.subscriptions.push(
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration("zephyr-tools.paths.sdkInstallDir")) {
+          this.refresh();
+        }
+      })
+    );
   }
 
   public resolveWebviewView(
@@ -200,7 +211,22 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
         hasWorkspace
       };
     }
-    
+
+    // Host setup and project are good — now check the SDK separately. This
+    // auto-switches to a compatible installed SDK when possible and only returns an
+    // error if none is available, prompting the user to install/repair one. It does
+    // NOT affect the host-setup flag.
+    const sdkError = await ManifestValidator.checkSdkCompatibility();
+    if (sdkError) {
+      return {
+        type: 'setup-required',
+        config,
+        project,
+        hasWorkspace,
+        error: sdkError
+      };
+    }
+
     // All good - ready state
     // Load build assets for ready state
     let buildAssets: BuildAssetsState | undefined;

@@ -51,7 +51,7 @@
               "filename": "zephyr-sdk-1.0.0_windows-x86_64_minimal.7z",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v1.0.0/zephyr-sdk-1.0.0_windows-x86_64_minimal.7z",
               "sha256": "453659ea5a9fcc5e2fa3e731139b7268bb82907004dc8a24e382f937cf7d06a6",
-              "suffix": "zephyr-sdk-1.0.0\\arm-zephyr-eabi\\bin",
+              "suffix": "zephyr-sdk-1.0.0\\gnu\\arm-zephyr-eabi\\bin",
               "env": [
                 {
                   "name": "ZEPHYR_TOOLCHAIN_VARIANT",
@@ -72,9 +72,8 @@
               "filename": "toolchain_gnu_windows-x86_64_arm-zephyr-eabi.7z",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v1.0.0/toolchain_gnu_windows-x86_64_arm-zephyr-eabi.7z",
               "sha256": "388edf8d788ab85a61e6f97305285f16b4dfe0ae196e9258c8c6dc9bcb9e6f4b",
-              "suffix": "zephyr-sdk-1.0.0\\arm-zephyr-eabi\\bin",
               "clear_target": false,
-              "copy_to_subfolder": "zephyr-sdk-1.0.0"
+              "copy_to_subfolder": "zephyr-sdk-1.0.0\\gnu"
             }
           ]
         },
@@ -300,7 +299,7 @@
               "filename": "zephyr-sdk-1.0.0_macos-aarch64_minimal.tar.xz",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v1.0.0/zephyr-sdk-1.0.0_macos-aarch64_minimal.tar.xz",
               "sha256": "d69cf4dc72ee7faf41c563b27bfa451d38d407ad39fd515f64487a0c33207cdb",
-              "suffix": "zephyr-sdk-1.0.0/arm-zephyr-eabi/bin",
+              "suffix": "zephyr-sdk-1.0.0/gnu/arm-zephyr-eabi/bin",
               "env": [
                 {
                   "name": "ZEPHYR_TOOLCHAIN_VARIANT",
@@ -443,7 +442,7 @@
               "filename": "zephyr-sdk-1.0.0_linux-x86_64_minimal.tar.xz",
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v1.0.0/zephyr-sdk-1.0.0_linux-x86_64_minimal.tar.xz",
               "sha256": "6b69a4b54b470e3aa21cdaf95cdc808431e8ca73a7b822a33a682e5b5d2c5512",
-              "suffix": "zephyr-sdk-1.0.0/arm-zephyr-eabi/bin",
+              "suffix": "zephyr-sdk-1.0.0/gnu/arm-zephyr-eabi/bin",
               "env": [
                 {
                   "name": "ZEPHYR_TOOLCHAIN_VARIANT",
@@ -465,7 +464,7 @@
               "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v1.0.0/toolchain_gnu_linux-x86_64_arm-zephyr-eabi.tar.xz",
               "sha256": "4b467e2fb26307b464915d0c9a87e47ab4d94d560888f239a76eeb56b4d9011f",
               "clear_target": false,
-              "copy_to_subfolder": "zephyr-sdk-1.0.0"
+              "copy_to_subfolder": "zephyr-sdk-1.0.0/gnu"
             }
           ]
         },

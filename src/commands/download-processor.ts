@@ -104,7 +104,7 @@ export async function processDownload(
   // version directory so multiple SDK versions can coexist in the parent dir.
   if (download.clear_target !== false) {
     try {
-      const suffixFirstComponent = download.suffix?.split('/')[0];
+      const suffixFirstComponent = download.suffix?.split(/[\\/]/)[0];
       const isSdkVersionDir = suffixFirstComponent?.startsWith('zephyr-sdk-');
       const clearTarget = isSdkVersionDir
         ? path.join(copytopath, suffixFirstComponent!)
