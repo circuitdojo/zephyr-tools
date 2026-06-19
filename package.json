@@ -50,6 +50,7 @@
     "onCommand:zephyr-tools.init-repo",
     "onCommand:zephyr-tools.clean",
     "onCommand:zephyr-tools.update",
+    "onCommand:zephyr-tools.install-requirements",
     "onCommand:zephyr-tools.change-runner",
     "onCommand:zephyr-tools.change-sysbuild",
     "onCommand:zephyr-tools.change-extra-conf-files",
@@ -175,6 +176,10 @@
       {
         "command": "zephyr-tools.update",
         "title": "Zephyr Tools: Update Dependencies"
+      },
+      {
+        "command": "zephyr-tools.install-requirements",
+        "title": "Zephyr Tools: Install Python Requirements"
       },
       {
         "command": "zephyr-tools.change-runner",

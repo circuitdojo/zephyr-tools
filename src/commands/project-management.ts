@@ -13,7 +13,8 @@ import { GlobalConfig, ZephyrTask } from "../types";
 import { ProjectConfigManager, ProjectOverridesManager } from "../config";
 import { QuickPickManager, DialogManager, OutputChannelManager, StatusBarManager } from "../ui";
 import { TaskManager } from "../tasks";
-import { platform, SettingsManager } from "../config";
+import { SettingsManager } from "../config";
+import { getRequirementsInstallCommand } from "../environment";
 
 export async function changeProjectCommand(
   config: GlobalConfig,
@@ -246,14 +247,14 @@ export async function initRepoCommand(
       }
       output.appendLine(`[INIT] Determined zephyr base path: ${base}`);
 
-      // Install python dependencies
-      const pythonenv = path.join(SettingsManager.getToolsDirectory(), "env");
-      const venvPython = platform === "win32" 
-        ? path.join(pythonenv, "Scripts", "python.exe") 
-        : path.join(pythonenv, "bin", "python");
-        
-      const installCmd = `"${venvPython}" -m pip install -r ${path.join(base, "scripts", "requirements.txt")}`;
-      output.appendLine(`[INIT] Starting pip install: ${installCmd}`);
+      // Install python dependencies for the current tree (all west modules where
+      // supported, falling back to zephyr/scripts/requirements.txt on older trees).
+      const installCmd = await getRequirementsInstallCommand(
+        base,
+        SettingsManager.buildEnvironmentForExecution(),
+        dest.fsPath
+      );
+      output.appendLine(`[INIT] Starting Python dependency install: ${installCmd}`);
       
       const installExec = new vscode.ShellExecution(installCmd, shellOptions);
 

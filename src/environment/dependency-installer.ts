@@ -92,28 +92,54 @@ export async function setupVirtualEnvironmentPaths(env: { [key: string]: string 
   context.environmentVariableCollection.prepend("PATH", path.join(pythonenv, "bin") + pathDivider);
 }
 
-export async function installPythonDependencies(pythonCmd: string, zephyrBasePath: string, env: { [key: string]: string | undefined }, output: vscode.OutputChannel): Promise<boolean> {
-  const exec = util.promisify(cp.exec);
-  const currentToolsDir = SettingsManager.getToolsDirectory();
-  const pythonenv = path.join(currentToolsDir, "env");
-  
-  const venvPython = platform === "win32" 
-    ? path.join(pythonenv, "Scripts", "python.exe") 
+/**
+ * Path to the workspace's virtual-environment Python interpreter.
+ */
+export function getVenvPython(): string {
+  const pythonenv = path.join(SettingsManager.getToolsDirectory(), "env");
+  return platform === "win32"
+    ? path.join(pythonenv, "Scripts", "python.exe")
     : path.join(pythonenv, "bin", "python");
-    
-  const requirementsPath = path.join(zephyrBasePath, "scripts", "requirements.txt");
-  const cmd = `"${venvPython}" -m pip install -r ${requirementsPath}`;
-  
+}
+
+/**
+ * Detects whether the active west provides the `packages` extension command
+ * (Zephyr >= 3.6 / NCS >= 2.6). This command must be run from within the
+ * initialized workspace so west can resolve the manifest's extension commands.
+ */
+export async function westSupportsPackages(
+  env: { [key: string]: string | undefined },
+  cwd: string
+): Promise<boolean> {
+  const exec = util.promisify(cp.exec);
   try {
-    output.appendLine(`[INIT] Starting pip install: ${cmd}`);
-    const result = await exec(cmd, { env });
-    output.append(result.stdout);
-    output.append(result.stderr);
-    output.appendLine("[INIT] Python dependencies installed");
+    await exec("west packages pip --help", { env, cwd });
     return true;
-  } catch (error) {
-    output.appendLine("[INIT] Failed to install Python dependencies");
-    output.append(String(error));
+  } catch {
     return false;
   }
+}
+
+/**
+ * Builds the shell command used to (re)install the Zephyr tree's Python
+ * requirements.
+ *
+ * Prefers `west packages pip --install`, which collects requirements across every
+ * west module (zephyr, nrf, mcuboot, etc.) and tracks whatever the current tree
+ * needs. Falls back to installing `zephyr/scripts/requirements.txt` directly on
+ * trees too old to provide the `west packages` extension command.
+ *
+ * @param zephyrBase Path to the Zephyr base (absolute, or relative to `cwd`).
+ */
+export async function getRequirementsInstallCommand(
+  zephyrBase: string,
+  env: { [key: string]: string | undefined },
+  cwd: string
+): Promise<string> {
+  if (await westSupportsPackages(env, cwd)) {
+    return "west packages pip --install";
+  }
+
+  const requirementsPath = path.join(zephyrBase, "scripts", "requirements.txt");
+  return `"${getVenvPython()}" -m pip install -r "${requirementsPath}"`;
 }

@@ -46,6 +46,7 @@ import {
   cleanCommand,
   cleanIncompleteProjectCommand,
   updateCommand,
+  installRequirementsCommand,
   openBuildFolderCommand,
   revealBuildAssetCommand,
   openZephyrTerminalCommand
@@ -485,7 +486,14 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
   // Update command
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.update", async () => {
-      await updateCommand(globalConfig, context);
+      await updateCommand(globalConfig, context, sidebar);
+    })
+  );
+
+  // Install Python requirements command — refresh deps without running west update.
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.install-requirements", async () => {
+      await installRequirementsCommand(globalConfig, context);
     })
   );
 
