@@ -4,3 +4,7 @@ node_modules
 .vscode-test/
 *.vsix
 extension.js
+
+# Local agent / editor state
+.claude/
+.codex

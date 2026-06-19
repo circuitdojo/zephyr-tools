@@ -353,32 +353,30 @@
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
-    "@types/glob": "^9.0.0",
     "@types/mocha": "^10.0.10",
-    "@types/node": "^24.0.12",
-    "@types/node-7z": "^2.1.10",
-    "@types/vscode": "^1.101.0",
-    "@typescript-eslint/eslint-plugin": "^8.58.0",
-    "@typescript-eslint/parser": "^8.58.0",
-    "esbuild": "^0.25.6",
-    "eslint": "^10.1.0",
+    "@types/node": "^25.9.1",
+    "@types/node-7z": "^2.1.11",
+    "@types/vscode": "^1.120.0",
+    "@vscode/test-electron": "^2.5.2",
+    "esbuild": "^0.28.0",
+    "eslint": "^10.4.1",
     "glob": "^13.0.6",
-    "mocha": "^11.7.5",
-    "typescript": "^5.8.3",
-    "typescript-eslint": "^8.59.2",
-    "vscode-test": "^1.6.1"
+    "mocha": "^11.7.6",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.60.1"
   },
   "dependencies": {
     "7zip-bin": "^5.2.0",
-    "fs-extra": "^11.3.0",
+    "fs-extra": "^11.3.5",
     "node-7z": "^3.0.0",
     "node-stream-zip": "^1.15.0",
-    "typed-rest-client": "^2.3.0",
-    "yaml": "^2.8.3"
+    "typed-rest-client": "^3.0.0",
+    "yaml": "^2.9.0"
   },
   "overrides": {
     "serialize-javascript": ">=7.0.5",
     "diff": ">=8.0.3",
-    "@tootallnate/once": ">=3.0.1"
+    "@tootallnate/once": ">=3.0.1",
+    "qs": ">=6.15.2"
   }
 }
