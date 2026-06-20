@@ -8,3 +8,7 @@ extension.js
 # Local agent / editor state
 .claude/
 .codex
+
+# Local docs
+CLAUDE.md
+PUBLISHING.md
