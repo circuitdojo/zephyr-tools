@@ -15,6 +15,7 @@ import { QuickPickManager, DialogManager, OutputChannelManager, StatusBarManager
 import { TaskManager } from "../tasks";
 import { SettingsManager } from "../config";
 import { getRequirementsInstallCommand } from "../environment";
+import { ensureCompatibleSdk } from "./install-sdk";
 
 export async function changeProjectCommand(
   config: GlobalConfig,
@@ -247,6 +248,12 @@ export async function initRepoCommand(
       }
       output.appendLine(`[INIT] Determined zephyr base path: ${base}`);
 
+      // Persist ZEPHYR_BASE so SDK compatibility checks and the build environment can
+      // resolve the Zephyr tree without relying on activation-time auto-detection.
+      const absoluteZephyrBase = path.join(dest.fsPath, base);
+      await SettingsManager.setZephyrBase(absoluteZephyrBase);
+      output.appendLine(`[INIT] Set ZEPHYR_BASE: ${absoluteZephyrBase}`);
+
       // Install python dependencies for the current tree (all west modules where
       // supported, falling back to zephyr/scripts/requirements.txt on older trees).
       const installCmd = await getRequirementsInstallCommand(
@@ -303,6 +310,17 @@ export async function initRepoCommand(
           fs.writeFileSync(path.join(venvPath, ".zephyr-init-complete"), new Date().toISOString());
         } catch {
           // Non-critical — marker is a best-effort optimization
+        }
+
+        // Init does everything except the SDK download; install the version this
+        // tree requires automatically so the project is build-ready with no extra
+        // steps. The project is already marked initialized, so an interrupted SDK
+        // download is recovered later by build/update rather than blocking init.
+        try {
+          output.appendLine("[INIT] Ensuring the required Zephyr SDK is installed...");
+          await ensureCompatibleSdk(context);
+        } catch (error) {
+          output.appendLine(`[INIT] SDK install will be completed later: ${error}`);
         }
       };
 

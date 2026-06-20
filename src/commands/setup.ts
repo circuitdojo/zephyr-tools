@@ -21,7 +21,6 @@ import { TaskManager } from "../tasks";
 import { arch, platform } from "../config";
 import { FileDownloader } from "../files";
 import { processDownloadWithValidation } from "./download-processor";
-import { ensureCompatibleSdkInteractive } from "./install-sdk";
 
 // Manifest data
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -196,11 +195,9 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
     }
   );
 
-  // Host tooling is ready — now make sure a compatible SDK is installed for this
-  // workspace's Zephyr tree, prompting the user to install one if needed.
-  if (config.isSetup) {
-    await ensureCompatibleSdkInteractive(context);
-  }
+  // Setup installs host tooling only. The Zephyr SDK is installed automatically by
+  // Init Repo (and by build/update as a safety net), once the project's Zephyr tree
+  // is present and the required SDK version is known.
   } catch (error) {
     // Clear setup progress flag on any error
     config.isSetupInProgress = false;

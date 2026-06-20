@@ -321,13 +321,14 @@ export async function manageSdkCommand(context: vscode.ExtensionContext): Promis
 }
 
 /**
- * Ensures a compatible SDK is available for the current workspace's Zephyr tree,
- * prompting the user to install one if needed.
+ * Ensures a compatible SDK is active for the current workspace's Zephyr tree.
  *
- * Returns true if a compatible SDK is active (or no Zephyr tree requires one),
- * false if the user declined or installation failed.
+ * If the active SDK is missing or incompatible, the version the tree requires is
+ * installed automatically — no prompt, since the extension already knows exactly
+ * which SDK is needed. Falls back to a version picker only when the required
+ * version can't be determined. Returns true if a compatible SDK ends up active.
  */
-export async function ensureCompatibleSdkInteractive(
+export async function ensureCompatibleSdk(
   context: vscode.ExtensionContext
 ): Promise<boolean> {
   // checkSdkCompatibility auto-switches to a compatible installed SDK if possible.
@@ -343,20 +344,14 @@ export async function ensureCompatibleSdkInteractive(
     return true;
   }
 
-  // Nothing installed is compatible. Recommend the right manifest SDK to install.
-  const zephyrBase = SettingsManager.getZephyrBase();
+  // Nothing installed is compatible. Determine the exact SDK the tree requires and
+  // install it automatically; if it can't be determined, fall back to a picker.
+  let zephyrBase = SettingsManager.getZephyrBase();
+  if (!zephyrBase) {
+    zephyrBase = await SettingsManager.detectZephyrBase();
+  }
   const required = zephyrBase ? await ManifestValidator.getRequiredSdkVersion(zephyrBase) : undefined;
   const recommended = required ? recommendSdkForRequired(required) : undefined;
 
-  const installLabel = recommended ? `Install ${recommended.name}` : "Install SDK…";
-  const chooseLabel = "Choose Version…";
-  const choice = await vscode.window.showWarningMessage(sdkError, installLabel, chooseLabel);
-
-  if (choice === installLabel) {
-    return await installSdkCommand(context, recommended?.name);
-  }
-  if (choice === chooseLabel) {
-    return await installSdkCommand(context);
-  }
-  return false;
+  return await installSdkCommand(context, recommended?.name);
 }

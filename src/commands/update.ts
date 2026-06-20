@@ -12,7 +12,7 @@ import { SettingsManager } from "../config/settings-manager";
 import { TaskManager } from "../tasks";
 import { OutputChannelManager } from "../ui";
 import { getRequirementsInstallCommand } from "../environment";
-import { ensureCompatibleSdkInteractive } from "./install-sdk";
+import { ensureCompatibleSdk } from "./install-sdk";
 
 const TASK_TYPE = "zephyr-tools";
 
@@ -77,10 +77,10 @@ export async function updateCommand(
   );
 
   // After `west update` succeeds, bring the rest of the toolchain in line with the
-  // (possibly bumped) Zephyr revision: re-resolve the required SDK — prompting to
-  // install/repair it if it's missing or incomplete — then refresh Python deps.
+  // (possibly bumped) Zephyr revision: re-resolve the required SDK — auto-installing
+  // it if the revision now needs a different version — then refresh Python deps.
   const refreshDependencies = async () => {
-    await ensureCompatibleSdkInteractive(context);
+    await ensureCompatibleSdk(context);
 
     // The Zephyr tree's required SDK may have changed with the update. Refresh the
     // sidebar so it reflects the new SDK state (active version or "SDK Required"),

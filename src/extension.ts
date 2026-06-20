@@ -14,7 +14,7 @@ import { PathManager } from "./environment";
 import { GlobalConfig } from "./types";
 import {
   setupCommand,
-  installSdkCommand,
+  ensureCompatibleSdk,
   manageSdkCommand,
   buildCommand,
   buildPristineCommand,
@@ -109,6 +109,16 @@ export async function activate(context: vscode.ExtensionContext) {
   // Check SDK version compatibility on activation (advisory — build commands enforce it hard).
   validateToolchainVersion(context).catch(console.error);
 
+  // Keep the in-memory global config in sync with persisted changes. Validation can
+  // self-heal the setup flag (e.g. the sidebar restoring isSetup after host tools are
+  // confirmed present), and command guards read this variable — without this they
+  // would see a stale value and wrongly report "Run setup first".
+  context.subscriptions.push(
+    GlobalConfigManager.onDidChangeConfig(async () => {
+      globalConfig = await GlobalConfigManager.load(context);
+    })
+  );
+
   // Auto-save project overrides whenever config changes
   context.subscriptions.push(
     ProjectConfigManager.onDidChangeConfig(async () => {
@@ -201,10 +211,11 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
     })
   );
 
-  // Install SDK command — manages Zephyr SDK toolchains separately from setup.
+  // Install SDK command — installs the SDK version this workspace's Zephyr tree
+  // requires automatically (no version prompt). Use Manage SDKs to pick a version.
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.install-sdk", async () => {
-      await installSdkCommand(context);
+      await ensureCompatibleSdk(context);
     })
   );
 
@@ -225,6 +236,9 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
   // Init repo command
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.init-repo", async (dest: vscode.Uri | undefined) => {
+      // Load fresh: validation may have self-healed isSetup since activation, and the
+      // in-memory copy can lag. Avoids a wrong "Run setup first" on Resume.
+      globalConfig = await GlobalConfigManager.load(context);
       if (!globalConfig.isSetup) {
         vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
         return;

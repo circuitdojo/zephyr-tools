@@ -379,7 +379,18 @@ export class ManifestValidator {
   // toolchain directory). Returns an error message only if no compatible SDK is
   // installed, or undefined if everything is OK / settings aren't configured yet.
   static async checkSdkCompatibility(): Promise<string | undefined> {
-    const zephyrBase = SettingsManager.getZephyrBase();
+    // Resolve the Zephyr tree robustly. The configured setting can be absent (e.g.
+    // after a fresh init that never persisted it, or a workspace that only has the
+    // legacy global env var), in which case we detect it from the workspace and
+    // persist it. Without this the SDK check would silently no-op and let an
+    // incompatible SDK through to CMake.
+    let zephyrBase = SettingsManager.getZephyrBase();
+    if (!zephyrBase) {
+      zephyrBase = await SettingsManager.detectZephyrBase();
+      if (zephyrBase) {
+        await SettingsManager.setZephyrBase(zephyrBase);
+      }
+    }
     if (!zephyrBase) { return undefined; }
 
     const required = await ManifestValidator.getRequiredSdkVersion(zephyrBase);
