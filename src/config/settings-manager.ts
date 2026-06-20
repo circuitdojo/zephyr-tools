@@ -28,7 +28,38 @@ export class SettingsManager {
   static getToolsDirectory(): string {
     const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
     const customPath = config.get<string>("paths.toolsDirectory");
-    return customPath || path.join(os.homedir(), TOOLS_FOLDER_NAME);
+    return customPath || this.getDefaultToolsDirectory();
+  }
+
+  // Default location for the Zephyr Tools install (SDK, toolchain, host tools).
+  // The Zephyr SDK / GNU toolchain cannot tolerate a space in its install path on
+  // Windows: GCC emits its built-in library search paths unquoted, so the linker
+  // splits the `-L` flag at the space and fails. When the home directory contains
+  // a space (e.g. C:\Users\Jared Wolff), fall back to a space-free location at the
+  // root of the home drive (e.g. C:\.zephyrtools).
+  static getDefaultToolsDirectory(home: string = os.homedir(), platform: NodeJS.Platform = process.platform): string {
+    const pathImpl = platform === "win32" ? path.win32 : path.posix;
+    if (platform === "win32" && /\s/.test(home)) {
+      const root = pathImpl.parse(home).root || "C:\\";
+      return pathImpl.join(root, TOOLS_FOLDER_NAME);
+    }
+    return pathImpl.join(home, TOOLS_FOLDER_NAME);
+  }
+
+  // Returns an error message if the given install path is unusable for the Zephyr
+  // SDK on the current platform, otherwise undefined. A space anywhere in the path
+  // breaks GNU-toolchain linking on Windows; this is a hard toolchain limitation
+  // that no SDK version fixes, so we refuse rather than fail cryptically at link.
+  static validateToolsDirectory(toolsDir: string, platform: NodeJS.Platform = process.platform): string | undefined {
+    if (platform === "win32" && /\s/.test(toolsDir)) {
+      return (
+        `The Zephyr Tools install path contains a space, which breaks the Zephyr ` +
+        `SDK linker on Windows:\n\n  ${toolsDir}\n\n` +
+        `Set "zephyr-tools.paths.toolsDirectory" to a space-free path (e.g. ` +
+        `C:\\${TOOLS_FOLDER_NAME}) and run Setup again.`
+      );
+    }
+    return undefined;
   }
 
   static async setToolsDirectory(toolsPath: string): Promise<void> {

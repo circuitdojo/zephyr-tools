@@ -2,6 +2,12 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.6.1] - 2026-06-20
+
+**Fixed:**
+- Windows: the Zephyr SDK no longer installs under a path containing a space (e.g. `C:\Users\Jared Wolff\.zephyrtools`), which broke linking — GCC emits its built-in library search paths unquoted, so `ld` split the `-L` flag at the space and failed with "cannot find ...". When the home directory contains a space, the default install location now falls back to a space-free path at the root of the home drive (e.g. `C:\.zephyrtools`)
+- Setup now refuses an install path containing a space on Windows with a clear message, instead of failing cryptically deep in the build
+
 ### [0.6.0] - 2026-06-20
 
 **Added:**

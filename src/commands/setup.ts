@@ -88,6 +88,15 @@ export async function setupCommand(context: vscode.ExtensionContext): Promise<vo
       // Get current tools directory from settings
       const currentToolsDir = SettingsManager.getToolsDirectory();
 
+      // Refuse install paths the Zephyr SDK can't link from (e.g. spaces on
+      // Windows) rather than failing cryptically at link time.
+      const toolsDirError = SettingsManager.validateToolsDirectory(currentToolsDir);
+      if (toolsDirError) {
+        output.appendLine(`[SETUP] ABORTING: ${toolsDirError}`);
+        vscode.window.showErrorMessage(toolsDirError);
+        return;
+      }
+
       // Check if directory in $HOME exists
       const exists = await fs.pathExists(currentToolsDir);
       if (!exists) {
