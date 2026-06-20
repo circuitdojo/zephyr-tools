@@ -7,16 +7,59 @@
 import * as vscode from "vscode";
 import * as os from "os";
 import * as path from "path";
+import * as fs from "fs";
 import { TOOLS_FOLDER_NAME, getPlatformConfig } from "./constants";
 import { EnvironmentUtils } from "../utils/environment-utils";
 
 export class SettingsManager {
   private static readonly CONFIG_SECTION = "zephyr-tools";
 
+  // Resolves the ARM toolchain bin directory inside a Zephyr SDK, accounting for
+  // the layout change in SDK 1.0+ (GNU toolchains moved to <sdk>/gnu/<triple>);
+  // older SDKs keep them at <sdk>/<triple>.
+  static getSdkArmToolchainBin(sdkInstallDir: string): string {
+    const gnuPath = path.join(sdkInstallDir, "gnu", "arm-zephyr-eabi", "bin");
+    if (fs.existsSync(gnuPath)) {
+      return gnuPath;
+    }
+    return path.join(sdkInstallDir, "arm-zephyr-eabi", "bin");
+  }
+
   static getToolsDirectory(): string {
     const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
     const customPath = config.get<string>("paths.toolsDirectory");
-    return customPath || path.join(os.homedir(), TOOLS_FOLDER_NAME);
+    return customPath || this.getDefaultToolsDirectory();
+  }
+
+  // Default location for the Zephyr Tools install (SDK, toolchain, host tools).
+  // The Zephyr SDK / GNU toolchain cannot tolerate a space in its install path on
+  // Windows: GCC emits its built-in library search paths unquoted, so the linker
+  // splits the `-L` flag at the space and fails. When the home directory contains
+  // a space (e.g. C:\Users\Jared Wolff), fall back to a space-free location at the
+  // root of the home drive (e.g. C:\.zephyrtools).
+  static getDefaultToolsDirectory(home: string = os.homedir(), platform: NodeJS.Platform = process.platform): string {
+    const pathImpl = platform === "win32" ? path.win32 : path.posix;
+    if (platform === "win32" && /\s/.test(home)) {
+      const root = pathImpl.parse(home).root || "C:\\";
+      return pathImpl.join(root, TOOLS_FOLDER_NAME);
+    }
+    return pathImpl.join(home, TOOLS_FOLDER_NAME);
+  }
+
+  // Returns an error message if the given install path is unusable for the Zephyr
+  // SDK on the current platform, otherwise undefined. A space anywhere in the path
+  // breaks GNU-toolchain linking on Windows; this is a hard toolchain limitation
+  // that no SDK version fixes, so we refuse rather than fail cryptically at link.
+  static validateToolsDirectory(toolsDir: string, platform: NodeJS.Platform = process.platform): string | undefined {
+    if (platform === "win32" && /\s/.test(toolsDir)) {
+      return (
+        `The Zephyr Tools install path contains a space, which breaks the Zephyr ` +
+        `SDK linker on Windows:\n\n  ${toolsDir}\n\n` +
+        `Set "zephyr-tools.paths.toolsDirectory" to a space-free path (e.g. ` +
+        `C:\\${TOOLS_FOLDER_NAME}) and run Setup again.`
+      );
+    }
+    return undefined;
   }
 
   static async setToolsDirectory(toolsPath: string): Promise<void> {
@@ -142,12 +185,51 @@ export class SettingsManager {
   }
 
   // Convenience methods for specific environment variables
-  static getZephyrSdkInstallDir(): string | undefined {
-    return this.getEnvironmentVariable("ZEPHYR_SDK_INSTALL_DIR");
+
+  // Workspace-scoped SDK install dir. This is the single source of truth — there is
+  // intentionally no fallback to a global env-var, since such a fallback could
+  // resurrect an uninstalled SDK after the workspace setting is cleared. Legacy
+  // global values are moved into this setting once by migrateLegacySdkInstallDir().
+  static getSdkInstallDir(): string | undefined {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    return config.get<string>("paths.sdkInstallDir") || undefined;
   }
 
-  static async setZephyrSdkInstallDir(path: string): Promise<void> {
-    await this.setEnvironmentVariable("ZEPHYR_SDK_INSTALL_DIR", path);
+  // One-time migration of the legacy global ZEPHYR_SDK_INSTALL_DIR env-var into the
+  // workspace-scoped paths.sdkInstallDir setting. Older versions stored the SDK dir
+  // in environment.variables, which then acted as a fallback. This adopts that value
+  // for the workspace (only if one isn't already chosen) and removes the legacy entry
+  // so it can never resurrect a removed SDK.
+  static async migrateLegacySdkInstallDir(): Promise<void> {
+    const legacy = this.getEnvironmentVariable("ZEPHYR_SDK_INSTALL_DIR");
+    if (!legacy) { return; }
+
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    if (!config.get<string>("paths.sdkInstallDir")) {
+      await this.setSdkInstallDir(legacy);
+    }
+
+    const vars = this.getEnvironmentVariables();
+    delete vars["ZEPHYR_SDK_INSTALL_DIR"];
+    await this.setEnvironmentVariables(vars);
+  }
+
+  // Sets the workspace-scoped SDK install dir. Pass undefined to clear it (e.g. when
+  // the active SDK has been uninstalled and no replacement is available).
+  static async setSdkInstallDir(sdkPath: string | undefined): Promise<void> {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    const target = vscode.workspace.workspaceFolders
+      ? vscode.ConfigurationTarget.Workspace
+      : vscode.ConfigurationTarget.Global;
+    await config.update("paths.sdkInstallDir", sdkPath || undefined, target);
+  }
+
+  static getZephyrSdkInstallDir(): string | undefined {
+    return this.getSdkInstallDir();
+  }
+
+  static async setZephyrSdkInstallDir(sdkPath: string): Promise<void> {
+    await this.setSdkInstallDir(sdkPath);
   }
 
   static getZephyrToolchainVariant(): string | undefined {
@@ -202,7 +284,17 @@ export class SettingsManager {
     // Join path components with platform-appropriate separator
     const platformConfig = getPlatformConfig();
     env.PATH = pathComponents.filter(p => p).join(platformConfig.pathDivider);
-    
+
+    // Inject workspace-scoped SDK dir and prepend its ARM toolchain path.
+    // getSdkInstallDir() reads the workspace setting first, so this correctly
+    // overrides the legacy global env-var value when both are present.
+    const sdkDir = this.getSdkInstallDir();
+    if (sdkDir) {
+      env["ZEPHYR_SDK_INSTALL_DIR"] = sdkDir;
+      const armPath = this.getSdkArmToolchainBin(sdkDir);
+      env.PATH = armPath + platformConfig.pathDivider + env.PATH;
+    }
+
     return env;
   }
 

@@ -5,7 +5,7 @@
  */
 
 import * as vscode from "vscode";
-import { GlobalConfigManager, ProjectConfigManager } from "../config";
+import { GlobalConfigManager, ProjectConfigManager, SettingsManager, ManifestValidator } from "../config";
 import { GlobalConfig, ProjectConfig } from "../types";
 import { BuildAssetsManager, BuildAssetsState } from "../build/build-assets-manager";
 
@@ -15,6 +15,7 @@ interface SidebarState {
   project: ProjectConfig;
   hasWorkspace: boolean;
   buildAssets?: BuildAssetsState;
+  error?: string;
 }
 
 export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
@@ -28,6 +29,17 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
     // Subscribe to configuration changes to refresh the webview
     ProjectConfigManager.onDidChangeConfig(() => this.refresh());
     GlobalConfigManager.onDidChangeConfig(() => this.refresh());
+
+    // The active SDK is a workspace setting (changed by auto-switch during a build,
+    // or by Install/Manage SDK), so refresh when it changes rather than waiting for
+    // the build to finish.
+    context.subscriptions.push(
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration("zephyr-tools.paths.sdkInstallDir")) {
+          this.refresh();
+        }
+      })
+    );
   }
 
   public resolveWebviewView(
@@ -128,7 +140,8 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
           },
           config,
           project,
-          buildAssets
+          buildAssets,
+          sdkInstallDir: SettingsManager.getSdkInstallDir()
         }
       });
     }
@@ -157,7 +170,8 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
         type: 'setup-required',
         config,
         project,
-        hasWorkspace
+        hasWorkspace,
+        error: setupValidation.error
       };
     }
     
@@ -177,8 +191,21 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
     const path = await import('path');
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     const westFolderExists = workspaceRoot ? await fs.pathExists(path.join(workspaceRoot, '.west')) : false;
-    
-    // Check for incomplete project (west folder exists but not marked as initialized)
+
+    // Self-heal: a .west plus a fetched Zephyr tree (zephyr/VERSION exists, i.e.
+    // `west update` has run) means the project is already initialized on disk —
+    // e.g. it was cloned, or the extension's project state was reset. Mark it
+    // initialized instead of mislabeling it "incomplete" and forcing a Resume.
+    if (westFolderExists && !project.isInit && workspaceRoot) {
+      const zephyrReady = await fs.pathExists(path.join(workspaceRoot, 'zephyr', 'VERSION'));
+      if (zephyrReady) {
+        console.log('Detected an initialized project on disk, restoring isInit flag');
+        project.isInit = true;
+        await ProjectConfigManager.save(this.context, project);
+      }
+    }
+
+    // Check for incomplete project (.west exists but the tree was never fetched)
     if (westFolderExists && !project.isInit) {
       return {
         type: 'project-incomplete',
@@ -197,7 +224,22 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
         hasWorkspace
       };
     }
-    
+
+    // Host setup and project are good — now check the SDK separately. This
+    // auto-switches to a compatible installed SDK when possible and only returns an
+    // error if none is available, prompting the user to install/repair one. It does
+    // NOT affect the host-setup flag.
+    const sdkError = await ManifestValidator.checkSdkCompatibility();
+    if (sdkError) {
+      return {
+        type: 'setup-required',
+        config,
+        project,
+        hasWorkspace,
+        error: sdkError
+      };
+    }
+
     // All good - ready state
     // Load build assets for ready state
     let buildAssets: BuildAssetsState | undefined;

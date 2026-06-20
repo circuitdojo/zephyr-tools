@@ -25,7 +25,7 @@ export interface ManifestToolchainEntry {
 export interface ManifestDownloadEntry {
   name: string;
   url: string;
-  md5: string;
+  sha256: string;
   suffix?: string;
   env?: ManifestEnvEntry[];
   cmd?: CmdEntry[];

@@ -59,11 +59,11 @@ export class ManifestValidator {
       return result;
     }
 
-    // Validate core dependencies
+    // Validate core (host) dependencies. The Zephyr SDK is intentionally NOT
+    // validated here — it is managed separately (per-workspace, multiple versions)
+    // and its readiness is surfaced through checkSdkCompatibility, not by gating
+    // the host-tools setup flag.
     await this.validateDependencies(archEntry.downloads, config, result);
-
-    // Validate toolchain (need to determine which was installed)
-    await this.validateInstalledToolchain(archEntry, config, result);
 
     // Validate environment variables
     this.validateEnvironmentVariables(config, result);
@@ -252,37 +252,6 @@ export class ManifestValidator {
     });
   }
 
-  /**
-   * Validates the installed toolchain matches expected configuration
-   */
-  private static async validateInstalledToolchain(
-    archEntry: ManifestEntry,
-    config: GlobalConfig,
-    result: ManifestValidationResult
-  ): Promise<void> {
-    // Check for SDK environment variable to determine which toolchain is installed
-    const sdkInstallDir = SettingsManager.getZephyrSdkInstallDir();
-    const toolchainVariant = SettingsManager.getZephyrToolchainVariant();
-
-    if (!sdkInstallDir || !toolchainVariant) {
-      result.warnings.push('Toolchain environment variables not found. Toolchain may not be properly configured.');
-      return;
-    }
-
-    // Verify SDK directory exists
-    if (!(await fs.pathExists(sdkInstallDir))) {
-      result.isValid = false;
-      result.errors.push(`Zephyr SDK directory not found: ${sdkInstallDir}`);
-      result.missingComponents.push('toolchain');
-      return;
-    }
-
-    // Check for ARM toolchain specifically (most common)
-    const armToolchainPath = path.join(sdkInstallDir, 'arm-zephyr-eabi', 'bin');
-    if (!(await fs.pathExists(armToolchainPath))) {
-      result.warnings.push(`ARM toolchain directory not found: ${armToolchainPath}`);
-    }
-  }
 
   /**
    * Validates environment variables are correctly set
@@ -291,15 +260,12 @@ export class ManifestValidator {
     config: GlobalConfig,
     result: ManifestValidationResult
   ): void {
-    const requiredEnvVars = [
-      'ZEPHYR_TOOLCHAIN_VARIANT',
-      'ZEPHYR_SDK_INSTALL_DIR'
-    ];
-
-    for (const envVar of requiredEnvVars) {
-      if (!SettingsManager.getEnvironmentVariable(envVar)) {
-        result.warnings.push(`Missing environment variable: ${envVar}`);
-      }
+    if (!SettingsManager.getEnvironmentVariable('ZEPHYR_TOOLCHAIN_VARIANT')) {
+      result.warnings.push('Missing environment variable: ZEPHYR_TOOLCHAIN_VARIANT');
+    }
+    // ZEPHYR_SDK_INSTALL_DIR is workspace-scoped (paths.sdkInstallDir) — read via getSdkInstallDir
+    if (!SettingsManager.getSdkInstallDir()) {
+      result.warnings.push('Missing environment variable: ZEPHYR_SDK_INSTALL_DIR');
     }
   }
 
@@ -405,5 +371,178 @@ export class ManifestValidator {
     }
 
     return true;
+  }
+
+  // Ensures the workspace's selected SDK is compatible with the current Zephyr tree.
+  // If the selected SDK is missing or incompatible, this auto-switches the workspace
+  // setting to a compatible installed SDK (multiple SDK versions coexist under the
+  // toolchain directory). Returns an error message only if no compatible SDK is
+  // installed, or undefined if everything is OK / settings aren't configured yet.
+  static async checkSdkCompatibility(): Promise<string | undefined> {
+    // Resolve the Zephyr tree robustly. The configured setting can be absent (e.g.
+    // after a fresh init that never persisted it, or a workspace that only has the
+    // legacy global env var), in which case we detect it from the workspace and
+    // persist it. Without this the SDK check would silently no-op and let an
+    // incompatible SDK through to CMake.
+    let zephyrBase = SettingsManager.getZephyrBase();
+    if (!zephyrBase) {
+      zephyrBase = await SettingsManager.detectZephyrBase();
+      if (zephyrBase) {
+        await SettingsManager.setZephyrBase(zephyrBase);
+      }
+    }
+    if (!zephyrBase) { return undefined; }
+
+    const required = await ManifestValidator.getRequiredSdkVersion(zephyrBase);
+    if (!required) { return undefined; }
+
+    const sdkInstallDir = SettingsManager.getZephyrSdkInstallDir();
+
+    // If the currently-selected SDK is present and compatible, nothing to do.
+    if (sdkInstallDir && (await ManifestValidator.isSdkCompatible(sdkInstallDir, required))) {
+      return undefined;
+    }
+
+    // The selected SDK is missing or incompatible. Try to auto-switch to a
+    // compatible installed SDK before reporting an error.
+    const compatible = await ManifestValidator.findCompatibleInstalledSdk(required, sdkInstallDir);
+    if (compatible) {
+      await SettingsManager.setSdkInstallDir(compatible);
+      return undefined;
+    }
+
+    // No compatible SDK is installed — surface an actionable error.
+    if (!sdkInstallDir) {
+      return `Zephyr SDK not configured for this workspace, and no compatible SDK is installed for Zephyr >= ${required}. Run setup to install it.`;
+    }
+
+    const installed = await ManifestValidator.getInstalledSdkVersion(sdkInstallDir);
+    if (!installed) {
+      return `Zephyr SDK not found at configured path: ${sdkInstallDir}. Run setup to install the correct SDK.`;
+    }
+
+    // Version is fine but the toolchain payload is missing/incomplete — distinguish
+    // this from a true version mismatch so the user knows to reinstall, not downgrade.
+    const minimumCompatible = await ManifestValidator.getSdkMinimumCompatibleVersion(sdkInstallDir);
+    if (
+      ManifestValidator.sdkVersionSatisfies(installed, required, minimumCompatible) &&
+      !(await ManifestValidator.sdkToolchainPresent(sdkInstallDir, installed))
+    ) {
+      return `Zephyr SDK ${installed} is installed but its toolchain is missing or incomplete. Install the SDK again to repair it.`;
+    }
+
+    return `Zephyr SDK version mismatch: installed ${installed}, but this Zephyr requires >= ${required}. No compatible SDK is installed — run setup to install it.`;
+  }
+
+  // Returns true if the SDK at the given path is installed, version-compatible with
+  // the requested Zephyr SDK version (accounting for the SDK's own minimum-compatible
+  // floor), AND has its toolchain payload actually present on disk.
+  private static async isSdkCompatible(sdkInstallDir: string, required: string): Promise<boolean> {
+    const installed = await ManifestValidator.getInstalledSdkVersion(sdkInstallDir);
+    if (!installed) { return false; }
+    const minimumCompatible = await ManifestValidator.getSdkMinimumCompatibleVersion(sdkInstallDir);
+    if (!ManifestValidator.sdkVersionSatisfies(installed, required, minimumCompatible)) { return false; }
+    return ManifestValidator.sdkToolchainPresent(sdkInstallDir, installed);
+  }
+
+  // Verifies the ARM toolchain binaries are present where the SDK's CMake expects
+  // them. SDK 1.0+ moved GNU toolchains under <sdk>/gnu/<triple>; older SDKs keep
+  // them at <sdk>/<triple>. A version match alone is not enough — a "minimal" SDK
+  // can be installed with its sdk_version file but no toolchain, which only fails
+  // deep in CMake otherwise.
+  static async sdkToolchainPresent(sdkInstallDir: string, installedVersion?: string): Promise<boolean> {
+    const version = installedVersion ?? await ManifestValidator.getInstalledSdkVersion(sdkInstallDir);
+    const major = version ? Number(version.split('.')[0]) : 0;
+    const binPath = major >= 1
+      ? path.join(sdkInstallDir, 'gnu', 'arm-zephyr-eabi', 'bin')
+      : path.join(sdkInstallDir, 'arm-zephyr-eabi', 'bin');
+    return fs.pathExists(binPath);
+  }
+
+  // Scans the directory holding installed SDKs (siblings of the current SDK, or the
+  // manifest's toolchain directory) and returns the path of the highest-version SDK
+  // compatible with the requested Zephyr SDK version, or undefined if none qualify.
+  static async findCompatibleInstalledSdk(
+    required: string,
+    currentSdkInstallDir?: string
+  ): Promise<string | undefined> {
+    // Installed SDKs live as `zephyr-sdk-<version>` siblings of the selected SDK.
+    const searchDir = currentSdkInstallDir
+      ? path.dirname(currentSdkInstallDir)
+      : path.join(SettingsManager.getToolsDirectory(), 'toolchain');
+
+    if (!(await fs.pathExists(searchDir))) { return undefined; }
+
+    const entries = await fs.readdir(searchDir);
+    const candidates: { path: string; version: string }[] = [];
+    for (const entry of entries) {
+      if (!entry.startsWith('zephyr-sdk-')) { continue; }
+      const candidatePath = path.join(searchDir, entry);
+      const installed = await ManifestValidator.getInstalledSdkVersion(candidatePath);
+      if (!installed) { continue; }
+      const minimumCompatible = await ManifestValidator.getSdkMinimumCompatibleVersion(candidatePath);
+      if (!ManifestValidator.sdkVersionSatisfies(installed, required, minimumCompatible)) { continue; }
+      // Skip version-compatible SDKs whose toolchain payload is missing/incomplete.
+      if (!(await ManifestValidator.sdkToolchainPresent(candidatePath, installed))) { continue; }
+      candidates.push({ path: candidatePath, version: installed });
+    }
+
+    if (candidates.length === 0) { return undefined; }
+
+    // Prefer the highest compatible installed version.
+    candidates.sort((a, b) => ManifestValidator.compareSdkVersions(b.version, a.version));
+    return candidates[0].path;
+  }
+
+  // Compares two full SDK version strings (major.minor.patch). Returns a positive
+  // number if a > b, negative if a < b, and 0 if equal.
+  private static compareSdkVersions(a: string, b: string): number {
+    const pa = a.split('.').map(Number);
+    const pb = b.split('.').map(Number);
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+      const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
+      if (diff !== 0) { return diff; }
+    }
+    return 0;
+  }
+
+  static async getRequiredSdkVersion(zephyrBase: string): Promise<string | undefined> {
+    const cmakePath = path.join(zephyrBase, 'cmake', 'modules', 'FindHostTools.cmake');
+    if (!(await fs.pathExists(cmakePath))) { return undefined; }
+    const content = await fs.readFile(cmakePath, 'utf-8');
+    return content.match(/find_package\s*\(\s*Zephyr-sdk\s+([\d.]+)/)?.[1];
+  }
+
+  static async getInstalledSdkVersion(sdkInstallDir: string): Promise<string | undefined> {
+    const versionPath = path.join(sdkInstallDir, 'sdk_version');
+    if (!(await fs.pathExists(versionPath))) { return undefined; }
+    return (await fs.readFile(versionPath, 'utf-8')).trim();
+  }
+
+  // Reads ZEPHYR_SDK_MINIMUM_COMPATIBLE_VERSION from the SDK's own version config.
+  // This is the minimum Zephyr-requested version the SDK will accept (SDK 1.0 sets this to 1.0,
+  // explicitly refusing to serve older Zephyr trees that ask for 0.x).
+  static async getSdkMinimumCompatibleVersion(sdkInstallDir: string): Promise<string | undefined> {
+    const configVersionPath = path.join(sdkInstallDir, 'cmake', 'Zephyr-sdkConfigVersion.cmake');
+    if (!(await fs.pathExists(configVersionPath))) { return undefined; }
+    const content = await fs.readFile(configVersionPath, 'utf-8');
+    return content.match(/set\s*\(\s*ZEPHYR_SDK_MINIMUM_COMPATIBLE_VERSION\s+([\d.]+)/)?.[1];
+  }
+
+  // Returns true if the installed SDK is compatible with the requested version.
+  // Accounts for the SDK's own MINIMUM_COMPATIBLE_VERSION floor (SDK 1.0 rejects requests < 1.0).
+  static sdkVersionSatisfies(installed: string, required: string, minimumCompatible?: string): boolean {
+    const parse = (v: string): [number, number] => {
+      const [major = 0, minor = 0] = v.split('.').map(Number);
+      return [major, minor];
+    };
+    const cmp = ([aMaj, aMin]: [number, number], [bMaj, bMin]: [number, number]): number =>
+      aMaj !== bMaj ? aMaj - bMaj : aMin - bMin;
+
+    const req = parse(required);
+    if (minimumCompatible && cmp(req, parse(minimumCompatible)) < 0) {
+      return false;
+    }
+    return cmp(parse(installed), req) >= 0;
   }
 }

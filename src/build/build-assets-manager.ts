@@ -52,6 +52,11 @@ export class BuildAssetsManager {
       displayName: "Zephyr Hex",
       location: "zephyr" as const,
     },
+    {
+      name: "log_dictionary.json",
+      displayName: "Log Dictionary",
+      location: "zephyr" as const,
+    },
   ];
 
   /**
@@ -64,27 +69,29 @@ export class BuildAssetsManager {
     let lastBuild: Date | undefined;
 
     for (const assetDef of this.ASSET_DEFINITIONS) {
-      const assetPath = this.getAssetPath(buildPath, assetDef.name, assetDef.location, project);
+      const assetPath = await this.findAssetPath(buildPath, assetDef.name, assetDef.location);
       const assetInfo: BuildAssetInfo = {
         name: assetDef.name,
         displayName: assetDef.displayName,
-        path: assetPath,
+        path: assetPath || "",
         exists: false,
       };
 
-      try {
-        const stats = await fs.stat(assetPath);
-        assetInfo.exists = true;
-        assetInfo.size = stats.size;
-        assetInfo.lastModified = stats.mtime;
-        hasAssets = true;
+      if (assetPath) {
+        try {
+          const stats = await fs.stat(assetPath);
+          assetInfo.exists = true;
+          assetInfo.size = stats.size;
+          assetInfo.lastModified = stats.mtime;
+          hasAssets = true;
 
-        // Track the most recent build time
-        if (!lastBuild || stats.mtime > lastBuild) {
-          lastBuild = stats.mtime;
+          // Track the most recent build time
+          if (!lastBuild || stats.mtime > lastBuild) {
+            lastBuild = stats.mtime;
+          }
+        } catch {
+          // File doesn't exist, keep exists: false
         }
-      } catch {
-        // File doesn't exist, keep exists: false
       }
 
       assets.push(assetInfo);
@@ -114,38 +121,48 @@ export class BuildAssetsManager {
   }
 
   /**
-   * Get the full path to a specific asset
+   * Find a build asset file under the build path.
+   * Zephyr build output structure varies (sysbuild vs non-sysbuild, chip qualifiers),
+   * so we search for the file rather than computing a fixed path.
    */
-  private static getAssetPath(buildPath: string, assetName: string, location: "root" | "zephyr", project?: ProjectConfig): string {
-    if (location === "zephyr") {
-      // For zephyr assets, they're typically in build/board/chip/zephyr/
-      // e.g., build/circuitdojo_feather_nrf9151/nrf9160/zephyr/
-      const chipName = this.extractChipName(project?.board);
-      return path.join(buildPath, chipName, "zephyr", assetName);
+  private static async findAssetPath(buildPath: string, assetName: string, location: "root" | "zephyr"): Promise<string | null> {
+    if (location === "root") {
+      const candidate = path.join(buildPath, assetName);
+      if (await fs.pathExists(candidate)) {
+        return candidate;
+      }
+      return null;
     }
-    return path.join(buildPath, assetName);
-  }
 
-  /**
-   * Extract chip name from board configuration
-   * e.g., "circuitdojo_feather_nrf9151/nrf9151/ns" -> "nrf9160" (based on common patterns)
-   */
-  private static extractChipName(board?: string): string {
-    if (!board) {return "zephyr";}
-    
-    // For nRF91 series boards, the chip is typically nrf9160
-    if (board.includes('nrf91')) {
-      return 'nrf9160';
+    // For "zephyr" location, search for */zephyr/{assetName} under buildPath
+    // Covers: build/{board}/zephyr/ (non-sysbuild) and build/{board}/{app}/zephyr/ (sysbuild)
+    try {
+      const entries = await fs.readdir(buildPath, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory()) {continue;}
+        // Direct: {subdir}/zephyr/{asset}
+        const direct = path.join(buildPath, entry.name, "zephyr", assetName);
+        if (await fs.pathExists(direct)) {
+          return direct;
+        }
+        // One level deeper: {subdir}/{sub2}/zephyr/{asset}
+        try {
+          const subEntries = await fs.readdir(path.join(buildPath, entry.name), { withFileTypes: true });
+          for (const sub of subEntries) {
+            if (!sub.isDirectory()) {continue;}
+            const nested = path.join(buildPath, entry.name, sub.name, "zephyr", assetName);
+            if (await fs.pathExists(nested)) {
+              return nested;
+            }
+          }
+        } catch {
+          // subdirectory not readable, skip
+        }
+      }
+    } catch {
+      // build path not readable
     }
-    
-    // For other boards, try to extract from the board path
-    const parts = board.split('/');
-    if (parts.length > 1) {
-      return parts[1]; // Second part is usually the chip
-    }
-    
-    // Default fallback
-    return "zephyr";
+    return null;
   }
 
   /**
@@ -217,7 +234,8 @@ export class BuildAssetsManager {
         'build/**/zephyr.hex', 
         'build/**/merged.hex',
         'build/**/dfu_application.zip',
-        'build/**/dfu_application.zip_manifest.json'
+        'build/**/dfu_application.zip_manifest.json',
+        'build/**/log_dictionary.json'
       ];
       
       const watchers: vscode.FileSystemWatcher[] = [];

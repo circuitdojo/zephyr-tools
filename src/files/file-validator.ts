@@ -9,30 +9,6 @@ import * as crypto from "crypto";
 import * as path from "path";
 
 export class FileValidator {
-  static async validateMd5(filePath: string, expectedMd5: string): Promise<boolean> {
-    try {
-      if (!(await fs.pathExists(filePath))) {
-        console.log(`File doesn't exist: ${filePath}`);
-        return false;
-      }
-
-      const fileBuffer = fs.readFileSync(filePath);
-      const hashSum = crypto.createHash('md5');
-      hashSum.update(fileBuffer);
-      const hex = hashSum.digest('hex');
-
-      const isValid = hex === expectedMd5;
-      if (!isValid) {
-        console.log(`MD5 mismatch for ${filePath}. Expected: ${expectedMd5}, Got: ${hex}`);
-      }
-
-      return isValid;
-    } catch (error) {
-      console.error(`MD5 validation error for ${filePath}:`, error);
-      return false;
-    }
-  }
-
   static async validateSha256(filePath: string, expectedSha256: string): Promise<boolean> {
     try {
       if (!(await fs.pathExists(filePath))) {

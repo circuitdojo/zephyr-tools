@@ -42,10 +42,10 @@ export class FileDownloader {
     const fileBuffer = fs.readFileSync(dest);
 
     // Create hash
-    const hashSum = crypto.createHash('md5');
+    const hashSum = crypto.createHash('sha256');
     hashSum.update(fileBuffer);
 
-    // Get hex representation 
+    // Get hex representation
     const hex = hashSum.digest('hex');
 
     return hex === hash;
@@ -117,7 +117,7 @@ export class FileDownloader {
   }
 
   // Validate checksum of downloaded file
-  public static async validateChecksum(file: string, expectedMd5: string): Promise<boolean> {
-    return this.check(file, expectedMd5);
+  public static async validateChecksum(file: string, expectedSha256: string): Promise<boolean> {
+    return this.check(file, expectedSha256);
   }
 }

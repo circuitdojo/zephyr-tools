@@ -133,17 +133,47 @@ export class PathManager {
   }
 
   static async setupEnvironmentPaths(context: vscode.ExtensionContext, _config: GlobalConfig): Promise<void> {
-    // Restore all environment variables from settings
+    // Restore global environment variables from settings, but let the
+    // workspace-scoped SDK setting take precedence (handled below).
     const envVars = SettingsManager.getEnvironmentVariables();
     for (const [key, value] of Object.entries(envVars)) {
-      if (value) {
+      if (value && key !== "ZEPHYR_SDK_INSTALL_DIR") {
         context.environmentVariableCollection.replace(key, value);
       }
     }
-    
+
     // VIRTUAL_ENV should be based on current tools directory
     const pythonenv = path.join(SettingsManager.getToolsDirectory(), "env");
     context.environmentVariableCollection.replace("VIRTUAL_ENV", pythonenv);
+
+    // Apply the workspace-scoped SDK install dir and its ARM toolchain path.
+    //
+    // The env collection allows only ONE mutator per variable, so each prepend to
+    // PATH overwrites the previous one. We therefore rebuild PATH as a single
+    // mutator combining the saved tool paths with the active SDK's toolchain, and
+    // explicitly delete the SDK entries when no SDK is selected. Without this an
+    // uninstalled/switched-away SDK would linger in PATH and ZEPHYR_SDK_INSTALL_DIR.
+    const pathDivider = getPlatformConfig().pathDivider;
+    const sdkInstallDir = SettingsManager.getSdkInstallDir();
+
+    const pathEntries: string[] = [];
+    if (sdkInstallDir) {
+      pathEntries.push(SettingsManager.getSdkArmToolchainBin(sdkInstallDir));
+    }
+    pathEntries.push(...SettingsManager.getAllPaths());
+
+    const pathPrefix = pathEntries.filter(p => p && p.trim()).join(pathDivider);
+    if (pathPrefix) {
+      context.environmentVariableCollection.prepend("PATH", pathPrefix + pathDivider);
+    } else {
+      context.environmentVariableCollection.delete("PATH");
+    }
+
+    if (sdkInstallDir) {
+      context.environmentVariableCollection.replace("ZEPHYR_SDK_INSTALL_DIR", sdkInstallDir);
+    } else {
+      context.environmentVariableCollection.delete("ZEPHYR_SDK_INSTALL_DIR");
+    }
   }
 }
 

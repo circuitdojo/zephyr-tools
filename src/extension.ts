@@ -7,13 +7,15 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import { GlobalConfigManager, ProjectConfigManager, ProjectOverridesManager, SettingsManager } from "./config";
+import { GlobalConfigManager, ProjectConfigManager, ProjectOverridesManager, SettingsManager, ManifestValidator } from "./config";
 import { TaskManager } from "./tasks";
 import { StatusBarManager, OutputChannelManager, DialogManager, SidebarWebviewProvider } from "./ui";
 import { PathManager } from "./environment";
 import { GlobalConfig } from "./types";
 import {
   setupCommand,
+  ensureCompatibleSdk,
+  manageSdkCommand,
   buildCommand,
   buildPristineCommand,
   buildMultiCommand,
@@ -44,6 +46,7 @@ import {
   cleanCommand,
   cleanIncompleteProjectCommand,
   updateCommand,
+  installRequirementsCommand,
   openBuildFolderCommand,
   revealBuildAssetCommand,
   openZephyrTerminalCommand
@@ -68,12 +71,8 @@ export async function activate(context: vscode.ExtensionContext) {
   // Reload global config in case it was modified during cleanup
   globalConfig = await GlobalConfigManager.load(context);
 
-  // Set up environment variable collection
-  await setupEnvironmentVariables(context);
-
-  // Extension initialization complete
-
-  // Auto-detect and populate ZEPHYR_BASE if not set
+  // Auto-detect and populate ZEPHYR_BASE if not set. Done before environment setup
+  // so SDK resolution below sees the correct Zephyr tree.
   if (!SettingsManager.getZephyrBase()) {
     const detectedZephyrBase = await SettingsManager.detectZephyrBase();
     if (detectedZephyrBase) {
@@ -82,6 +81,20 @@ export async function activate(context: vscode.ExtensionContext) {
       context.environmentVariableCollection.replace("ZEPHYR_BASE", detectedZephyrBase);
     }
   }
+
+  // Move any legacy global ZEPHYR_SDK_INSTALL_DIR into the workspace-scoped setting
+  // (and drop the global entry) before resolving the SDK, so the fallback can't
+  // resurrect a removed SDK.
+  await SettingsManager.migrateLegacySdkInstallDir().catch(console.error);
+
+  // Auto-select a compatible installed SDK for this workspace's Zephyr tree before
+  // building the environment, so PATH/ZEPHYR_SDK_INSTALL_DIR reflect the right SDK.
+  await ManifestValidator.checkSdkCompatibility().catch(console.error);
+
+  // Set up environment variable collection
+  await setupEnvironmentVariables(context);
+
+  // Extension initialization complete
 
   // Initialize status bar
   StatusBarManager.initializeStatusBarItems(context);
@@ -97,6 +110,19 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Check if Python dependencies are still present in venv
   await validateProjectDependencies(context);
+
+  // Check SDK version compatibility on activation (advisory — build commands enforce it hard).
+  validateToolchainVersion(context).catch(console.error);
+
+  // Keep the in-memory global config in sync with persisted changes. Validation can
+  // self-heal the setup flag (e.g. the sidebar restoring isSetup after host tools are
+  // confirmed present), and command guards read this variable — without this they
+  // would see a stale value and wrongly report "Run setup first".
+  context.subscriptions.push(
+    GlobalConfigManager.onDidChangeConfig(async () => {
+      globalConfig = await GlobalConfigManager.load(context);
+    })
+  );
 
   // Auto-save project overrides whenever config changes
   context.subscriptions.push(
@@ -164,6 +190,12 @@ async function validateProjectDependencies(context: vscode.ExtensionContext): Pr
   }
 }
 
+async function validateToolchainVersion(_context: vscode.ExtensionContext): Promise<void> {
+  // SDK compatibility is surfaced through the sidebar's physical validation
+  // ("SDK Update Required") and enforced at build time. A separate popup on
+  // every activation is redundant noise — the sidebar already shows what's wrong.
+}
+
 async function setupEnvironmentVariables(context: vscode.ExtensionContext): Promise<void> {
   context.environmentVariableCollection.persistent = true;
   
@@ -184,6 +216,21 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
     })
   );
 
+  // Install SDK command — installs the SDK version this workspace's Zephyr tree
+  // requires automatically (no version prompt). Use Manage SDKs to pick a version.
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.install-sdk", async () => {
+      await ensureCompatibleSdk(context);
+    })
+  );
+
+  // Manage SDKs command — list/activate/uninstall installed Zephyr SDKs.
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.manage-sdks", async () => {
+      await manageSdkCommand(context);
+    })
+  );
+
   // Create project command
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.create-project", async (dest: vscode.Uri | undefined) => {
@@ -194,6 +241,9 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
   // Init repo command
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.init-repo", async (dest: vscode.Uri | undefined) => {
+      // Load fresh: validation may have self-healed isSetup since activation, and the
+      // in-memory copy can lag. Avoids a wrong "Run setup first" on Resume.
+      globalConfig = await GlobalConfigManager.load(context);
       if (!globalConfig.isSetup) {
         vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
         return;
@@ -455,7 +505,14 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
   // Update command
   context.subscriptions.push(
     vscode.commands.registerCommand("zephyr-tools.update", async () => {
-      await updateCommand(globalConfig, context);
+      await updateCommand(globalConfig, context, sidebar);
+    })
+  );
+
+  // Install Python requirements command — refresh deps without running west update.
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zephyr-tools.install-requirements", async () => {
+      await installRequirementsCommand(globalConfig, context);
     })
   );
 

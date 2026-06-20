@@ -48,30 +48,28 @@ export class ConfigValidator {
         details: [`Expected manifest version ${manifest.version}, found ${config.manifestVersion}`]
       };
     }
-    
-    // Check basic setup flag
-    if (!config.isSetup) {
-      return {
-        isValid: false,
-        error: "Run `Zephyr Tools: Setup` command first.",
-        details: ["Setup has not been completed"]
-      };
-    }
 
-    // Perform physical validation if requested and context available
+    // Physical validation of the host tooling (cmake, ninja, west, etc.). This is
+    // intentionally independent of the Zephyr SDK, which is managed separately and
+    // whose readiness is surfaced via checkSdkCompatibility — an SDK problem must
+    // not mark the host setup as incomplete.
     if (performPhysicalValidation && context) {
       try {
         const physicalValidation = await ManifestValidator.validateCompleteSetup(config);
-        
+
         if (!physicalValidation.isValid) {
-          // Reset setup flag due to physical validation failure
-          console.log("Physical validation failed, resetting setup flag");
-          config.isSetup = false;
-          await GlobalConfigManager.save(context, config);
-          
+          // Host tooling is genuinely missing/corrupted — reflect that in the flag.
+          if (config.isSetup) {
+            console.log("Physical validation failed, resetting setup flag");
+            config.isSetup = false;
+            await GlobalConfigManager.save(context, config);
+          }
+
+          const primaryError = physicalValidation.errors[0] ??
+            "Setup validation failed. Run `Zephyr Tools: Setup` command again.";
           return {
             isValid: false,
-            error: "Setup validation failed. Run `Zephyr Tools: Setup` command again.",
+            error: primaryError,
             details: [
               "Physical validation detected missing or corrupted components:",
               ...physicalValidation.errors,
@@ -79,11 +77,20 @@ export class ConfigValidator {
             ]
           };
         }
-        
-        // Log warnings but don't fail validation
+
+        // Host tooling is present. Self-heal the flag if a prior run (or an older
+        // build that conflated the SDK with setup) left it incorrectly cleared.
+        if (!config.isSetup) {
+          console.log("Host tooling present, restoring setup flag");
+          config.isSetup = true;
+          await GlobalConfigManager.save(context, config);
+        }
+
         if (physicalValidation.warnings.length > 0) {
           console.log("Setup validation warnings:", physicalValidation.warnings);
         }
+
+        return { isValid: true };
       } catch (error) {
         console.warn("Physical validation failed with error:", error);
         // Don't fail validation due to validation errors, but log them
@@ -94,7 +101,16 @@ export class ConfigValidator {
         };
       }
     }
-    
+
+    // Quick path (no physical validation): trust the setup flag.
+    if (!config.isSetup) {
+      return {
+        isValid: false,
+        error: "Run `Zephyr Tools: Setup` command first.",
+        details: ["Setup has not been completed"]
+      };
+    }
+
     return { isValid: true };
   }
 

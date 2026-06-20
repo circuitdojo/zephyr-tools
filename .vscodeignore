@@ -12,6 +12,9 @@ tsconfig.json
 esbuild.js
 webpack.config.js
 .eslintrc.json
+eslint.config.mjs
+.claude/**
+.codex
 **/*.vsix
 .git/**
 *.log
