@@ -82,6 +82,11 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   }
 
+  // Move any legacy global ZEPHYR_SDK_INSTALL_DIR into the workspace-scoped setting
+  // (and drop the global entry) before resolving the SDK, so the fallback can't
+  // resurrect a removed SDK.
+  await SettingsManager.migrateLegacySdkInstallDir().catch(console.error);
+
   // Auto-select a compatible installed SDK for this workspace's Zephyr tree before
   // building the environment, so PATH/ZEPHYR_SDK_INSTALL_DIR reflect the right SDK.
   await ManifestValidator.checkSdkCompatibility().catch(console.error);

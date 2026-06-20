@@ -155,13 +155,32 @@ export class SettingsManager {
 
   // Convenience methods for specific environment variables
 
-  // Workspace-scoped SDK install dir. Falls back to the legacy global env-var entry
-  // so existing setups continue to work until the user runs setup again.
+  // Workspace-scoped SDK install dir. This is the single source of truth — there is
+  // intentionally no fallback to a global env-var, since such a fallback could
+  // resurrect an uninstalled SDK after the workspace setting is cleared. Legacy
+  // global values are moved into this setting once by migrateLegacySdkInstallDir().
   static getSdkInstallDir(): string | undefined {
     const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
-    const workspaceSetting = config.get<string>("paths.sdkInstallDir");
-    if (workspaceSetting) { return workspaceSetting; }
-    return this.getEnvironmentVariable("ZEPHYR_SDK_INSTALL_DIR");
+    return config.get<string>("paths.sdkInstallDir") || undefined;
+  }
+
+  // One-time migration of the legacy global ZEPHYR_SDK_INSTALL_DIR env-var into the
+  // workspace-scoped paths.sdkInstallDir setting. Older versions stored the SDK dir
+  // in environment.variables, which then acted as a fallback. This adopts that value
+  // for the workspace (only if one isn't already chosen) and removes the legacy entry
+  // so it can never resurrect a removed SDK.
+  static async migrateLegacySdkInstallDir(): Promise<void> {
+    const legacy = this.getEnvironmentVariable("ZEPHYR_SDK_INSTALL_DIR");
+    if (!legacy) { return; }
+
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    if (!config.get<string>("paths.sdkInstallDir")) {
+      await this.setSdkInstallDir(legacy);
+    }
+
+    const vars = this.getEnvironmentVariables();
+    delete vars["ZEPHYR_SDK_INSTALL_DIR"];
+    await this.setEnvironmentVariables(vars);
   }
 
   // Sets the workspace-scoped SDK install dir. Pass undefined to clear it (e.g. when

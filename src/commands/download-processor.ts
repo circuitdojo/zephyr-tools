@@ -160,6 +160,14 @@ export async function processDownload(
 
   // Set remaining environment variables in settings
   for (const entry of download.env ?? []) {
+    // The SDK install dir is workspace-scoped (paths.sdkInstallDir) and managed by
+    // the SDK install/selection flow. Never persist it through the generic global
+    // env path: a global ZEPHYR_SDK_INSTALL_DIR acts as a fallback that can
+    // resurrect an uninstalled SDK after the workspace setting is cleared.
+    if (entry.name === "ZEPHYR_SDK_INSTALL_DIR") {
+      continue;
+    }
+
     let envValue: string;
     if (entry.value) {
       envValue = entry.value;

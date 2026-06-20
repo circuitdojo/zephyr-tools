@@ -164,9 +164,19 @@ export async function installSdkCommand(
       // installed), keeping selection consistent with on-the-fly switching.
       const sdkError = await ManifestValidator.checkSdkCompatibility();
 
+      // Extraction succeeded but the workspace's Zephyr tree still has no compatible
+      // SDK active (e.g. an incomplete payload, or — via the picker fallback — the
+      // user chose a version this tree can't use). Surface the error and fail rather
+      // than letting build/update proceed into CMake with an unusable SDK.
+      if (sdkError) {
+        output.appendLine(`[SETUP] ${sdkError}`);
+        vscode.window.showErrorMessage(sdkError);
+        return false;
+      }
+
       // If there is no Zephyr tree yet (no required version to resolve against),
       // make the just-installed SDK the active one so the workspace has a default.
-      if (sdkError === undefined && !SettingsManager.getSdkInstallDir()) {
+      if (!SettingsManager.getSdkInstallDir()) {
         await SettingsManager.setSdkInstallDir(sdkInstallDir);
       }
 
