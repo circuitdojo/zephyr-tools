@@ -2,6 +2,34 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.6.0] - 2026-06-20
+
+**Added:**
+- Zephyr SDK 1.0 support, including its new `gnu/<triple>` toolchain layout
+- SDK management decoupled from Setup — multiple SDK versions coexist and the version each workspace's Zephyr tree requires is selected automatically
+- "Install SDK" command — installs the SDK version the current tree requires, with no version prompt
+- "Manage SDKs" command — list installed SDKs, switch the active one per workspace, uninstall, or install another version
+- Init Repo now installs the required SDK automatically as its final step
+- "Install Python Requirements" command — reinstall the tree's Python dependencies without a full `west update`
+- `Update Dependencies` now re-resolves the SDK and refreshes Python requirements after `west update`, keeping the venv in sync across Zephyr version changes
+- Python requirements installed via `west packages pip --install` (covers all west modules), falling back to `zephyr/scripts/requirements.txt` on older trees
+- Workspace-scoped `zephyr-tools.paths.sdkInstallDir` setting and an SDK row in the sidebar's Project Settings
+
+**Fixed:**
+- SDK compatibility now respects each SDK's minimum-compatible floor — SDK 1.0 correctly refuses Zephyr trees requesting < 1.0, and a compatible installed SDK is auto-selected instead
+- SDK 1.0 toolchain is extracted to the correct `gnu/` location; toolchain bin-path resolution is layout-aware (Linux/Windows/macOS)
+- An SDK's toolchain payload is verified present (not just its version) before it is considered usable, so incomplete installs are repaired rather than failing deep in CMake
+- SDK problems no longer mark host setup as incomplete; `isSetup`/`isInit` self-heal when host tools and an initialized tree are present on disk — fixes spurious "Run setup first" and a fully-cloned project being mislabeled "Incomplete Project Found"
+- `ZEPHYR_BASE` is persisted during init and resolved robustly, so the SDK compatibility check no longer silently skips
+- Removed the global `ZEPHYR_SDK_INSTALL_DIR` fallback that could resurrect an uninstalled SDK; the legacy value is migrated to the workspace setting
+
+**Technical Changes:**
+- Manifest version bumped to 20; download checksums migrated from md5 to sha256
+- Shared download engine extracted to `download-processor.ts`
+- Migrated test runner from `vscode-test` to `@vscode/test-electron`; dependency updates
+- Added unit tests for SDK version/layout logic and a GitHub Actions CI matrix (Linux, Windows, macOS arm64)
+- Cleared dependency advisories: bumped `esbuild` to 0.28.1 and overrode `js-yaml` to `>=4.2.0` (build/test-only dependencies)
+
 ### [0.5.25] - 2026-05-14
 
 **Added:**
