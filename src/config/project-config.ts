@@ -29,6 +29,44 @@ export class ProjectConfigManager {
     ProjectConfigManager._onDidChangeConfig.fire(); // Notify listeners of changes
   }
 
+  /**
+   * Self-heal the project init flag from on-disk state. A `.west` folder plus a
+   * fetched Zephyr tree (`zephyr/VERSION`) means the project is already initialized
+   * — e.g. it was cloned, or the extension's workspace state was reset. Restore the
+   * flag so commands don't wrongly demand "Init Repo".
+   *
+   * This must live outside the sidebar webview: a cold start that never opens the
+   * sidebar would otherwise leave `isInit` false and make build/flash/update report
+   * "Run `Zephyr Tools: Init Repo` command first" for an already-initialized project.
+   *
+   * Returns the (possibly updated) project config.
+   */
+  static async healInitStateFromDisk(context: vscode.ExtensionContext): Promise<ProjectConfig> {
+    const project = await this.load(context);
+
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!workspaceRoot || project.isInit) {
+      return project;
+    }
+
+    const fs = await import("fs-extra");
+    const path = await import("path");
+
+    const westFolderExists = await fs.pathExists(path.join(workspaceRoot, ".west"));
+    if (!westFolderExists) {
+      return project;
+    }
+
+    const zephyrReady = await fs.pathExists(path.join(workspaceRoot, "zephyr", "VERSION"));
+    if (zephyrReady) {
+      console.log("Detected an initialized project on disk, restoring isInit flag");
+      project.isInit = true;
+      await this.save(context, project);
+    }
+
+    return project;
+  }
+
   static async loadPendingTask(context: vscode.ExtensionContext): Promise<ZephyrTask | undefined> {
     return context.globalState.get(this.TASK_CONFIG_KEY);
   }

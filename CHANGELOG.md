@@ -2,6 +2,11 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.6.2] - 2026-06-23
+
+**Fixed:**
+- A project initialized on disk (`.west` plus a fetched Zephyr tree) is no longer mislabeled uninitialized on a cold start where the sidebar is never opened — commands like Build/Flash/Update no longer wrongly demand "Run `Zephyr Tools: Init Repo` command first". The on-disk `isInit` self-heal now runs during activation, and after the venv-marker dependency check that previously cleared the flag back out, instead of only inside the sidebar webview
+
 ### [0.6.1] - 2026-06-20
 
 **Fixed:**

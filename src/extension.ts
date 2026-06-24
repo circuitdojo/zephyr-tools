@@ -105,11 +105,21 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.window.registerWebviewViewProvider(SidebarWebviewProvider.viewType, sidebarProvider)
   );
 
+  // Check if Python dependencies are still present in venv. This may clear isInit
+  // when the global venv marker is absent.
+  await validateProjectDependencies(context);
+
+  // Restore the project init flag from on-disk state. This is the authoritative
+  // signal that a project is initialized (.west + a fetched zephyr tree), so it runs
+  // AFTER validateProjectDependencies — which clears isInit whenever the global
+  // venv marker is missing, e.g. for a project cloned/opened on a machine where Init
+  // Repo never ran. Without this ordering a cold start that never opens the sidebar
+  // leaves isInit false and commands wrongly demand "Init Repo". The sidebar performs
+  // the same heal, which is why the problem only appears before it is opened.
+  await ProjectConfigManager.healInitStateFromDisk(context);
+
   // Load project config and update status bar
   await updateStatusBarFromConfig(context);
-
-  // Check if Python dependencies are still present in venv
-  await validateProjectDependencies(context);
 
   // Check SDK version compatibility on activation (advisory — build commands enforce it hard).
   validateToolchainVersion(context).catch(console.error);

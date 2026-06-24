@@ -192,18 +192,11 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     const westFolderExists = workspaceRoot ? await fs.pathExists(path.join(workspaceRoot, '.west')) : false;
 
-    // Self-heal: a .west plus a fetched Zephyr tree (zephyr/VERSION exists, i.e.
-    // `west update` has run) means the project is already initialized on disk —
-    // e.g. it was cloned, or the extension's project state was reset. Mark it
-    // initialized instead of mislabeling it "incomplete" and forcing a Resume.
-    if (westFolderExists && !project.isInit && workspaceRoot) {
-      const zephyrReady = await fs.pathExists(path.join(workspaceRoot, 'zephyr', 'VERSION'));
-      if (zephyrReady) {
-        console.log('Detected an initialized project on disk, restoring isInit flag');
-        project.isInit = true;
-        await ProjectConfigManager.save(this.context, project);
-      }
-    }
+    // Self-heal isInit from on-disk state (a .west plus a fetched Zephyr tree means
+    // the project is already initialized — e.g. it was cloned, or the extension's
+    // project state was reset). Shared with activation so it also runs on a cold
+    // start where the sidebar was never opened.
+    project = await ProjectConfigManager.healInitStateFromDisk(this.context);
 
     // Check for incomplete project (.west exists but the tree was never fetched)
     if (westFolderExists && !project.isInit) {
