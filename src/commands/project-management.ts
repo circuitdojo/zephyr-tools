@@ -187,16 +187,17 @@ export async function initRepoCommand(
       // Use default manifest filename (repo not cloned yet, can't discover files)
       manifest = "west.yml";
 
-      // git clone to destination
-      let cmd = `west init -m ${url} --mf ${manifest}`;
+      // git clone to destination. url and branch are user input — pass as an
+      // argument array so VS Code shell-quotes them (spaces/metacharacters safe).
+      const initArgs = ["init", "-m", url, "--mf", manifest];
 
       // Set branch option
       if (branch && branch !== "") {
         console.log(`Branch '${branch}'`);
-        cmd = cmd + ` --mr ${branch}`;
+        initArgs.push("--mr", branch);
       }
 
-      const exec = new vscode.ShellExecution(cmd, shellOptions);
+      const exec = new vscode.ShellExecution("west", initArgs, shellOptions);
 
       // Task
       const task = new vscode.Task(
@@ -370,7 +371,11 @@ async function getProjectList(folder: vscode.Uri): Promise<string[]> {
     const file = queue.shift();
     if (!file) {break;}
 
-    if (file.name.includes("CMakeLists.txt")) {
+    // Match on the entry's basename so directories like "builder" or files that
+    // merely contain "build" in their name aren't skipped.
+    const baseName = path.basename(file.name);
+
+    if (baseName === "CMakeLists.txt") {
       // Check the file content
       const filepath = vscode.Uri.joinPath(file.path, file.name);
       const contents = await vscode.workspace.openTextDocument(filepath).then(document => {
@@ -381,7 +386,7 @@ async function getProjectList(folder: vscode.Uri): Promise<string[]> {
         const project = path.parse(filepath.fsPath);
         projects.push(project.dir);
       }
-    } else if (file.name.includes("build") || file.name.includes(".git")) {
+    } else if (baseName === "build" || baseName === ".git") {
       // Skip these directories
     } else if (file.type === vscode.FileType.Directory) {
       const subPath = vscode.Uri.joinPath(file.path, file.name);
@@ -571,7 +576,7 @@ async function discoverManifests(): Promise<{ manifests: ManifestItem[]; activeD
 }
 
 function getRootPath(): vscode.Uri | undefined {
-  if (vscode.workspace.workspaceFolders?.length ?? 0 > 0) {
+  if ((vscode.workspace.workspaceFolders?.length ?? 0) > 0) {
     return vscode.workspace.workspaceFolders?.[0].uri;
   }
   return undefined;

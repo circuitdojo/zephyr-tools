@@ -121,9 +121,6 @@ export async function activate(context: vscode.ExtensionContext) {
   // Load project config and update status bar
   await updateStatusBarFromConfig(context);
 
-  // Check SDK version compatibility on activation (advisory — build commands enforce it hard).
-  validateToolchainVersion(context).catch(console.error);
-
   // Keep the in-memory global config in sync with persisted changes. Validation can
   // self-heal the setup flag (e.g. the sidebar restoring isSetup after host tools are
   // confirmed present), and command guards read this variable — without this they
@@ -200,12 +197,6 @@ async function validateProjectDependencies(context: vscode.ExtensionContext): Pr
   }
 }
 
-async function validateToolchainVersion(_context: vscode.ExtensionContext): Promise<void> {
-  // SDK compatibility is surfaced through the sidebar's physical validation
-  // ("SDK Update Required") and enforced at build time. A separate popup on
-  // every activation is redundant noise — the sidebar already shows what's wrong.
-}
-
 async function setupEnvironmentVariables(context: vscode.ExtensionContext): Promise<void> {
   context.environmentVariableCollection.persistent = true;
   
@@ -214,6 +205,29 @@ async function setupEnvironmentVariables(context: vscode.ExtensionContext): Prom
   
   // Set up environment paths (ZEPHYR_BASE, ZEPHYR_SDK_INSTALL_DIR, etc.)
   await PathManager.setupEnvironmentPaths(context, globalConfig);
+}
+
+/**
+ * Register a command that requires Setup to have completed. Loads the global
+ * config fresh before checking: validation may have self-healed isSetup (e.g.
+ * the sidebar restoring it after host tools are confirmed present) and the
+ * in-memory copy can lag, which would wrongly report "Run setup first".
+ */
+function registerGuardedCommand(
+  context: vscode.ExtensionContext,
+  name: string,
+  handler: (...args: unknown[]) => Promise<void>
+): void {
+  context.subscriptions.push(
+    vscode.commands.registerCommand(name, async (...args: unknown[]) => {
+      globalConfig = await GlobalConfigManager.load(context);
+      if (!globalConfig.isSetup) {
+        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
+        return;
+      }
+      await handler(...args);
+    })
+  );
 }
 
 function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWebviewProvider): void {
@@ -249,158 +263,70 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
   );
 
   // Init repo command
-  context.subscriptions.push(
-    vscode.commands.registerCommand("zephyr-tools.init-repo", async (dest: vscode.Uri | undefined) => {
-      // Load fresh: validation may have self-healed isSetup since activation, and the
-      // in-memory copy can lag. Avoids a wrong "Run setup first" on Resume.
-      globalConfig = await GlobalConfigManager.load(context);
-      if (!globalConfig.isSetup) {
-        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
-        return;
-      }
-      
-      // Get destination, prompting user if not provided (replicates old helper.get_dest behavior)
-      const destination = await DialogManager.getDestination(dest);
-      if (destination) {
-        await initRepoCommand(globalConfig, context, destination);
-      }
-      // If destination is null, the user cancelled or error message was already shown
-    })
-  );
+  registerGuardedCommand(context, "zephyr-tools.init-repo", async (dest) => {
+    // Get destination, prompting user if not provided (replicates old helper.get_dest behavior)
+    const destination = await DialogManager.getDestination(dest as vscode.Uri | undefined);
+    if (destination) {
+      await initRepoCommand(globalConfig, context, destination);
+    }
+    // If destination is null, the user cancelled or error message was already shown
+  });
 
   // Build commands
-  context.subscriptions.push(
-    vscode.commands.registerCommand("zephyr-tools.build", async () => {
-      if (!globalConfig.isSetup) {
-        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
-        return;
-      }
-      await buildCommand(globalConfig, context, false, sidebar);
-    })
-  );
+  registerGuardedCommand(context, "zephyr-tools.build", async () => {
+    await buildCommand(globalConfig, context, false, sidebar);
+  });
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("zephyr-tools.build-pristine", async () => {
-      if (!globalConfig.isSetup) {
-        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
-        return;
-      }
-      await buildPristineCommand(globalConfig, context, sidebar);
-    })
-  );
+  registerGuardedCommand(context, "zephyr-tools.build-pristine", async () => {
+    await buildPristineCommand(globalConfig, context, sidebar);
+  });
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("zephyr-tools.build-multi", async () => {
-      if (!globalConfig.isSetup) {
-        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
-        return;
-      }
-      await buildMultiCommand(globalConfig, context, false, sidebar);
-    })
-  );
+  registerGuardedCommand(context, "zephyr-tools.build-multi", async () => {
+    await buildMultiCommand(globalConfig, context, false, sidebar);
+  });
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("zephyr-tools.build-all", async () => {
-      if (!globalConfig.isSetup) {
-        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
-        return;
-      }
-      await buildAllCommand(globalConfig, context, false, sidebar);
-    })
-  );
+  registerGuardedCommand(context, "zephyr-tools.build-all", async () => {
+    await buildAllCommand(globalConfig, context, false, sidebar);
+  });
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("zephyr-tools.build-multi-pristine", async () => {
-      if (!globalConfig.isSetup) {
-        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
-        return;
-      }
-      await buildMultiCommand(globalConfig, context, true, sidebar);
-    })
-  );
+  registerGuardedCommand(context, "zephyr-tools.build-multi-pristine", async () => {
+    await buildMultiCommand(globalConfig, context, true, sidebar);
+  });
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("zephyr-tools.build-all-pristine", async () => {
-      if (!globalConfig.isSetup) {
-        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
-        return;
-      }
-      await buildAllCommand(globalConfig, context, true, sidebar);
-    })
-  );
+  registerGuardedCommand(context, "zephyr-tools.build-all-pristine", async () => {
+    await buildAllCommand(globalConfig, context, true, sidebar);
+  });
 
   // Flash commands
-  context.subscriptions.push(
-    vscode.commands.registerCommand("zephyr-tools.flash", async () => {
-      if (!globalConfig.isSetup) {
-        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
-        return;
-      }
-      await flashCommand(globalConfig, context, sidebar);
-    })
-  );
+  registerGuardedCommand(context, "zephyr-tools.flash", async () => {
+    await flashCommand(globalConfig, context, sidebar);
+  });
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("zephyr-tools.flash-probe-rs", async () => {
-      if (!globalConfig.isSetup) {
-        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
-        return;
-      }
-      await flashProbeRsCommand(globalConfig, context);
-    })
-  );
+  registerGuardedCommand(context, "zephyr-tools.flash-probe-rs", async () => {
+    await flashProbeRsCommand(globalConfig, context);
+  });
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("zephyr-tools.flash-and-monitor", async () => {
-      if (!globalConfig.isSetup) {
-        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
-        return;
-      }
-      await flashAndMonitorCommand(globalConfig, context, sidebar);
-    })
-  );
+  registerGuardedCommand(context, "zephyr-tools.flash-and-monitor", async () => {
+    await flashAndMonitorCommand(globalConfig, context, sidebar);
+  });
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("zephyr-tools.flash-probe-rs-and-monitor", async () => {
-      if (!globalConfig.isSetup) {
-        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
-        return;
-      }
-      await flashProbeRsAndMonitorCommand(globalConfig, context);
-    })
-  );
+  registerGuardedCommand(context, "zephyr-tools.flash-probe-rs-and-monitor", async () => {
+    await flashProbeRsAndMonitorCommand(globalConfig, context);
+  });
 
   // Recovery command
-  context.subscriptions.push(
-    vscode.commands.registerCommand("zephyr-tools.recover-device", async () => {
-      if (!globalConfig.isSetup) {
-        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
-        return;
-      }
-      await recoverDeviceCommand(globalConfig, context);
-    })
-  );
+  registerGuardedCommand(context, "zephyr-tools.recover-device", async () => {
+    await recoverDeviceCommand(globalConfig, context);
+  });
 
   // Load commands
-  context.subscriptions.push(
-    vscode.commands.registerCommand("zephyr-tools.load", async () => {
-      if (!globalConfig.isSetup) {
-        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
-        return;
-      }
-      await loadCommand(globalConfig, context);
-    })
-  );
+  registerGuardedCommand(context, "zephyr-tools.load", async () => {
+    await loadCommand(globalConfig, context);
+  });
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("zephyr-tools.load-and-monitor", async () => {
-      if (!globalConfig.isSetup) {
-        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
-        return;
-      }
-      await loadAndMonitorCommand(globalConfig, context);
-    })
-  );
+  registerGuardedCommand(context, "zephyr-tools.load-and-monitor", async () => {
+    await loadAndMonitorCommand(globalConfig, context);
+  });
 
   // Newtmgr setup
   context.subscriptions.push(
@@ -552,28 +478,16 @@ function registerCommands(context: vscode.ExtensionContext, sidebar?: SidebarWeb
   );
 
   // Debug configuration command
-  context.subscriptions.push(
-    vscode.commands.registerCommand("zephyr-tools.create-debug-config", async () => {
-      if (!globalConfig.isSetup) {
-        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
-        return;
-      }
-      const { createDebugConfigurationCommand } = await import('./commands/debug');
-      await createDebugConfigurationCommand(globalConfig, context);
-    })
-  );
+  registerGuardedCommand(context, "zephyr-tools.create-debug-config", async () => {
+    const { createDebugConfigurationCommand } = await import('./commands/debug');
+    await createDebugConfigurationCommand(globalConfig, context);
+  });
 
   // Debug now command: updates config and starts debugger
-  context.subscriptions.push(
-    vscode.commands.registerCommand("zephyr-tools.debug-now", async () => {
-      if (!globalConfig.isSetup) {
-        vscode.window.showErrorMessage("Run `Zephyr Tools: Setup` command first.");
-        return;
-      }
-      const { debugNowCommand } = await import('./commands/debug');
-      await debugNowCommand(globalConfig, context);
-    })
-  );
+  registerGuardedCommand(context, "zephyr-tools.debug-now", async () => {
+    const { debugNowCommand } = await import('./commands/debug');
+    await debugNowCommand(globalConfig, context);
+  });
 }
 
 async function handlePendingTasks(context: vscode.ExtensionContext): Promise<void> {

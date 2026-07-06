@@ -6,7 +6,7 @@
 
 import * as vscode from "vscode";
 
-type TaskManagerCallback = (data: unknown) => void;
+type TaskManagerCallback = (data: unknown) => void | Promise<void>;
 
 export interface TaskManagerTaskOptions {
   errorMessage?: string;
@@ -52,9 +52,15 @@ export class TaskManager {
             vscode.window.showInformationMessage(`${this.currentOptions.successMessage}`);
           }
 
-          // Call the callback on success for all tasks (not just last ones)
+          // Call the callback on success for all tasks (not just last ones).
+          // Await it so async follow-up failures surface instead of becoming
+          // unhandled rejections that silently kill task chains (e.g. init-repo).
           if (this.currentOptions?.callback !== undefined) {
-            this.currentOptions?.callback(this.currentOptions.callbackData);
+            try {
+              await this.currentOptions.callback(this.currentOptions.callbackData);
+            } catch (error) {
+              vscode.window.showErrorMessage(`Task ${e.execution.task.name} follow-up failed: ${error}`);
+            }
           }
         }
 

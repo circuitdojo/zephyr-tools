@@ -21,12 +21,33 @@ import { SettingsManager } from "../config/settings-manager";
 
 const execFile = util.promisify(cp.execFile);
 
+/**
+ * Execute a task and resolve with its process exit code once it finishes.
+ * Returns undefined when the exit code cannot be determined.
+ */
+async function executeTaskAndWait(task: vscode.Task): Promise<number | undefined> {
+  const execution = await vscode.tasks.executeTask(task);
+  return new Promise((resolve) => {
+    const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
+      if (e.execution === execution) {
+        disposable.dispose();
+        resolve(e.exitCode);
+      }
+    });
+  });
+}
 
 export async function flashCommand(
   config: GlobalConfig,
   context: vscode.ExtensionContext,
   sidebarProvider?: { refresh?(): void }
-): Promise<void> {
+): Promise<boolean> {
+  const validationResult = await ConfigValidator.validateSetupState(config, context, false);
+  if (!validationResult.isValid) {
+    vscode.window.showErrorMessage(validationResult.error!);
+    return false;
+  }
+
   let project = await ProjectConfigManager.load(context);
 
   // Auto-prompt for board if undefined (replicates old extension behavior)
@@ -39,7 +60,7 @@ export async function flashCommand(
     // Check again - if still undefined, show error and return
     if (!project.board) {
       vscode.window.showErrorMessage("You must choose a board before flashing.");
-      return;
+      return false;
     }
   }
 
@@ -51,14 +72,14 @@ export async function flashCommand(
   // Auto-prompt for project target if undefined (replicates old extension behavior)
   if (!project.target) {
     await changeProjectCommand(config, context);
-    
-    // Reload project config after changeProjectCommand  
+
+    // Reload project config after changeProjectCommand
     project = await ProjectConfigManager.load(context);
-    
+
     // Check again - if still undefined, show error and return
     if (!project.target) {
       vscode.window.showErrorMessage("You must choose a project before flashing.");
-      return;
+      return false;
     }
   }
 
@@ -71,7 +92,10 @@ export async function flashCommand(
   // Tasks
   const taskName = "Zephyr Tools: Flash";
 
-  // Generate universal build path that works on windows & *nix
+  // Generate universal build path that works on windows & *nix.
+  // Note: this command stays in command-line form because runnerParams is a raw
+  // shell fragment (e.g. -O="--probe" -O="1234"); the interpolated pieces here
+  // (relative build dir, runner name) contain no spaces or shell metacharacters.
   const buildPath = path.join("build", project.board?.split("/")[0] ?? "");
   let cmd = `west flash -d ${buildPath}`;
 
@@ -107,28 +131,20 @@ export async function flashCommand(
 
   vscode.window.showInformationMessage(`Flashing for ${project.board}`);
 
-  // Set up task completion listener to refresh sidebar (flash may trigger build)
-  let taskCompletionDisposable: vscode.Disposable | undefined;
-  if (sidebarProvider) {
-    taskCompletionDisposable = vscode.tasks.onDidEndTask((taskEvent) => {
-      // Check if this is our flash task that completed
-      if (taskEvent.execution.task === task) {
-        console.log('Flash task completed, refreshing sidebar in 1 second...');
-        // Small delay to ensure build artifacts are fully written if build occurred
-        setTimeout(() => {
-          if (sidebarProvider && typeof sidebarProvider.refresh === 'function') {
-            sidebarProvider.refresh();
-          }
-        }, 1000);
-        
-        // Clean up the listener
-        taskCompletionDisposable?.dispose();
-      }
-    });
+  // Wait for the flash to finish so callers (e.g. flash-and-monitor) don't open
+  // the serial port while west flash is still using it.
+  const exitCode = await executeTaskAndWait(task);
+
+  // Refresh sidebar after completion (flash may have triggered a build)
+  if (sidebarProvider && typeof sidebarProvider.refresh === 'function') {
+    sidebarProvider.refresh();
   }
 
-  // Start task here
-  await vscode.tasks.executeTask(task);
+  if (exitCode !== 0) {
+    vscode.window.showErrorMessage("Flash failed. See task output for details.");
+    return false;
+  }
+  return true;
 }
 
 export async function flashAndMonitorCommand(
@@ -151,8 +167,10 @@ export async function flashAndMonitorCommand(
       return await flashProbeRsAndMonitorCommand(config, context);
     }
 
-    // Step 1: Flash the device
-    await flashCommand(config, context, sidebarProvider);
+    // Step 1: Flash the device (waits for completion; skip monitor on failure)
+    if (!(await flashCommand(config, context, sidebarProvider))) {
+      return;
+    }
 
     // Step 2: Set up serial port if not configured
     let port = SettingsManager.getSerialPort();
@@ -162,13 +180,13 @@ export async function flashAndMonitorCommand(
         vscode.window.showErrorMessage("Error obtaining serial port for monitoring.");
         return;
       }
-      
+
       await SettingsManager.setSerialPort(port);
     }
 
     // Step 3: Start monitoring
     await monitorCommand(config, context);
-    
+
   } catch (error) {
     vscode.window.showErrorMessage(`Flash and monitor failed: ${error}`);
   }
@@ -188,8 +206,10 @@ export async function flashProbeRsAndMonitorCommand(
   try {
     await ProjectConfigManager.load(context);
 
-    // Step 1: Flash the device with probe-rs
-    await flashProbeRsCommand(config, context);
+    // Step 1: Flash the device with probe-rs (skip monitor on failure)
+    if (!(await flashProbeRsCommand(config, context))) {
+      return;
+    }
 
     // Step 2: Set up serial port if not configured
     let port = SettingsManager.getSerialPort();
@@ -214,34 +234,40 @@ export async function flashProbeRsAndMonitorCommand(
 export async function flashProbeRsCommand(
   config: GlobalConfig,
   context: vscode.ExtensionContext
-): Promise<void> {
+): Promise<boolean> {
+  const validationResult = await ConfigValidator.validateSetupState(config, context, false);
+  if (!validationResult.isValid) {
+    vscode.window.showErrorMessage(validationResult.error!);
+    return false;
+  }
+
   let project = await ProjectConfigManager.load(context);
 
   // Auto-prompt for project target if undefined (replicates old extension behavior)
   if (!project.target) {
     await changeProjectCommand(config, context);
-    
-    // Reload project config after changeProjectCommand  
+
+    // Reload project config after changeProjectCommand
     project = await ProjectConfigManager.load(context);
-    
+
     // Check again - if still undefined, show error and return
     if (!project.target) {
       vscode.window.showErrorMessage("You must choose a project before flashing.");
-      return;
+      return false;
     }
   }
 
   // Auto-prompt for board if undefined (replicates old extension behavior)
   if (!project.board) {
     await changeBoardCommand(config, context);
-    
+
     // Reload project config after changeBoardCommand
     project = await ProjectConfigManager.load(context);
-    
+
     // Check again - if still undefined, show error and return
     if (!project.board) {
       vscode.window.showErrorMessage("You must choose a board before flashing.");
-      return;
+      return false;
     }
   }
 
@@ -269,21 +295,18 @@ export async function flashProbeRsCommand(
   // If not found in either location, show error
   else {
     vscode.window.showErrorMessage(`Hex file not found at paths: ${hexFilePathZephyr} or ${hexFilePathBoard}. Build project before flashing.`);
-    return;
+    return false;
   }
 
   // Check for available probes and handle settings
   let probeId: string | undefined = SettingsManager.getProbeRsProbeId();
   const availableProbes = await ProbeManager.getAvailableProbes(shellOptions.env);
-  if (!availableProbes) {
+  if (!availableProbes || availableProbes.length === 0) {
     vscode.window.showErrorMessage("No debug probes found. Please connect a probe and try again.");
-    return;
+    return false;
   }
-  
-  if (availableProbes.length === 0) {
-    vscode.window.showErrorMessage("No debug probes found. Please connect a probe and try again.");
-    return;
-  } else if (availableProbes.length === 1) {
+
+  if (availableProbes.length === 1) {
     // Single probe, use it automatically
     probeId = availableProbes[0].probeId;
     console.log(`Using single available probe: ${probeId}`);
@@ -309,10 +332,10 @@ export async function flashProbeRsCommand(
       const selectedProbe = await ProbeManager.selectProbe(availableProbes);
       if (!selectedProbe) {
         vscode.window.showErrorMessage("No probe selected for probe-rs flashing.");
-        return;
+        return false;
       }
       probeId = selectedProbe.probeId;
-      
+
       // Save the selected probe ID
       if (probeId) {
         await SettingsManager.setProbeRsProbeId(probeId);
@@ -322,7 +345,7 @@ export async function flashProbeRsCommand(
 
   // Get chip name from settings or user selection
   let chipName: string | undefined = SettingsManager.getProbeRsChipName();
-  
+
   // Check if we have a saved chip name
   if (chipName) {
     console.log(`Using saved chip name: ${chipName}`);
@@ -331,34 +354,35 @@ export async function flashProbeRsCommand(
     chipName = await ProbeManager.getProbeRsChipName(shellOptions.env);
     if (!chipName) {
       vscode.window.showErrorMessage("No chip selected for probe-rs flashing.");
-      return;
+      return false;
     }
-    
+
     // Save the selected chip name
     await SettingsManager.setProbeRsChipName(chipName);
   }
 
-  // Command - use probe-rs download with the merged.hex file
+  // Command - use probe-rs download with the merged.hex file. Arguments are
+  // passed as an array so VS Code shell-quotes paths with spaces correctly.
   const tools = PlatformUtils.getToolExecutables();
-  let cmd = `${tools.probeRs} download --chip ${chipName} --binary-format hex ${hexFilePath}`;
-  
+  const downloadArgs = ["download", "--chip", chipName, "--binary-format", "hex", hexFilePath];
+
   // Append --probe flag if probeId is available
   if (probeId) {
-    cmd += ` --probe ${probeId}`;
+    downloadArgs.push("--probe", probeId);
   }
-  
+
   // Add verification flags from settings
   if (SettingsManager.getProbeRsPreverify()) {
-    cmd += ` --preverify`;
+    downloadArgs.push("--preverify");
   }
-  
+
   if (SettingsManager.getProbeRsVerify()) {
-    cmd += ` --verify`;
+    downloadArgs.push("--verify");
   }
 
-  console.log("probe-rs command: " + cmd);
+  console.log(`probe-rs command: ${tools.probeRs} ${downloadArgs.join(" ")}`);
 
-  const exec = new vscode.ShellExecution(cmd, options);
+  const exec = new vscode.ShellExecution(tools.probeRs, downloadArgs, options);
 
   // Task
   const task = new vscode.Task(
@@ -377,66 +401,45 @@ export async function flashProbeRsCommand(
     console.log("Running recovery --unlock-only before flash...");
     const recovered = await runRecovery(options.env);
     if (!recovered) {
-      return;
+      return false;
     }
   }
 
   // Execute the flash task and wait for completion
-  const taskExecution = await vscode.tasks.executeTask(task);
-
-  // Create a promise that resolves when the task completes
-  const taskCompletionPromise = new Promise<void>((resolve, reject) => {
-    const disposable = vscode.tasks.onDidEndTask((e) => {
-      if (e.execution === taskExecution) {
-        disposable.dispose();
-        resolve();
-      }
-    });
-
-    const errorDisposable = vscode.tasks.onDidEndTaskProcess((e) => {
-      if (e.execution === taskExecution && e.exitCode !== 0) {
-        disposable.dispose();
-        errorDisposable.dispose();
-        reject(new Error(`Flash task failed with exit code ${e.exitCode}`));
-      }
-    });
-  });
-
-  try {
-    // Wait for the flash task to complete
-    await taskCompletionPromise;
-
-    console.log("Flash task completed successfully, now resetting device...");
-
-    // Reset the device after successful programming (best-effort — firmware
-    // that immediately sleeps or locks the debug port will cause this to fail,
-    // which is fine since the device is already running the new firmware)
-    let resetCmd = `${tools.probeRs} reset --chip ${chipName}`;
-
-    // Append --probe flag if probeId is available
-    if (probeId) {
-      resetCmd += ` --probe ${probeId}`;
-    }
-
-    console.log("probe-rs reset command: " + resetCmd);
-
-    const resetExec = new vscode.ShellExecution(resetCmd, options);
-
-    const resetTask = new vscode.Task(
-      { type: "zephyr-tools", command: "Zephyr Tools: Reset Device" },
-      vscode.TaskScope.Workspace,
-      "Zephyr Tools: Reset Device",
-      "zephyr-tools",
-      resetExec,
-    );
-
-    await vscode.tasks.executeTask(resetTask);
-    vscode.window.showInformationMessage("Device flashed successfully!");
-
-  } catch (error) {
-    console.error("Flash task failed:", error);
+  const exitCode = await executeTaskAndWait(task);
+  if (exitCode !== 0) {
+    console.error(`Flash task failed with exit code ${exitCode}`);
     vscode.window.showErrorMessage("probe-rs flash error! Check that your probe is connected and the chip name is correct.");
+    return false;
   }
+
+  console.log("Flash task completed successfully, now resetting device...");
+
+  // Reset the device after successful programming (best-effort — firmware
+  // that immediately sleeps or locks the debug port will cause this to fail,
+  // which is fine since the device is already running the new firmware)
+  const resetArgs = ["reset", "--chip", chipName];
+
+  // Append --probe flag if probeId is available
+  if (probeId) {
+    resetArgs.push("--probe", probeId);
+  }
+
+  console.log(`probe-rs reset command: ${tools.probeRs} ${resetArgs.join(" ")}`);
+
+  const resetExec = new vscode.ShellExecution(tools.probeRs, resetArgs, options);
+
+  const resetTask = new vscode.Task(
+    { type: "zephyr-tools", command: "Zephyr Tools: Reset Device" },
+    vscode.TaskScope.Workspace,
+    "Zephyr Tools: Reset Device",
+    "zephyr-tools",
+    resetExec,
+  );
+
+  await vscode.tasks.executeTask(resetTask);
+  vscode.window.showInformationMessage("Device flashed successfully!");
+  return true;
 }
 
 /**
@@ -524,10 +527,11 @@ export async function recoverDeviceCommand(
   }
 
   const options: vscode.ShellExecutionOptions = { env };
-  const cmd = `${recoveryPath} ${choice.flag}`;
   const taskName = "Zephyr Tools: Recover Device";
 
-  const exec = new vscode.ShellExecution(cmd, options);
+  // recoveryPath is user-configurable and may contain spaces — pass as command +
+  // args so VS Code shell-quotes it correctly.
+  const exec = new vscode.ShellExecution(recoveryPath, [choice.flag], options);
   const task = new vscode.Task(
     { type: "zephyr-tools", command: taskName },
     vscode.TaskScope.Workspace,

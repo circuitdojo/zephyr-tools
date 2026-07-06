@@ -78,9 +78,11 @@ export async function monitorCommand(
   const taskName = "Zephyr Tools: Serial Monitor";
 
   // Command to run - conditionally include --save based on setting
-  const saveFlag = SettingsManager.getSerialSaveLogsToFile() ? ' --save' : '';
-  const cmd = `zephyr-tools --port ${port} --follow${saveFlag}`;
-  const exec = new vscode.ShellExecution(cmd, options);
+  const monitorArgs = ["--port", port, "--follow"];
+  if (SettingsManager.getSerialSaveLogsToFile()) {
+    monitorArgs.push("--save");
+  }
+  const exec = new vscode.ShellExecution("zephyr-tools", monitorArgs, options);
 
   // Task
   const task = new vscode.Task(

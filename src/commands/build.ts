@@ -58,18 +58,18 @@ export async function buildForBoard(
   const currentSnapshot = createSnapshot(project);
   const storedSnapshot = await ProjectConfigManager.loadBuildSnapshot(context, buildPath);
 
-  let cmd: string;
+  let args: string[];
   if (pristine || !cache) {
-    cmd = buildFullCommand(project, buildPath, pristine);
+    args = buildFullCommandArgs(project, buildPath, pristine);
   } else if (configHasAdditionsOrChanges(project, cache)) {
-    cmd = buildFullCommand(project, buildPath, false);
+    args = buildFullCommandArgs(project, buildPath, false);
   } else if (storedSnapshot && snapshotHasRemovals(currentSnapshot, storedSnapshot)) {
-    cmd = buildFullCommand(project, buildPath, true);
+    args = buildFullCommandArgs(project, buildPath, true);
   } else {
-    cmd = `west build -d ${buildPath}`;
+    args = ["build", "-d", buildPath];
   }
 
-  const exec = new vscode.ShellExecution(cmd, options);
+  const exec = new vscode.ShellExecution("west", args, options);
 
   const task = new vscode.Task(
     { type: "zephyr-tools", command: taskName, board },
@@ -164,8 +164,9 @@ export async function buildCommand(
 
 /**
  * Extract a build config snapshot from the current project config.
+ * Exported for testing.
  */
-function createSnapshot(project: ProjectConfig): BuildConfigSnapshot {
+export function createSnapshot(project: ProjectConfig): BuildConfigSnapshot {
   return {
     board: project.board ?? "",
     sysbuild: project.sysbuild ?? false,
@@ -178,8 +179,9 @@ function createSnapshot(project: ProjectConfig): BuildConfigSnapshot {
 /**
  * Check if current config has new or changed values vs CMakeCache.txt.
  * Handles additions and value changes (not removals).
+ * Exported for testing.
  */
-function configHasAdditionsOrChanges(project: ProjectConfig, cache: Map<string, string>): boolean {
+export function configHasAdditionsOrChanges(project: ProjectConfig, cache: Map<string, string>): boolean {
   // Check board
   if ((project.board ?? "") !== (cache.get("BOARD") ?? "")) {
     return true;
@@ -219,8 +221,9 @@ function configHasAdditionsOrChanges(project: ProjectConfig, cache: Map<string, 
 /**
  * Check if items were removed from the current config vs the stored snapshot.
  * Removals require a pristine build to clear stale CMakeCache entries.
+ * Exported for testing.
  */
-function snapshotHasRemovals(current: BuildConfigSnapshot, previous: BuildConfigSnapshot): boolean {
+export function snapshotHasRemovals(current: BuildConfigSnapshot, previous: BuildConfigSnapshot): boolean {
   // Check if any conf files were removed
   if (current.extraConfFiles.length < previous.extraConfFiles.length) {
     return true;
@@ -248,38 +251,44 @@ function snapshotHasRemovals(current: BuildConfigSnapshot, previous: BuildConfig
 }
 
 /**
- * Build the full west build command with all flags and -D defines.
+ * Build the full west build argument list with all flags and -D defines.
+ * Returned as an argument array (without the leading "west") so VS Code's
+ * ShellExecution can quote each argument correctly per platform.
+ * Exported for testing.
  */
-function buildFullCommand(project: ProjectConfig, buildPath: string, pristine: boolean): string {
-  let cmd = `west build -b ${project.board}${pristine ? " -p" : ""} -d ${buildPath}${
-    project.sysbuild ? " --sysbuild" : ""
-  }`;
+export function buildFullCommandArgs(project: ProjectConfig, buildPath: string, pristine: boolean): string[] {
+  const args = ["build", "-b", project.board ?? ""];
+  if (pristine) {
+    args.push("-p");
+  }
+  args.push("-d", buildPath);
+  if (project.sysbuild) {
+    args.push("--sysbuild");
+  }
 
   const hasExtraConfFiles = project.extraConfFiles && project.extraConfFiles.length > 0;
   const hasExtraOverlayFiles = project.extraOverlayFiles && project.extraOverlayFiles.length > 0;
   const hasCustomDefines = project.extraCMakeDefines && project.extraCMakeDefines.length > 0;
 
   if (hasExtraConfFiles || hasExtraOverlayFiles || hasCustomDefines) {
-    cmd += ' --';
+    args.push("--");
 
     if (hasExtraConfFiles) {
-      const confFileList = project.extraConfFiles!.join(';');
-      cmd += ` -DEXTRA_CONF_FILE="${confFileList}"`;
+      args.push(`-DEXTRA_CONF_FILE=${project.extraConfFiles!.join(";")}`);
     }
 
     if (hasExtraOverlayFiles) {
-      const overlayFileList = project.extraOverlayFiles!.join(';');
-      cmd += ` -DDTC_OVERLAY_FILE="${overlayFileList}"`;
+      args.push(`-DDTC_OVERLAY_FILE=${project.extraOverlayFiles!.join(";")}`);
     }
 
     if (hasCustomDefines) {
       for (const define of project.extraCMakeDefines!) {
-        cmd += ` -D${define.replace(/"/g, '\\"')}`;
+        args.push(`-D${define}`);
       }
     }
   }
 
-  return cmd;
+  return args;
 }
 
 export async function buildPristineCommand(

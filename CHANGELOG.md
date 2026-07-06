@@ -2,6 +2,16 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.6.4] - 2026-07-06
+
+**Fixed:**
+- "Init Repo" no longer breaks on a repository URL or branch name containing a space or shell metacharacter — `west init` was built by concatenating them into a shell command string; it now runs with arguments passed as an array, with no shell involved
+- Serial monitor no longer starts while a flash is still in progress ("Flash and Monitor" / "Flash with probe-rs and Monitor") — flashing previously returned as soon as the task started rather than when it finished, so the monitor could open the port mid-flash or before a failed flash was reported
+- probe-rs flash no longer leaks a task-completion listener on every successful run
+- `west build`/`west flash`/probe-rs/newtmgr/recovery commands now pass paths and user-supplied values as individual arguments instead of an interpolated string, so paths with spaces (build directories, hex files, the configurable recovery tool path) are handled correctly
+- The project picker no longer skips folders whose name merely contains "build" or ".git" (e.g. a project named `builder`)
+- An async failure in an Init Repo follow-up step (west list, pip install, SDK check) is now surfaced as an error instead of silently stopping the init chain
+
 ### [0.6.3] - 2026-07-06
 
 **Fixed:**
