@@ -2,6 +2,11 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.6.3] - 2026-07-06
+
+**Fixed:**
+- "Create Project" no longer fails when the destination path contains a space — `git init` and `west init -l` were built by concatenating the path into a shell command string, so a space split it into extra arguments. Both now run via `execFile` with the path passed as a single argument, with no shell involved (fixes [#27](https://github.com/circuitdojo/zephyr-tools/issues/27))
+
 ### [0.6.2] - 2026-06-23
 
 **Fixed:**

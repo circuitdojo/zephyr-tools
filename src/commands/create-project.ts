@@ -95,17 +95,19 @@ export async function createProjectCommand(
   const extensionPath = context.extensionPath;
   await copyFilesRecursively(path.join(extensionPath, "templates", templateSubPath), appDest);
 
-  // Promisified exec
-  const exec = util.promisify(cp.exec);
+  // Promisified execFile (no shell, so paths with spaces are passed intact)
+  const execFile = util.promisify(cp.execFile);
 
   // Init git repo
-  await exec("git init " + appDest, { env: SettingsManager.buildEnvironmentForExecution() });
+  await execFile("git", ["init", appDest], { env: SettingsManager.buildEnvironmentForExecution() });
 
   // West init
-  const initCmd = `west init -l ${appDest}`;
-  await exec(initCmd, { env: SettingsManager.buildEnvironmentForExecution(), cwd: dest.fsPath });
+  await execFile("west", ["init", "-l", appDest], {
+    env: SettingsManager.buildEnvironmentForExecution(),
+    cwd: dest.fsPath,
+  });
 
-  console.log("init_cmd: " + initCmd);
+  console.log(`init_cmd: west init -l ${appDest}`);
 
   // Init the rest of the way
   await initRepoCommand(config, context, dest);
