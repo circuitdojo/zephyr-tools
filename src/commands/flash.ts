@@ -18,7 +18,7 @@ import { changeProjectCommand } from "./project-management";
 import { ProjectConfig } from "../types";
 import { PlatformUtils, EnvironmentUtils } from "../utils";
 import { SettingsManager } from "../config/settings-manager";
-import { executeTaskAndWait } from "../tasks";
+import { createProcessExecution, createShellCommandExecution, executeTaskAndWait } from "../tasks";
 import { FLASH_WORK_DIR, FlashImage, resolveFlashImages } from "../build/flash-hex";
 import { hexHasData } from "../build/intel-hex";
 import {
@@ -92,6 +92,7 @@ export async function flashCommand(
   // Note: this command stays in command-line form because runnerParams is a raw
   // shell fragment (e.g. -O="--probe" -O="1234"); the interpolated pieces here
   // (relative build dir, runner name) contain no spaces or shell metacharacters.
+  // It runs under /bin/sh on POSIX so Ctrl-C is reported as a failure.
   const buildPath = path.join("build", project.board?.split("/")[0] ?? "");
   let cmd = `west flash -d ${buildPath}`;
 
@@ -114,7 +115,7 @@ export async function flashCommand(
 
   console.log("flash command: " + cmd);
 
-  const exec = new vscode.ShellExecution(cmd, options);
+  const exec = createShellCommandExecution(cmd, options);
 
   // Task
   const task = new vscode.Task(
@@ -368,8 +369,8 @@ export async function flashProbeRsCommand(
 
   vscode.window.showInformationMessage(`Flashing with probe-rs for ${project.board} using chip: ${chipName}`);
 
-  // Download each image in flash order. ProcessExecution passes arguments
-  // without a shell, so paths need no quoting.
+  // Download each image in flash order. Arguments are passed verbatim (no
+  // shell parsing), so paths need no quoting.
   const tools = PlatformUtils.getToolExecutables();
   for (const image of images) {
     const downloadArgs = ["download", "--chip", chipName, "--binary-format", "hex", image.hexPath];
@@ -391,7 +392,7 @@ export async function flashProbeRsCommand(
 
     console.log(`probe-rs command: ${tools.probeRs} ${downloadArgs.join(" ")}`);
 
-    const exec = new vscode.ProcessExecution(tools.probeRs, downloadArgs, options);
+    const exec = createProcessExecution(tools.probeRs, downloadArgs, options);
 
     const taskName = `Zephyr Tools: Flash ${image.label} with probe-rs`;
     const task = new vscode.Task(
@@ -425,7 +426,7 @@ export async function flashProbeRsCommand(
 
   console.log(`probe-rs reset command: ${tools.probeRs} ${resetArgs.join(" ")}`);
 
-  const resetExec = new vscode.ProcessExecution(tools.probeRs, resetArgs, options);
+  const resetExec = createProcessExecution(tools.probeRs, resetArgs, options);
 
   const resetTask = new vscode.Task(
     { type: "zephyr-tools", command: "Zephyr Tools: Reset Device" },
@@ -655,9 +656,9 @@ export async function recoverDeviceCommand(
   const options: vscode.ProcessExecutionOptions = { env };
   const taskName = "Zephyr Tools: Recover Device";
 
-  // recoveryPath is user-configurable and may contain spaces; ProcessExecution
-  // runs it without a shell.
-  const exec = new vscode.ProcessExecution(recoveryPath, [choice.flag], options);
+  // recoveryPath is user-configurable and may contain spaces; it is run
+  // without shell parsing.
+  const exec = createProcessExecution(recoveryPath, [choice.flag], options);
   const task = new vscode.Task(
     { type: "zephyr-tools", command: taskName },
     vscode.TaskScope.Workspace,

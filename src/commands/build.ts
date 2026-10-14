@@ -9,7 +9,7 @@ import * as path from "path";
 import { GlobalConfig, ProjectConfig, BuildConfigSnapshot } from "../types";
 import { ProjectConfigManager, ConfigValidator } from "../config";
 import { ProjectOverridesManager, ProjectOverrides } from "../config/project-overrides";
-import { TaskManager, TaskManagerTaskOptions } from "../tasks";
+import { createProcessExecution, TaskManager, TaskManagerTaskOptions } from "../tasks";
 import { changeBoardCommand, discoverBoards } from "./board-management";
 import { changeProjectCommand } from "./project-management";
 import { ensureCompatibleSdk } from "./install-sdk";
@@ -69,7 +69,7 @@ export async function buildForBoard(
     args = ["build", "-d", buildPath];
   }
 
-  const exec = new vscode.ProcessExecution("west", args, options);
+  const exec = createProcessExecution("west", args, options);
 
   const task = new vscode.Task(
     { type: "zephyr-tools", command: taskName, board },
@@ -253,7 +253,7 @@ export function snapshotHasRemovals(current: BuildConfigSnapshot, previous: Buil
 /**
  * Build the full west build argument list with all flags and -D defines.
  * Returned as an argument array (without the leading "west") for
- * ProcessExecution, which passes each argument verbatim without a shell.
+ * createProcessExecution, which passes each argument verbatim (no shell parsing).
  * Exported for testing.
  */
 export function buildFullCommandArgs(project: ProjectConfig, buildPath: string, pristine: boolean): string[] {

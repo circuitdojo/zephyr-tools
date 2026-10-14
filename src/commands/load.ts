@@ -10,7 +10,7 @@ import * as fs from "fs-extra";
 import { GlobalConfig } from "../types";
 import { ProjectConfigManager, ConfigValidator } from "../config";
 import { SerialPortManager, NewtmgrManager } from "../hardware";
-import { TaskManager } from "../tasks";
+import { createProcessExecution, TaskManager } from "../tasks";
 import { monitorCommand, terminateMonitor } from "./monitor";
 import { PlatformUtils, EnvironmentUtils } from "../utils";
 import { SettingsManager } from "../config/settings-manager";
@@ -117,7 +117,7 @@ export async function loadCommand(
   // Put device into BL mode automatically for Circuit Dojo Feather nRF9160
   if (boardName.includes("circuitdojo_feather_nrf9160")) {
     const tools = PlatformUtils.getToolExecutables();
-    const blExec = new vscode.ProcessExecution(tools.zephyrTools, ["-b"], options);
+    const blExec = createProcessExecution(tools.zephyrTools, ["-b"], options);
 
     const blTask = new vscode.Task(
       { type: "zephyr-tools", command: "Zephyr Tools: Enter Bootloader" },
@@ -141,7 +141,7 @@ export async function loadCommand(
   const uploadArgs = ["-c", "vscode-zephyr-tools", "image", "upload", targetFile, "-r", "3", "-t", "0.25"];
   console.log(`load command: ${tools.newtmgr} ${uploadArgs.join(" ")}`);
 
-  const uploadExec = new vscode.ProcessExecution(tools.newtmgr, uploadArgs, options);
+  const uploadExec = createProcessExecution(tools.newtmgr, uploadArgs, options);
 
   const uploadTask = new vscode.Task(
     { type: "zephyr-tools", command: taskName },
@@ -165,7 +165,7 @@ export async function loadCommand(
   await new Promise(resolve => setTimeout(resolve, 1000));
 
   // Reset device after upload
-  const resetExec = new vscode.ProcessExecution(tools.newtmgr, ["-c", "vscode-zephyr-tools", "reset"], options);
+  const resetExec = createProcessExecution(tools.newtmgr, ["-c", "vscode-zephyr-tools", "reset"], options);
 
   const resetTask = new vscode.Task(
     { type: "zephyr-tools", command: "Zephyr Tools: Reset Device" },

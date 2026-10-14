@@ -9,7 +9,7 @@ import { GlobalConfig } from "../types";
 import { ProjectConfigManager, ConfigValidator } from "../config";
 import { EnvironmentUtils } from "../utils";
 import { SettingsManager } from "../config/settings-manager";
-import { TaskManager } from "../tasks";
+import { TaskManager, createProcessExecution } from "../tasks";
 import { OutputChannelManager } from "../ui";
 import { getRequirementsInstallCommand } from "../environment";
 import { ensureCompatibleSdk } from "./install-sdk";
@@ -27,13 +27,13 @@ function getWorkspaceCwd(): string | undefined {
  */
 async function buildRequirementsTask(cwd: string, taskName: string): Promise<vscode.Task> {
   const env = EnvironmentUtils.normalizeEnvironment(SettingsManager.buildEnvironmentForExecution());
-  const cmd = await getRequirementsInstallCommand(
+  const [command, ...args] = await getRequirementsInstallCommand(
     SettingsManager.getZephyrBase() ?? "zephyr",
     env,
     cwd
   );
 
-  const exec = new vscode.ShellExecution(cmd, { env, cwd });
+  const exec = createProcessExecution(command, args, { env, cwd });
   return new vscode.Task(
     { type: TASK_TYPE, command: taskName },
     vscode.TaskScope.Workspace,
@@ -67,7 +67,7 @@ export async function updateCommand(
   const env = EnvironmentUtils.normalizeEnvironment(SettingsManager.buildEnvironmentForExecution());
   const taskName = "Zephyr Tools: Update Dependencies";
 
-  const updateExec = new vscode.ShellExecution("west update", { env, cwd });
+  const updateExec = createProcessExecution("west", ["update"], { env, cwd });
   const updateTask = new vscode.Task(
     { type: TASK_TYPE, command: taskName },
     vscode.TaskScope.Workspace,

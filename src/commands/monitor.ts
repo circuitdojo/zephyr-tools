@@ -10,7 +10,7 @@ import { ProjectConfigManager } from "../config";
 import { SerialPortManager } from "../hardware";
 import { EnvironmentUtils } from "../utils";
 import { SettingsManager } from "../config/settings-manager";
-import { executeTaskWithEndHandler } from "../tasks";
+import { createProcessExecution, executeTaskWithEndHandler } from "../tasks";
 
 let activeMonitorExecution: vscode.TaskExecution | undefined;
 
@@ -78,7 +78,7 @@ export async function monitorCommand(
   if (SettingsManager.getSerialSaveLogsToFile()) {
     monitorArgs.push("--save");
   }
-  const exec = new vscode.ProcessExecution("zephyr-tools", monitorArgs, options);
+  const exec = createProcessExecution("zephyr-tools", monitorArgs, options);
 
   // Task
   const task = new vscode.Task(
