@@ -187,8 +187,8 @@ export async function initRepoCommand(
       // Use default manifest filename (repo not cloned yet, can't discover files)
       manifest = "west.yml";
 
-      // git clone to destination. url and branch are user input — pass as an
-      // argument array so VS Code shell-quotes them (spaces/metacharacters safe).
+      // git clone to destination. url and branch are user input — run west
+      // without a shell so spaces and shell metacharacters stay literal.
       const initArgs = ["init", "-m", url, "--mf", manifest];
 
       // Set branch option
@@ -197,7 +197,7 @@ export async function initRepoCommand(
         initArgs.push("--mr", branch);
       }
 
-      const exec = new vscode.ShellExecution("west", initArgs, shellOptions);
+      const exec = new vscode.ProcessExecution("west", initArgs, shellOptions);
 
       // Task
       const task = new vscode.Task(

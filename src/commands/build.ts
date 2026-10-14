@@ -43,7 +43,7 @@ export async function buildForBoard(
 
   const env = SettingsManager.buildEnvironmentForExecution();
 
-  const options: vscode.ShellExecutionOptions = {
+  const options: vscode.ProcessExecutionOptions = {
     env: EnvironmentUtils.normalizeEnvironment(env),
     cwd: projectTarget,
   };
@@ -69,7 +69,7 @@ export async function buildForBoard(
     args = ["build", "-d", buildPath];
   }
 
-  const exec = new vscode.ShellExecution("west", args, options);
+  const exec = new vscode.ProcessExecution("west", args, options);
 
   const task = new vscode.Task(
     { type: "zephyr-tools", command: taskName, board },
@@ -252,8 +252,8 @@ export function snapshotHasRemovals(current: BuildConfigSnapshot, previous: Buil
 
 /**
  * Build the full west build argument list with all flags and -D defines.
- * Returned as an argument array (without the leading "west") so VS Code's
- * ShellExecution can quote each argument correctly per platform.
+ * Returned as an argument array (without the leading "west") for
+ * ProcessExecution, which passes each argument verbatim without a shell.
  * Exported for testing.
  */
 export function buildFullCommandArgs(project: ProjectConfig, buildPath: string, pristine: boolean): string[] {

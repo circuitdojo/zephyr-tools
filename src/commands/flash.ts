@@ -18,24 +18,20 @@ import { changeProjectCommand } from "./project-management";
 import { ProjectConfig } from "../types";
 import { PlatformUtils, EnvironmentUtils } from "../utils";
 import { SettingsManager } from "../config/settings-manager";
+import { executeTaskAndWait } from "../tasks";
+import { FLASH_WORK_DIR, FlashImage, resolveFlashImages } from "../build/flash-hex";
+import { hexHasData } from "../build/intel-hex";
+import {
+  NRF91_UICR_SIZE,
+  NRF91_UICR_START,
+  UicrWords,
+  extractUicrWords,
+  parseProbeRsRead32,
+  planUicr,
+  stripHexRange,
+} from "../build/uicr";
 
 const execFile = util.promisify(cp.execFile);
-
-/**
- * Execute a task and resolve with its process exit code once it finishes.
- * Returns undefined when the exit code cannot be determined.
- */
-async function executeTaskAndWait(task: vscode.Task): Promise<number | undefined> {
-  const execution = await vscode.tasks.executeTask(task);
-  return new Promise((resolve) => {
-    const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
-      if (e.execution === execution) {
-        disposable.dispose();
-        resolve(e.exitCode);
-      }
-    });
-  });
-}
 
 export async function flashCommand(
   config: GlobalConfig,
@@ -273,30 +269,17 @@ export async function flashProbeRsCommand(
 
   // Create shell options with normalized environment
   const shellOptions = EnvironmentUtils.createShellOptions(SettingsManager.buildEnvironmentForExecution(), project.target);
-  const options: vscode.ShellExecutionOptions = shellOptions;
-
-  const taskName = "Zephyr Tools: Flash with probe-rs";
+  const options: vscode.ProcessExecutionOptions = shellOptions;
 
   // Generate universal build path that works on windows & *nix
   const buildPath = path.join("build", project.board.split("/")[0]);
-  const hexFilePathZephyr = path.join(buildPath, "zephyr", "merged.hex");
-  const hexFilePathBoard = path.join(buildPath, "merged.hex");
-  
-  let hexFilePath = "";
-  
-  // Check if merged.hex exists in zephyr subdirectory first
-  if (await fs.pathExists(path.join(project.target!, hexFilePathZephyr))) {
-    hexFilePath = hexFilePathZephyr;
-  }
-  // If not found, check in board directory
-  else if (await fs.pathExists(path.join(project.target!, hexFilePathBoard))) {
-    hexFilePath = hexFilePathBoard;
-  }
-  // If not found in either location, show error
-  else {
-    vscode.window.showErrorMessage(`Hex file not found at paths: ${hexFilePathZephyr} or ${hexFilePathBoard}. Build project before flashing.`);
+  const buildDir = path.join(project.target!, buildPath);
+  const flashPlan = await resolveFlashImages(buildDir);
+  if (!flashPlan.ok) {
+    vscode.window.showErrorMessage(flashPlan.error);
     return false;
   }
+  let images: FlashImage[] = flashPlan.images;
 
   // Check for available probes and handle settings
   let probeId: string | undefined = SettingsManager.getProbeRsProbeId();
@@ -361,56 +344,71 @@ export async function flashProbeRsCommand(
     await SettingsManager.setProbeRsChipName(chipName);
   }
 
-  // Command - use probe-rs download with the merged.hex file. Arguments are
-  // passed as an array so VS Code shell-quotes paths with spaces correctly.
-  const tools = PlatformUtils.getToolExecutables();
-  const downloadArgs = ["download", "--chip", chipName, "--binary-format", "hex", hexFilePath];
+  const isNrf91 = chipName.toLowerCase().startsWith("nrf91");
 
-  // Append --probe flag if probeId is available
-  if (probeId) {
-    downloadArgs.push("--probe", probeId);
-  }
-
-  // Add verification flags from settings
-  if (SettingsManager.getProbeRsPreverify()) {
-    downloadArgs.push("--preverify");
-  }
-
-  if (SettingsManager.getProbeRsVerify()) {
-    downloadArgs.push("--verify");
-  }
-
-  console.log(`probe-rs command: ${tools.probeRs} ${downloadArgs.join(" ")}`);
-
-  const exec = new vscode.ShellExecution(tools.probeRs, downloadArgs, options);
-
-  // Task
-  const task = new vscode.Task(
-    { type: "zephyr-tools", command: taskName },
-    vscode.TaskScope.Workspace,
-    taskName,
-    "zephyr-tools",
-    exec,
-  );
-
-  vscode.window.showInformationMessage(`Flashing with probe-rs for ${project.board} using chip: ${chipName}`);
-
-  // Run recovery --unlock-only before flashing (no-op if device is already unlocked)
-  const recoveryPath = getRecoveryBinaryPath();
-  if (recoveryPath) {
+  // The recovery tool is nRF91-specific. Run --unlock-only before flashing
+  // (no-op if the device is already unlocked).
+  if (isNrf91 && getRecoveryBinaryPath()) {
     console.log("Running recovery --unlock-only before flash...");
-    const recovered = await runRecovery(options.env);
+    const recovered = await runRecovery("unlock", probeId, options.env);
     if (!recovered) {
       return false;
     }
   }
 
-  // Execute the flash task and wait for completion
-  const exitCode = await executeTaskAndWait(task);
-  if (exitCode !== 0) {
-    console.error(`Flash task failed with exit code ${exitCode}`);
-    vscode.window.showErrorMessage("probe-rs flash error! Check that your probe is connected and the chip name is correct.");
-    return false;
+  // nRF91 UICR can only be cleared by a full chip erase. Skip UICR writes that
+  // are already on the device, or erase when any still need to be written.
+  if (isNrf91) {
+    const prepared = await prepareNrf91Uicr(buildDir, images, chipName, probeId, options.env);
+    if (!prepared) {
+      return false;
+    }
+    images = prepared;
+  }
+
+  vscode.window.showInformationMessage(`Flashing with probe-rs for ${project.board} using chip: ${chipName}`);
+
+  // Download each image in flash order. ProcessExecution passes arguments
+  // without a shell, so paths need no quoting.
+  const tools = PlatformUtils.getToolExecutables();
+  for (const image of images) {
+    const downloadArgs = ["download", "--chip", chipName, "--binary-format", "hex", image.hexPath];
+
+    // Append --probe flag if probeId is available
+    if (probeId) {
+      downloadArgs.push("--probe", probeId);
+    }
+
+    // Add verification flags from settings. Bootloader images rarely change,
+    // so always preverify them to skip reprogramming when the device matches.
+    if (SettingsManager.getProbeRsPreverify() || image.preverify) {
+      downloadArgs.push("--preverify");
+    }
+
+    if (SettingsManager.getProbeRsVerify()) {
+      downloadArgs.push("--verify");
+    }
+
+    console.log(`probe-rs command: ${tools.probeRs} ${downloadArgs.join(" ")}`);
+
+    const exec = new vscode.ProcessExecution(tools.probeRs, downloadArgs, options);
+
+    const taskName = `Zephyr Tools: Flash ${image.label} with probe-rs`;
+    const task = new vscode.Task(
+      { type: "zephyr-tools", command: taskName },
+      vscode.TaskScope.Workspace,
+      taskName,
+      "zephyr-tools",
+      exec,
+    );
+
+    // Execute the flash task and wait for completion
+    const exitCode = await executeTaskAndWait(task);
+    if (exitCode !== 0) {
+      console.error(`Flash task for ${image.hexPath} failed with exit code ${exitCode}`);
+      vscode.window.showErrorMessage(`probe-rs flash error on ${image.label}! Check that your probe is connected and the chip name is correct.`);
+      return false;
+    }
   }
 
   console.log("Flash task completed successfully, now resetting device...");
@@ -427,7 +425,7 @@ export async function flashProbeRsCommand(
 
   console.log(`probe-rs reset command: ${tools.probeRs} ${resetArgs.join(" ")}`);
 
-  const resetExec = new vscode.ShellExecution(tools.probeRs, resetArgs, options);
+  const resetExec = new vscode.ProcessExecution(tools.probeRs, resetArgs, options);
 
   const resetTask = new vscode.Task(
     { type: "zephyr-tools", command: "Zephyr Tools: Reset Device" },
@@ -465,10 +463,15 @@ function getRecoveryBinaryPath(): string | undefined {
 }
 
 /**
- * Run the recovery tool with --unlock-only to unlock a locked nRF91xx device.
- * Returns true if the device was successfully unlocked.
+ * Run the nRF91 recovery tool: --unlock-only unlocks a locked device,
+ * --erase-only unlocks and erases the whole chip including UICR.
+ * Returns true on success.
  */
-async function runRecovery(env?: { [key: string]: string | undefined }): Promise<boolean> {
+async function runRecovery(
+  mode: "unlock" | "erase",
+  probeId: string | undefined,
+  env?: { [key: string]: string | undefined }
+): Promise<boolean> {
   const recoveryPath = getRecoveryBinaryPath();
   if (!recoveryPath) {
     vscode.window.showErrorMessage(
@@ -477,9 +480,18 @@ async function runRecovery(env?: { [key: string]: string | undefined }): Promise
     return false;
   }
 
+  // The probe's USB interface can still be held briefly by the previous
+  // probe-rs invocation, so wait longer than recovery's 2 s default to open it.
+  const args = [
+    mode === "erase" ? "--erase-only" : "--unlock-only",
+    "--timeout", "10000",
+    ...recoveryProbeArgs(probeId),
+  ];
+
   try {
-    const { stdout, stderr } = await execFile(recoveryPath, ["--unlock-only"], {
-      timeout: 30000,
+    // Worst case: 10 s to open the probe plus 3 unlock/erase retries.
+    const { stdout, stderr } = await execFile(recoveryPath, args, {
+      timeout: 60000,
       env: env as NodeJS.ProcessEnv,
     });
     console.log("Recovery stdout:", stdout);
@@ -494,6 +506,120 @@ async function runRecovery(env?: { [key: string]: string | undefined }): Promise
     vscode.window.showErrorMessage(`Device recovery failed: ${message}`);
     return false;
   }
+}
+
+/**
+ * Select the same probe for recovery as for probe-rs. probe-rs probe IDs are
+ * VID:PID[:serial] with hex VID/PID, or a bare serial; recovery takes VID/PID
+ * as decimal options and defaults them to the Feather's onboard probe.
+ */
+export function recoveryProbeArgs(probeId: string | undefined): string[] {
+  if (!probeId) {
+    return [];
+  }
+  const [vid, pid, ...serial] = probeId.split(":");
+  const isHexId = (value: string | undefined): value is string => value !== undefined && /^[0-9a-f]{4}$/i.test(value);
+  if (!isHexId(vid) || !isHexId(pid)) {
+    return ["--serial", probeId];
+  }
+  const args = ["--vendor-id", String(parseInt(vid, 16)), "--product-id", String(parseInt(pid, 16))];
+  if (serial.length > 0) {
+    args.push("--serial", serial.join(":"));
+  }
+  return args;
+}
+
+/**
+ * Compare the UICR words the images program with the device's UICR. Returns
+ * the images to download (UICR stripped when already programmed; images left
+ * empty are dropped), or undefined on failure or cancel. Erases the chip,
+ * after confirmation, when UICR must be written.
+ */
+async function prepareNrf91Uicr(
+  buildDir: string,
+  images: FlashImage[],
+  chipName: string,
+  probeId: string | undefined,
+  env?: { [key: string]: string | undefined }
+): Promise<FlashImage[] | undefined> {
+  const hexTexts = new Map<FlashImage, string>();
+  const hexWords: UicrWords = new Map();
+  for (const image of images) {
+    const text = await fs.readFile(image.hexPath, "utf8");
+    hexTexts.set(image, text);
+    for (const [address, value] of extractUicrWords(text)) {
+      hexWords.set(address, value);
+    }
+  }
+
+  if (hexWords.size === 0) {
+    return images;
+  }
+
+  const tools = PlatformUtils.getToolExecutables();
+  const readArgs = [
+    "read", "b32", `0x${NRF91_UICR_START.toString(16)}`, String(NRF91_UICR_SIZE / 4),
+    "--chip", chipName,
+  ];
+  if (probeId) {
+    readArgs.push("--probe", probeId);
+  }
+
+  let deviceWords: UicrWords;
+  try {
+    const { stdout } = await execFile(tools.probeRs, readArgs, {
+      timeout: 30000,
+      env: env as NodeJS.ProcessEnv,
+    });
+    deviceWords = parseProbeRsRead32(stdout, NRF91_UICR_START);
+  } catch (error: unknown) {
+    console.error("Reading UICR failed:", error);
+    const errObj = error as { stderr?: string; message?: string };
+    vscode.window.showErrorMessage(`Reading device UICR failed: ${errObj.stderr || errObj.message || "Unknown error"}`);
+    return undefined;
+  }
+
+  const plan = planUicr(hexWords, deviceWords);
+
+  if (plan.action === "erase") {
+    const addresses = plan.addresses.map(a => `0x${a.toString(16).padStart(8, "0")}`).join(", ");
+    console.log(`UICR differs from the build at ${addresses}`);
+    const choice = await vscode.window.showWarningMessage(
+      "This build writes UICR values that differ from the device. nRF91 UICR can only be rewritten by erasing the whole chip, which also clears settings and other stored data.",
+      {
+        modal: true,
+        detail: `Differing UICR words: ${addresses}\n\nA b0 signing key generated in the build directory changes on every pristine build. Set SB_CONFIG_SECURE_BOOT_SIGNING_KEY_FILE to keep it stable.`,
+      },
+      "Erase and Flash"
+    );
+    if (choice !== "Erase and Flash") {
+      return undefined;
+    }
+    // TODO: switch to `probe-rs download --chip-erase` once a probe-rs release
+    // includes #4226 (CTRL-AP ERASEALL for nRF91), and drop this recovery step.
+    if (!(await runRecovery("erase", probeId, env))) {
+      return undefined;
+    }
+    return images;
+  }
+
+  console.log("UICR already matches the build; skipping UICR writes");
+  const stripped: FlashImage[] = [];
+  for (const image of images) {
+    const text = hexTexts.get(image)!;
+    if (extractUicrWords(text).size === 0) {
+      stripped.push(image);
+      continue;
+    }
+    const strippedText = stripHexRange(text);
+    if (!hexHasData(strippedText)) {
+      continue;
+    }
+    const strippedPath = path.join(buildDir, FLASH_WORK_DIR, "uicr-stripped", path.basename(image.hexPath));
+    await fs.outputFile(strippedPath, strippedText);
+    stripped.push({ ...image, hexPath: strippedPath });
+  }
+  return stripped;
 }
 
 /**
@@ -526,12 +652,12 @@ export async function recoverDeviceCommand(
     return;
   }
 
-  const options: vscode.ShellExecutionOptions = { env };
+  const options: vscode.ProcessExecutionOptions = { env };
   const taskName = "Zephyr Tools: Recover Device";
 
-  // recoveryPath is user-configurable and may contain spaces — pass as command +
-  // args so VS Code shell-quotes it correctly.
-  const exec = new vscode.ShellExecution(recoveryPath, [choice.flag], options);
+  // recoveryPath is user-configurable and may contain spaces; ProcessExecution
+  // runs it without a shell.
+  const exec = new vscode.ProcessExecution(recoveryPath, [choice.flag], options);
   const task = new vscode.Task(
     { type: "zephyr-tools", command: taskName },
     vscode.TaskScope.Workspace,
