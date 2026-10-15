@@ -2,6 +2,21 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.7.0] - 2026-10-15
+
+**Added:**
+- probe-rs flashing of NCS 3.5+ sysbuild builds, which no longer produce a `merged.hex` — images are taken from `domains.yaml` `flash_order` and each image's `runners.yaml`. Bootloader images (b0, MCUboot, provisioning, UICR) are merged into one hex flashed with `--preverify`, so they're skipped when the device already matches, followed by the application. Partition Manager builds (NCS 3.4 and earlier) still flash `merged.hex`, chosen from the build's current configuration rather than leftover files
+- nRF91 UICR handling — probe-rs can't rewrite a UICR word once written, so the device's UICR is compared with the build before flashing. Matching UICR is left out of the download; a difference prompts to erase the chip first (a pristine build regenerates the b0 signing key unless `SB_CONFIG_SECURE_BOOT_SIGNING_KEY_FILE` is set)
+- Build assets view lists every merged hex and finds the application ELF through `domains.yaml`
+
+**Fixed:**
+- Stopping a task with Ctrl-C (build, flash, monitor, west, pip) is now reported as a failure — VS Code reported signal-killed tasks as exit code 0, so an interrupted flash could be followed by a reset or the serial monitor as if it had succeeded
+- macOS: serial monitor port list was empty on Macs without Homebrew's libusb — the zephyr-tools CLI was linked against Homebrew's `libusb-1.0.0.dylib` and aborted at launch. CLI 0.1.10 builds libusb in
+- nRF91 recovery no longer resets the device after unlocking or erasing (probe-rs resets it when flashing), and erases through CTRL-AP so the debug port stays open for probe-rs afterwards. Recovery errors now name the step and the last thing recovery printed
+
+**Changed:**
+- Tool manifest: probe-rs 0.32.0, ninja 1.13.2, CMake 3.31.12, recovery 0.2.3, zephyr-tools CLI 0.1.10. Run Setup to update
+
 ### [0.6.4] - 2026-07-06
 
 **Fixed:**
