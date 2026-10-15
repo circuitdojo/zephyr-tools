@@ -485,8 +485,13 @@ async function runRecovery(
   // probe-rs invocation, so wait longer than recovery's 2 s default to open it.
   // probe-rs resets the device when it flashes, so recovery's own final reset
   // is redundant.
+  //
+  // Erase with --force so recovery always goes through CTRL-AP ERASEALL. A
+  // debug port opened by the firmware closes on the next reset once flash is
+  // blank, leaving probe-rs facing a locked chip; one opened by CTRL-AP
+  // ERASEALL stays open until a power-on or pin reset.
   const args = [
-    mode === "erase" ? "--erase-only" : "--unlock-only",
+    ...(mode === "erase" ? ["--erase-only", "--force"] : ["--unlock-only"]),
     "--no-reset",
     "--timeout", "10000",
     ...recoveryProbeArgs(probeId),
