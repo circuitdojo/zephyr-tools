@@ -483,8 +483,11 @@ async function runRecovery(
 
   // The probe's USB interface can still be held briefly by the previous
   // probe-rs invocation, so wait longer than recovery's 2 s default to open it.
+  // probe-rs resets the device when it flashes, so recovery's own final reset
+  // is redundant.
   const args = [
     mode === "erase" ? "--erase-only" : "--unlock-only",
+    "--no-reset",
     "--timeout", "10000",
     ...recoveryProbeArgs(probeId),
   ];

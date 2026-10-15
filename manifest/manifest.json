@@ -1,5 +1,5 @@
 {
-  "version": 21,
+  "version": 22,
   "win32": [
     {
       "arch": "x64",
@@ -38,8 +38,8 @@
         {
           "name": "recovery",
           "filename": "recovery-x86_64-windows.zip",
-          "url": "https://github.com/circuitdojo/recovery/releases/download/v0.2.2/recovery-x86_64-windows.zip",
-          "sha256": "f45e0d1d557c40db298e0401c1b79c91315d129174b2f2829f8303bb8ea7ad4f"
+          "url": "https://github.com/circuitdojo/recovery/releases/download/v0.2.3/recovery-x86_64-windows.zip",
+          "sha256": "660990687ddfb716a35d8454dd0d6adcd8fc2471be64166bd7f0a52d1214cb64"
         }
       ],
       "toolchains": [
@@ -286,8 +286,8 @@
         {
           "name": "recovery",
           "filename": "recovery-aarch64-macos.tar.gz",
-          "url": "https://github.com/circuitdojo/recovery/releases/download/v0.2.2/recovery-aarch64-macos.tar.gz",
-          "sha256": "888ab9ddd8c2b6ce8be9049ee534ad86ca0a979309db11bc7f5ce9cb11a20365"
+          "url": "https://github.com/circuitdojo/recovery/releases/download/v0.2.3/recovery-aarch64-macos.tar.gz",
+          "sha256": "5d1a99222bde4ae0a3affe88011d0c9710ec5c9aa2befc100a28a53af53b7fde"
         }
       ],
       "toolchains": [
@@ -429,8 +429,8 @@
         {
           "name": "recovery",
           "filename": "recovery-x86_64-linux.tar.gz",
-          "url": "https://github.com/circuitdojo/recovery/releases/download/v0.2.2/recovery-x86_64-linux.tar.gz",
-          "sha256": "e2322587ff9e783cd640fc00a2023a32605f29200be49e87d13cb141d61b9891"
+          "url": "https://github.com/circuitdojo/recovery/releases/download/v0.2.3/recovery-x86_64-linux.tar.gz",
+          "sha256": "1800f0c2cc97dc0e050f7fdd90d405a1fb4687ca91866357bf05227a7c19b67b"
         }
       ],
       "toolchains": [
