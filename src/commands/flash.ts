@@ -502,9 +502,13 @@ async function runRecovery(
     return true;
   } catch (error: unknown) {
     console.error("Recovery failed:", error);
-    const errObj = error as { stderr?: string; message?: string };
-    const message = errObj.stderr || errObj.message || "Unknown error";
-    vscode.window.showErrorMessage(`Device recovery failed: ${message}`);
+    const errObj = error as { stdout?: string; stderr?: string; message?: string };
+    const message = errObj.stderr?.trim() || errObj.message || "Unknown error";
+    // The last line recovery printed before failing shows how far it got.
+    const lastStep = errObj.stdout?.trim().split(/\r?\n/).pop();
+    vscode.window.showErrorMessage(
+      `Device ${mode} failed: ${message}` + (lastStep ? ` (last step: ${lastStep})` : "")
+    );
     return false;
   }
 }
