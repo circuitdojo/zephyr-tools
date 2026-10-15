@@ -7,7 +7,9 @@
 import * as vscode from "vscode";
 import * as fs from "fs-extra";
 import * as path from "path";
+import * as yaml from "yaml";
 import { ProjectConfig } from "../types";
+import { isSysbuildMergedHex } from "./flash-hex";
 
 export interface BuildAssetInfo {
   name: string;
@@ -38,11 +40,6 @@ export class BuildAssetsManager {
       location: "root" as const,
     },
     {
-      name: "merged.hex",
-      displayName: "Merged Hex",
-      location: "root" as const,
-    },
-    {
       name: "zephyr.elf",
       displayName: "Zephyr ELF",
       location: "zephyr" as const,
@@ -68,11 +65,23 @@ export class BuildAssetsManager {
     let hasAssets = false;
     let lastBuild: Date | undefined;
 
+    const candidates: Array<{ name: string; displayName: string; path: string | null }> = [];
     for (const assetDef of this.ASSET_DEFINITIONS) {
-      const assetPath = await this.findAssetPath(buildPath, assetDef.name, assetDef.location);
-      const assetInfo: BuildAssetInfo = {
+      candidates.push({
         name: assetDef.name,
         displayName: assetDef.displayName,
+        path: await this.findAssetPath(buildPath, assetDef.name, assetDef.location),
+      });
+    }
+    for (const hexPath of await this.findMergedHexPaths(buildPath)) {
+      candidates.push({ name: path.basename(hexPath), displayName: "Merged Hex", path: hexPath });
+    }
+
+    for (const candidate of candidates) {
+      const assetPath = candidate.path;
+      const assetInfo: BuildAssetInfo = {
+        name: candidate.name,
+        displayName: candidate.displayName,
         path: assetPath || "",
         exists: false,
       };
@@ -121,48 +130,57 @@ export class BuildAssetsManager {
   }
 
   /**
-   * Find a build asset file under the build path.
-   * Zephyr build output structure varies (sysbuild vs non-sysbuild, chip qualifiers),
-   * so we search for the file rather than computing a fixed path.
+   * Find a build asset file under the build path. "zephyr" assets come from
+   * the application image: the default sysbuild domain from domains.yaml, or
+   * the build root for non-sysbuild builds. Other sysbuild images (b0,
+   * mcuboot, ...) have their own zephyr/ directories and must not shadow it.
    */
   private static async findAssetPath(buildPath: string, assetName: string, location: "root" | "zephyr"): Promise<string | null> {
-    if (location === "root") {
-      const candidate = path.join(buildPath, assetName);
-      if (await fs.pathExists(candidate)) {
-        return candidate;
-      }
-      return null;
-    }
-
-    // For "zephyr" location, search for */zephyr/{assetName} under buildPath
-    // Covers: build/{board}/zephyr/ (non-sysbuild) and build/{board}/{app}/zephyr/ (sysbuild)
-    try {
-      const entries = await fs.readdir(buildPath, { withFileTypes: true });
-      for (const entry of entries) {
-        if (!entry.isDirectory()) {continue;}
-        // Direct: {subdir}/zephyr/{asset}
-        const direct = path.join(buildPath, entry.name, "zephyr", assetName);
-        if (await fs.pathExists(direct)) {
-          return direct;
-        }
-        // One level deeper: {subdir}/{sub2}/zephyr/{asset}
-        try {
-          const subEntries = await fs.readdir(path.join(buildPath, entry.name), { withFileTypes: true });
-          for (const sub of subEntries) {
-            if (!sub.isDirectory()) {continue;}
-            const nested = path.join(buildPath, entry.name, sub.name, "zephyr", assetName);
-            if (await fs.pathExists(nested)) {
-              return nested;
-            }
-          }
-        } catch {
-          // subdirectory not readable, skip
-        }
-      }
-    } catch {
-      // build path not readable
+    const dir = location === "root" ? buildPath : path.join(await this.getAppImageDir(buildPath), "zephyr");
+    const candidate = path.join(dir, assetName);
+    if (await fs.pathExists(candidate)) {
+      return candidate;
     }
     return null;
+  }
+
+  /**
+   * Directory of the application image: build/<board>/<default domain> for
+   * sysbuild, build/<board> otherwise.
+   */
+  private static async getAppImageDir(buildPath: string): Promise<string> {
+    const domainsPath = path.join(buildPath, "domains.yaml");
+    if (!(await fs.pathExists(domainsPath))) {
+      return buildPath;
+    }
+    const domains: { default?: string } | null = yaml.parse(await fs.readFile(domainsPath, "utf8"));
+    if (!domains?.default) {
+      return buildPath;
+    }
+    return path.join(buildPath, domains.default);
+  }
+
+  /**
+   * Merged hex files in the build: merged.hex (Partition Manager) and/or
+   * merged_<board_target>.hex (sysbuild, NCS 3.5+).
+   */
+  private static async findMergedHexPaths(buildPath: string): Promise<string[]> {
+    if (!(await fs.pathExists(buildPath))) {
+      return [];
+    }
+    const found: string[] = [];
+    for (const legacy of [path.join(buildPath, "merged.hex"), path.join(buildPath, "zephyr", "merged.hex")]) {
+      if (await fs.pathExists(legacy)) {
+        found.push(legacy);
+      }
+    }
+    const entries = await fs.readdir(buildPath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isFile() && isSysbuildMergedHex(entry.name)) {
+        found.push(path.join(buildPath, entry.name));
+      }
+    }
+    return found;
   }
 
   /**
@@ -232,7 +250,7 @@ export class BuildAssetsManager {
       const patterns = [
         'build/**/zephyr.elf',
         'build/**/zephyr.hex', 
-        'build/**/merged.hex',
+        'build/**/merged*.hex',
         'build/**/dfu_application.zip',
         'build/**/dfu_application.zip_manifest.json',
         'build/**/log_dictionary.json'

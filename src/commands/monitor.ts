@@ -10,18 +10,14 @@ import { ProjectConfigManager } from "../config";
 import { SerialPortManager } from "../hardware";
 import { EnvironmentUtils } from "../utils";
 import { SettingsManager } from "../config/settings-manager";
+import { createProcessExecution, executeTaskWithEndHandler } from "../tasks";
 
 let activeMonitorExecution: vscode.TaskExecution | undefined;
-let activeMonitorDisposable: vscode.Disposable | undefined;
 
 export function terminateMonitor(): void {
   if (activeMonitorExecution) {
     activeMonitorExecution.terminate();
     activeMonitorExecution = undefined;
-  }
-  if (activeMonitorDisposable) {
-    activeMonitorDisposable.dispose();
-    activeMonitorDisposable = undefined;
   }
 }
 
@@ -69,7 +65,7 @@ export async function monitorCommand(
   }
 
   // Options for Shell Execution with normalized environment
-  const options: vscode.ShellExecutionOptions = {
+  const options: vscode.ProcessExecutionOptions = {
     env: EnvironmentUtils.normalizeEnvironment(SettingsManager.buildEnvironmentForExecution()),
     cwd: project.target,
   };
@@ -82,7 +78,7 @@ export async function monitorCommand(
   if (SettingsManager.getSerialSaveLogsToFile()) {
     monitorArgs.push("--save");
   }
-  const exec = new vscode.ShellExecution("zephyr-tools", monitorArgs, options);
+  const exec = createProcessExecution("zephyr-tools", monitorArgs, options);
 
   // Task
   const task = new vscode.Task(
@@ -94,12 +90,9 @@ export async function monitorCommand(
   );
 
   // Start execution (outside TaskManager so it doesn't block the build/flash queue)
-  activeMonitorExecution = await vscode.tasks.executeTask(task);
-  activeMonitorDisposable = vscode.tasks.onDidEndTaskProcess(e => {
-    if (e.execution === activeMonitorExecution) {
+  activeMonitorExecution = await executeTaskWithEndHandler(task, (_exitCode, execution) => {
+    if (activeMonitorExecution === execution) {
       activeMonitorExecution = undefined;
-      activeMonitorDisposable?.dispose();
-      activeMonitorDisposable = undefined;
     }
   });
 }

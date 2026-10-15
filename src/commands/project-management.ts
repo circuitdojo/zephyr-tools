@@ -12,7 +12,7 @@ import * as path from "path";
 import { GlobalConfig, ZephyrTask } from "../types";
 import { ProjectConfigManager, ProjectOverridesManager } from "../config";
 import { QuickPickManager, DialogManager, OutputChannelManager, StatusBarManager } from "../ui";
-import { TaskManager } from "../tasks";
+import { createProcessExecution, TaskManager } from "../tasks";
 import { SettingsManager } from "../config";
 import { getRequirementsInstallCommand } from "../environment";
 import { ensureCompatibleSdk } from "./install-sdk";
@@ -187,8 +187,8 @@ export async function initRepoCommand(
       // Use default manifest filename (repo not cloned yet, can't discover files)
       manifest = "west.yml";
 
-      // git clone to destination. url and branch are user input — pass as an
-      // argument array so VS Code shell-quotes them (spaces/metacharacters safe).
+      // git clone to destination. url and branch are user input — run west
+      // without shell parsing so spaces and shell metacharacters stay literal.
       const initArgs = ["init", "-m", url, "--mf", manifest];
 
       // Set branch option
@@ -197,7 +197,7 @@ export async function initRepoCommand(
         initArgs.push("--mr", branch);
       }
 
-      const exec = new vscode.ShellExecution("west", initArgs, shellOptions);
+      const exec = createProcessExecution("west", initArgs, shellOptions);
 
       // Task
       const task = new vscode.Task(
@@ -213,8 +213,7 @@ export async function initRepoCommand(
     }
 
     // `west update`
-    const updateCmd = "west update";
-    const updateExec = new vscode.ShellExecution(updateCmd, shellOptions);
+    const updateExec = createProcessExecution("west", ["update"], shellOptions);
 
     // Task
     const updateTask = new vscode.Task(
@@ -257,14 +256,14 @@ export async function initRepoCommand(
 
       // Install python dependencies for the current tree (all west modules where
       // supported, falling back to zephyr/scripts/requirements.txt on older trees).
-      const installCmd = await getRequirementsInstallCommand(
+      const [installCommand, ...installArgs] = await getRequirementsInstallCommand(
         base,
         SettingsManager.buildEnvironmentForExecution(),
         dest.fsPath
       );
-      output.appendLine(`[INIT] Starting Python dependency install: ${installCmd}`);
-      
-      const installExec = new vscode.ShellExecution(installCmd, shellOptions);
+      output.appendLine(`[INIT] Starting Python dependency install: ${[installCommand, ...installArgs].join(" ")}`);
+
+      const installExec = createProcessExecution(installCommand, installArgs, shellOptions);
 
       // Task
       const installTask = new vscode.Task(

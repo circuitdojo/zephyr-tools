@@ -121,8 +121,8 @@ export async function westSupportsPackages(
 }
 
 /**
- * Builds the shell command used to (re)install the Zephyr tree's Python
- * requirements.
+ * Builds the command (program followed by its arguments) used to (re)install
+ * the Zephyr tree's Python requirements.
  *
  * Prefers `west packages pip --install`, which collects requirements across every
  * west module (zephyr, nrf, mcuboot, etc.) and tracks whatever the current tree
@@ -135,11 +135,11 @@ export async function getRequirementsInstallCommand(
   zephyrBase: string,
   env: { [key: string]: string | undefined },
   cwd: string
-): Promise<string> {
+): Promise<string[]> {
   if (await westSupportsPackages(env, cwd)) {
-    return "west packages pip --install";
+    return ["west", "packages", "pip", "--install"];
   }
 
   const requirementsPath = path.join(zephyrBase, "scripts", "requirements.txt");
-  return `"${getVenvPython()}" -m pip install -r "${requirementsPath}"`;
+  return [getVenvPython(), "-m", "pip", "install", "-r", requirementsPath];
 }

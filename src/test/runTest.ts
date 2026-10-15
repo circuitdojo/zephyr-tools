@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 import { runTests } from '@vscode/test-electron';
@@ -12,8 +14,16 @@ async function main() {
 		// Passed to --extensionTestsPath
 		const extensionTestsPath = path.resolve(__dirname, './suite/index');
 
+		// Open an empty workspace folder so tests can run VS Code tasks, which
+		// need a workspace.
+		const workspacePath = fs.mkdtempSync(path.join(os.tmpdir(), 'zephyr-tools-test-workspace-'));
+
 		// Download VS Code, unzip it and run the integration test
-		await runTests({ extensionDevelopmentPath, extensionTestsPath });
+		try {
+			await runTests({ extensionDevelopmentPath, extensionTestsPath, launchArgs: [workspacePath] });
+		} finally {
+			fs.rmSync(workspacePath, { recursive: true, force: true });
+		}
 	} catch (_err) {
 		console.error('Failed to run tests');
 		process.exit(1);
