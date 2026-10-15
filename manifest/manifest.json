@@ -1,5 +1,5 @@
 {
-  "version": 20,
+  "version": 21,
   "win32": [
     {
       "arch": "x64",
@@ -19,21 +19,21 @@
         {
           "name": "ninja",
           "filename": "ninja-win.zip",
-          "url": "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip",
-          "sha256": "bbde850d247d2737c5764c927d1071cbb1f1957dcabda4a130fa8547c12c695f"
+          "url": "https://github.com/ninja-build/ninja/releases/download/v1.13.2/ninja-win.zip",
+          "sha256": "07fc8261b42b20e71d1720b39068c2e14ffcee6396b76fb7a795fb460b78dc65"
         },
         {
           "name": "cmake",
-          "filename": "cmake-3.22.0-windows-x86_64.zip",
-          "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-windows-x86_64.zip",
-          "sha256": "fcce74d1d7eaf825234c036702df3f0874dcd3cee8fdf90b56d0c7bfedd29465",
-          "suffix": "cmake-3.22.0-windows-x86_64\\bin"
+          "filename": "cmake-3.31.12-windows-x86_64.zip",
+          "url": "https://github.com/Kitware/CMake/releases/download/v3.31.12/cmake-3.31.12-windows-x86_64.zip",
+          "sha256": "0c4baa40f28b3f8225eb3fdf6946c987b4fe901403b4eaf2fbbd9378100aaa0c",
+          "suffix": "cmake-3.31.12-windows-x86_64\\bin"
         },
         {
           "name": "probe-rs",
           "filename": "probe-rs-tools-x86_64-pc-windows-msvc.zip",
-          "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.29.1/probe-rs-tools-x86_64-pc-windows-msvc.zip",
-          "sha256": "a1e220225cd09c9474fdf2db219adff4030074e6bdaf6e4f669ff97661d55413"
+          "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.32.0/probe-rs-tools-x86_64-pc-windows-msvc.zip",
+          "sha256": "56fc0564cc23d604b27dc2d57606194159c49f951999f3e47bd2cbffcba64103"
         },
         {
           "name": "recovery",
@@ -169,21 +169,21 @@
         {
           "name": "ninja",
           "filename": "ninja-mac.zip",
-          "url": "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-mac.zip",
-          "sha256": "6fa359f491fac7e5185273c6421a000eea6a2f0febf0ac03ac900bd4d80ed2a5"
+          "url": "https://github.com/ninja-build/ninja/releases/download/v1.13.2/ninja-mac.zip",
+          "sha256": "c99048673aa765960a99cf10c6ddb9f1fad506099ff0a0e137ad8960a88f321b"
         },
         {
           "name": "cmake",
-          "filename": "cmake-3.22.0-macos-universal.tar.gz",
-          "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-macos-universal.tar.gz",
-          "sha256": "84526401d8cc0a0b0551f2f899164e2fbc2c69cbc8573b67bfa7441bae7ad051",
-          "suffix": "cmake-3.22.0-macos-universal/CMake.app/Contents/bin"
+          "filename": "cmake-3.31.12-macos-universal.tar.gz",
+          "url": "https://github.com/Kitware/CMake/releases/download/v3.31.12/cmake-3.31.12-macos-universal.tar.gz",
+          "sha256": "799af7fd545db9bf1b9cfe72f8095880e727a2d4e0df0e3dffc3bc7b95c2d3b0",
+          "suffix": "cmake-3.31.12-macos-universal/CMake.app/Contents/bin"
         },
         {
           "name": "probe-rs",
           "filename": "probe-rs-tools-x86_64-apple-darwin.tar.xz",
-          "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.29.1/probe-rs-tools-x86_64-apple-darwin.tar.xz",
-          "sha256": "b6b8ccfd367ddf0ddcd04a23bc0e440087d49c333472b259fe79340fb63e119e",
+          "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.32.0/probe-rs-tools-x86_64-apple-darwin.tar.xz",
+          "sha256": "e23d117a29909a389c92234ac3ebafcc5ec24d8969d1ec5d70eece622827f778",
           "suffix": "probe-rs-tools-x86_64-apple-darwin/"
         }
       ],
@@ -271,16 +271,16 @@
         },
         {
           "name": "cmake",
-          "filename": "cmake-3.22.0-macos-universal.tar.gz",
-          "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-macos-universal.tar.gz",
-          "sha256": "84526401d8cc0a0b0551f2f899164e2fbc2c69cbc8573b67bfa7441bae7ad051",
-          "suffix": "cmake-3.22.0-macos-universal/CMake.app/Contents/bin"
+          "filename": "cmake-3.31.12-macos-universal.tar.gz",
+          "url": "https://github.com/Kitware/CMake/releases/download/v3.31.12/cmake-3.31.12-macos-universal.tar.gz",
+          "sha256": "799af7fd545db9bf1b9cfe72f8095880e727a2d4e0df0e3dffc3bc7b95c2d3b0",
+          "suffix": "cmake-3.31.12-macos-universal/CMake.app/Contents/bin"
         },
         {
           "name": "probe-rs",
           "filename": "probe-rs-tools-aarch64-apple-darwin.tar.xz",
-          "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.29.1/probe-rs-tools-aarch64-apple-darwin.tar.xz",
-          "sha256": "74af375061589671644cdfb7fd406b0346da736001f97f33f74d229d7fe5ef6f",
+          "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.32.0/probe-rs-tools-aarch64-apple-darwin.tar.xz",
+          "sha256": "c39631679b83d0c94dc442d05cc4ca974a87c02907a6ddbfce46746ed503152c",
           "suffix": "probe-rs-tools-aarch64-apple-darwin/"
         },
         {
@@ -409,21 +409,21 @@
         {
           "name": "ninja",
           "filename": "ninja-linux.zip",
-          "url": "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-linux.zip",
-          "sha256": "763464859c7ef2ea3a0a10f4df40d2025d3bb9438fcb1228404640410c0ec22d"
+          "url": "https://github.com/ninja-build/ninja/releases/download/v1.13.2/ninja-linux.zip",
+          "sha256": "5749cbc4e668273514150a80e387a957f933c6ed3f5f11e03fb30955e2bbead6"
         },
         {
           "name": "cmake",
-          "filename": "cmake-3.22.0-linux-x86_64.tar.gz",
-          "url": "https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-linux-x86_64.tar.gz",
-          "sha256": "dc73115520d13bb64202383d3df52bc3d6bbb8422ecc5b2c05f803491cb215b0",
-          "suffix": "cmake-3.22.0-linux-x86_64/bin"
+          "filename": "cmake-3.31.12-linux-x86_64.tar.gz",
+          "url": "https://github.com/Kitware/CMake/releases/download/v3.31.12/cmake-3.31.12-linux-x86_64.tar.gz",
+          "sha256": "0dc2e9a6860f06bf10bd8fadc03e35d9eeb4df46e33763a7e480e987758f385c",
+          "suffix": "cmake-3.31.12-linux-x86_64/bin"
         },
         {
           "name": "probe-rs",
           "filename": "probe-rs-tools-x86_64-unknown-linux-gnu.tar.xz",
-          "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.29.1/probe-rs-tools-x86_64-unknown-linux-gnu.tar.xz",
-          "sha256": "f2ccb2ee5058559d663a3a4d1947ca1ce80802546aadd48cf355455126ae9758",
+          "url": "https://github.com/probe-rs/probe-rs/releases/download/v0.32.0/probe-rs-tools-x86_64-unknown-linux-gnu.tar.xz",
+          "sha256": "c2ccc46049e52a5d403ef212078cd637ecda55b662708327960558f83e851ff5",
           "suffix": "probe-rs-tools-x86_64-unknown-linux-gnu/"
         },
         {
