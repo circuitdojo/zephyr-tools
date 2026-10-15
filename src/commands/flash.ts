@@ -586,10 +586,11 @@ async function prepareNrf91Uicr(
     const addresses = plan.addresses.map(a => `0x${a.toString(16).padStart(8, "0")}`).join(", ");
     console.log(`UICR differs from the build at ${addresses}`);
     const choice = await vscode.window.showWarningMessage(
-      "This build writes UICR values that differ from the device. nRF91 UICR can only be rewritten by erasing the whole chip, which also clears settings and other stored data.",
+      "UICR changed. Erase the chip to flash?",
       {
         modal: true,
-        detail: `Differing UICR words: ${addresses}\n\nA b0 signing key generated in the build directory changes on every pristine build. Set SB_CONFIG_SECURE_BOOT_SIGNING_KEY_FILE to keep it stable.`,
+        detail:
+          "This clears all stored data.\n\nTip: set SB_CONFIG_SECURE_BOOT_SIGNING_KEY_FILE so pristine builds keep the same b0 key.",
       },
       "Erase and Flash"
     );
