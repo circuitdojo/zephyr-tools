@@ -380,9 +380,8 @@ export async function flashProbeRsCommand(
       downloadArgs.push("--probe", probeId);
     }
 
-    // Add verification flags from settings. Bootloader images rarely change,
-    // so always preverify them to skip reprogramming when the device matches.
-    if (SettingsManager.getProbeRsPreverify() || image.preverify) {
+    // Add verification flags from settings.
+    if (SettingsManager.getProbeRsPreverify()) {
       downloadArgs.push("--preverify");
     }
 
