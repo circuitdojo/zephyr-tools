@@ -19,8 +19,8 @@ jobs:
       fail-fast: false
       matrix:
         # Covers the three supported targets: Linux x64, Windows x64,
-        # and macOS arm64 (macos-14 runners are Apple Silicon).
-        os: [ubuntu-latest, windows-latest, macos-14]
+        # and macOS arm64 (macos-latest runners are Apple Silicon).
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
 
