@@ -77,32 +77,6 @@ export function readHexBytes(hexText: string): HexBytes {
   return bytes;
 }
 
-/** Contiguous [start, end) address ranges covered by a hex file's data. */
-export function hexRanges(hexText: string): Array<[number, number]> {
-  const ranges: Array<[number, number]> = [];
-  forEachRecord(hexText, (_line, record, base) => {
-    if (record?.type !== 0x00 || record.data.length === 0) {
-      return;
-    }
-    ranges.push([base + record.offset, base + record.offset + record.data.length]);
-  });
-  ranges.sort((a, b) => a[0] - b[0]);
-  const merged: Array<[number, number]> = [];
-  for (const range of ranges) {
-    const last = merged[merged.length - 1];
-    if (last && range[0] <= last[1]) {
-      last[1] = Math.max(last[1], range[1]);
-    } else {
-      merged.push([range[0], range[1]]);
-    }
-  }
-  return merged;
-}
-
-export function rangesOverlap(a: Array<[number, number]>, b: Array<[number, number]>): boolean {
-  return a.some(([aStart, aEnd]) => b.some(([bStart, bEnd]) => aStart < bEnd && bStart < aEnd));
-}
-
 /** Whether a hex file contains any data bytes. */
 export function hexHasData(hexText: string): boolean {
   let found = false;
@@ -112,20 +86,6 @@ export function hexHasData(hexText: string): boolean {
     }
   });
   return found;
-}
-
-/**
- * Merge hex files in order; a later file replaces earlier data at the same
- * address. Same semantics as Zephyr's `mergehex.py --overlap replace`.
- */
-export function mergeHexTexts(hexTexts: string[]): string {
-  const bytes: HexBytes = new Map();
-  for (const text of hexTexts) {
-    for (const [address, byte] of readHexBytes(text)) {
-      bytes.set(address, byte);
-    }
-  }
-  return writeHex(bytes);
 }
 
 /** Serialize bytes as Intel HEX with 16-byte data records. */

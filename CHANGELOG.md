@@ -2,6 +2,15 @@
 
 All notable changes to the "zephyr-tools" extension will be documented in this file.
 
+### [0.7.1] - 2026-11-07
+
+**Fixed:**
+- probe-rs flashing of sysbuild builds (NCS 3.5+) now programs the SDK's `merged_<board_target>.hex` in a single download per board target. Bootloader/UICR images were flashed in a separate probe-rs session from the application, so the chip reset in between with UICR written but no application to reopen the debug port; the nRF91x1 locked it and the application download failed
+- nRF91: after a flash that writes UICR (following a chip erase), the post-flash `probe-rs reset` is skipped and you're asked to press the board's reset button or power-cycle it. New UICR values, including the debug access words, only take effect on a pin or power-on reset, so until then the debug port is locked and the reset always failed
+
+**Changed:**
+- Sysbuild builds flashed with probe-rs need `SB_CONFIG_MERGED_HEX_FILES=y` (in `sysbuild.conf` or the board's `Kconfig.sysbuild`; the nRF9151 Feather board in nfed v3.5.x defaults it on). Without it, flashing stops with a message saying what to set. The separate bootloader download and its automatic `--preverify` are gone; the probe-rs preverify setting still applies. Partition Manager builds (NCS 3.4 and earlier) and single-image builds are unchanged
+
 ### [0.7.0] - 2026-10-15
 
 **Added:**

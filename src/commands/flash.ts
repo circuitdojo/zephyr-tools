@@ -359,12 +359,14 @@ export async function flashProbeRsCommand(
 
   // nRF91 UICR can only be cleared by a full chip erase. Skip UICR writes that
   // are already on the device, or erase when any still need to be written.
+  let uicrWritten = false;
   if (isNrf91) {
     const prepared = await prepareNrf91Uicr(buildDir, images, chipName, probeId, options.env);
     if (!prepared) {
       return false;
     }
-    images = prepared;
+    images = prepared.images;
+    uicrWritten = prepared.uicrWritten;
   }
 
   vscode.window.showInformationMessage(`Flashing with probe-rs for ${project.board} using chip: ${chipName}`);
@@ -380,9 +382,8 @@ export async function flashProbeRsCommand(
       downloadArgs.push("--probe", probeId);
     }
 
-    // Add verification flags from settings. Bootloader images rarely change,
-    // so always preverify them to skip reprogramming when the device matches.
-    if (SettingsManager.getProbeRsPreverify() || image.preverify) {
+    // Add verification flags from settings.
+    if (SettingsManager.getProbeRsPreverify()) {
       downloadArgs.push("--preverify");
     }
 
@@ -410,6 +411,17 @@ export async function flashProbeRsCommand(
       vscode.window.showErrorMessage(`probe-rs flash error on ${image.label}! Check that your probe is connected and the chip name is correct.`);
       return false;
     }
+  }
+
+  // New UICR values (APPROTECT included) only take effect after a pin or
+  // power-on reset. Until then the nRF91 locks its debug port as soon as the
+  // probe-rs session ends, so a probe-rs reset can't reach it, and the
+  // Feather's onboard probe has no reset line.
+  if (uicrWritten) {
+    vscode.window.showWarningMessage(
+      "Device flashed and UICR written. Press the board's reset button or power-cycle it to apply UICR; the debug port stays locked until then."
+    );
+    return true;
   }
 
   console.log("Flash task completed successfully, now resetting device...");
@@ -545,8 +557,9 @@ export function recoveryProbeArgs(probeId: string | undefined): string[] {
 /**
  * Compare the UICR words the images program with the device's UICR. Returns
  * the images to download (UICR stripped when already programmed; images left
- * empty are dropped), or undefined on failure or cancel. Erases the chip,
- * after confirmation, when UICR must be written.
+ * empty are dropped) and whether the download writes UICR, or undefined on
+ * failure or cancel. Erases the chip, after confirmation, when UICR must be
+ * written.
  */
 async function prepareNrf91Uicr(
   buildDir: string,
@@ -554,7 +567,7 @@ async function prepareNrf91Uicr(
   chipName: string,
   probeId: string | undefined,
   env?: { [key: string]: string | undefined }
-): Promise<FlashImage[] | undefined> {
+): Promise<{ images: FlashImage[]; uicrWritten: boolean } | undefined> {
   const hexTexts = new Map<FlashImage, string>();
   const hexWords: UicrWords = new Map();
   for (const image of images) {
@@ -566,7 +579,7 @@ async function prepareNrf91Uicr(
   }
 
   if (hexWords.size === 0) {
-    return images;
+    return { images, uicrWritten: false };
   }
 
   const tools = PlatformUtils.getToolExecutables();
@@ -614,7 +627,7 @@ async function prepareNrf91Uicr(
     if (!(await runRecovery("erase", probeId, env))) {
       return undefined;
     }
-    return images;
+    return { images, uicrWritten: true };
   }
 
   console.log("UICR already matches the build; skipping UICR writes");
@@ -633,7 +646,7 @@ async function prepareNrf91Uicr(
     await fs.outputFile(strippedPath, strippedText);
     stripped.push({ ...image, hexPath: strippedPath });
   }
-  return stripped;
+  return { images: stripped, uicrWritten: false };
 }
 
 /**
